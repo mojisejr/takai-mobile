@@ -1,0 +1,7 @@
+{
+  "targetSdkVersion": "54.0.0",
+  "expectedRuntimeVersion": "exposdk:54.0.0",
+  "targetClient": "Expo Go Android",
+  "reason": "Operator Android Expo Go compatibility baseline from repeated device-eye mismatch learning.",
+  "truthState": "Expo Go Compatibility Gate Pending"
+}

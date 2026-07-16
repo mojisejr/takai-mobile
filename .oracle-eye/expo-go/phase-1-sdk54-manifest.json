@@ -1,0 +1,16 @@
+{
+  "truthState": "Expo Go Compatibility Gate Closed",
+  "port": 8085,
+  "statusEndpoint": "http://127.0.0.1:8085/status",
+  "statusBody": "packager-status:running",
+  "manifestEndpoint": "http://127.0.0.1:8085/",
+  "manifestRequestHeaders": {
+    "expo-platform": "android"
+  },
+  "manifestHttpStatus": 200,
+  "runtimeVersion": "exposdk:54.0.0",
+  "sdkVersion": "54.0.0",
+  "hostUri": "127.0.0.1:8085",
+  "launchAssetPlatform": "android",
+  "evidence": "Expo dev server Android manifest returned runtimeVersion exposdk:54.0.0 and expoClient.sdkVersion 54.0.0."
+}
