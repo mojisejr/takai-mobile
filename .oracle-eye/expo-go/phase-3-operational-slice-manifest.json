@@ -1,0 +1,31 @@
+{
+  "phase": "3",
+  "lane": "expo-go-device-eye",
+  "status": "operator_pending",
+  "screen": "OperationalSliceScreen",
+  "entry": "App.tsx",
+  "targetClient": "Expo Go SDK 54",
+  "deterministicEvidence": {
+    "typecheck": "passed",
+    "domainTests": "passed",
+    "operationsTests": "passed",
+    "designContract": "passed",
+    "expoGoCompatibility": "passed",
+    "expoDoctor": "passed",
+    "androidExportSmoke": "passed"
+  },
+  "checklist": [
+    "Today Dashboard loads local seed data",
+    "Plot Dashboard shows active crop, area/count summaries, tracker cards, and active cases",
+    "Activity Capture creates a spray activity with two material usages",
+    "Activity Capture creates no labor for self and one unpaid labor entry for worker",
+    "Activity persists after reload/re-read and updates tracker counts",
+    "status bar/header/bottom nav do not overlap on Android Expo Go",
+    "Thai labels remain inside list rows and primary controls"
+  ],
+  "truthState": {
+    "hardGate": "closed-by-automated-tests-and-android-export-smoke",
+    "rnStaticTokenGate": "closed-by-automated-tests",
+    "expoGoDeviceEye": "pending-human-device-proof"
+  }
+}

@@ -22,8 +22,9 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck",
-    "test": "npm run typecheck && npm run test:domain",
+    "test": "npm run typecheck && npm run test:domain && npm run test:operations",
     "test:domain": "tsx scripts/domain-schema-check.ts",
+    "test:operations": "tsx scripts/operational-slice-check.ts",
     "test:design-contract": "node scripts/design-contract-check.mjs",
     "test:expo-go-compat": "node scripts/expo-go-compat-check.mjs"
   },

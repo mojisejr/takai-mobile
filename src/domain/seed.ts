@@ -72,6 +72,15 @@ export const TAKAI_DEMO_SEED = {
       photoUri: null,
       notes: 'ตัวอย่างวัสดุสำหรับทดสอบกิจกรรมพ่นยา',
     },
+    {
+      id: 'material-spreader-a',
+      name: 'สารจับใบ',
+      type: 'other',
+      unit: 'cc',
+      defaultRatePerTank: '10 cc / 20 L',
+      photoUri: null,
+      notes: 'ตัวอย่างวัสดุเสริมสำหรับบันทึกพ่นยา',
+    },
   ] satisfies Material[],
 };
 
