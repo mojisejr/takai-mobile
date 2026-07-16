@@ -1,0 +1,298 @@
+import assert from 'node:assert/strict';
+
+import { TAKAI_DEMO_SEED } from '../src/domain';
+import type { ActivityCategory, CropCycle, Garden, Hole, Material, Person, Plot } from '../src/domain';
+import type { SqlExecutor } from '../src/data';
+import {
+  createActivity,
+  createDemoSprayActivity,
+  getActivityCaptureOptions,
+  getPlotDashboard,
+  getTodayDashboard,
+} from '../src/features/operations';
+
+type Row = Record<string, unknown>;
+
+class OperationalFakeSqlite implements SqlExecutor {
+  gardens: Garden[] = TAKAI_DEMO_SEED.gardens.map((garden) => ({ ...garden }));
+  plots: Plot[] = TAKAI_DEMO_SEED.plots.map((plot) => ({ ...plot }));
+  cropCycles: CropCycle[] = TAKAI_DEMO_SEED.cropCycles.map((crop) => ({ ...crop }));
+  holes: Hole[] = TAKAI_DEMO_SEED.holes.map((hole) => ({ ...hole }));
+  categories: ActivityCategory[] = TAKAI_DEMO_SEED.activityCategories.map((category) => ({ ...category }));
+  people: Person[] = TAKAI_DEMO_SEED.people.map((person) => ({ ...person }));
+  materials: Material[] = TAKAI_DEMO_SEED.materials.map((material) => ({ ...material }));
+  activities: Row[] = [];
+  activityTargets: Row[] = [];
+  activityMaterials: Row[] = [];
+  activityParticipants: Row[] = [];
+  laborEntries: Row[] = [];
+  cases: Row[] = [
+    {
+      id: 'case-a-014',
+      plot_id: 'plot-a',
+      hole_id: 'hole-a-014',
+      title: 'A-014 เชื้อราโคนต้น',
+      status: 'tracking',
+      opened_at: '2026-07-10T08:00:00.000Z',
+      closed_at: null,
+    },
+  ];
+
+  async execAsync(): Promise<void> {}
+
+  async getAllAsync<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+    if (sql.includes('SELECT id FROM plots ORDER BY sort_order ASC LIMIT 1')) {
+      return [{ id: this.plots[0]?.id }] as T[];
+    }
+
+    if (sql.includes('SELECT id FROM holes WHERE plot_id = ? ORDER BY sort_key ASC LIMIT 1')) {
+      return this.holes.filter((hole) => hole.plotId === params[0]).slice(0, 1).map((hole) => ({ id: hole.id })) as T[];
+    }
+
+    if (sql.includes('FROM activity_categories') && sql.includes('ORDER BY sort_order ASC') && !sql.includes('LEFT JOIN')) {
+      return this.categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        kind: category.kind,
+        trackByDefault: category.trackByDefault,
+        sortOrder: category.sortOrder,
+      })) as T[];
+    }
+
+    if (sql.includes('FROM materials') && sql.includes('ORDER BY name ASC')) {
+      return this.materials
+        .map((material) => ({
+          id: material.id,
+          name: material.name,
+          type: material.type,
+          unit: material.unit,
+          defaultRatePerTank: material.defaultRatePerTank,
+          photoUri: material.photoUri,
+          notes: material.notes,
+        }))
+        .sort((left, right) => left.name.localeCompare(right.name)) as T[];
+    }
+
+    if (sql.includes('FROM people ORDER BY is_self DESC')) {
+      return this.people
+        .map((person) => ({
+          id: person.id,
+          display_name: person.displayName,
+          role: person.role,
+          is_self: Number(person.isSelf),
+        }))
+        .sort((left, right) => right.is_self - left.is_self) as T[];
+    }
+
+    if (sql.trim() === 'SELECT id, display_name, role, is_self FROM people') {
+      return this.people.map((person) => ({
+        id: person.id,
+        display_name: person.displayName,
+        role: person.role,
+        is_self: Number(person.isSelf),
+      })) as T[];
+    }
+
+    if (sql.includes('FROM crop_cycles') && sql.includes('starts_on <= date')) {
+      const [plotId, performedAt] = params as string[];
+      return this.cropCycles
+        .filter(
+          (crop) =>
+            crop.plotId === plotId &&
+            crop.startsOn <= performedAt.slice(0, 10) &&
+            (!crop.endsOn || crop.endsOn >= performedAt.slice(0, 10)),
+        )
+        .map((crop) => ({ id: crop.id })) as T[];
+    }
+
+    if (sql.includes('FROM plots') && sql.includes('JOIN gardens')) {
+      const plot = this.plots.find((item) => item.id === params[0]);
+      const garden = this.gardens.find((item) => item.id === plot?.gardenId);
+      return plot && garden
+        ? ([{ id: plot.id, garden_name: garden.name, name: plot.name, area_rai: plot.areaRai }] as T[])
+        : [];
+    }
+
+    if (sql.includes("WHERE plot_id = ? AND status = 'active'")) {
+      return this.cropCycles
+        .filter((crop) => crop.plotId === params[0] && crop.status === 'active')
+        .map((crop) => ({ id: crop.id, label: crop.label, starts_on: crop.startsOn })) as T[];
+    }
+
+    if (sql.includes('SUM(CASE WHEN status =')) {
+      const holes = this.holes.filter((hole) => hole.plotId === params[0]);
+      return [
+        {
+          total: holes.length,
+          planted: holes.filter((hole) => hole.status === 'planted').length,
+          empty: holes.filter((hole) => hole.status === 'empty').length,
+        },
+      ] as T[];
+    }
+
+    if (sql.includes('LEFT JOIN activities') && sql.includes('activity_categories.track_by_default = 1')) {
+      const [plotId, maybeCropId] = params as [string, string | null, string | null];
+      return this.categories
+        .filter((category) => category.trackByDefault)
+        .map((category) => {
+          const activities = this.activities.filter(
+            (activity) =>
+              activity.category_id === category.id &&
+              activity.plot_id === plotId &&
+              activity.status === 'done' &&
+              (!maybeCropId || activity.crop_cycle_id === maybeCropId),
+          );
+          const latest = activities.map((activity) => String(activity.performed_at)).sort().at(-1) ?? null;
+          const latestFollowUp =
+            activities
+              .filter((activity) => Boolean(activity.follow_up_on))
+              .map((activity) => String(activity.follow_up_on))
+              .sort()
+              .at(-1) ?? null;
+          return {
+            category_id: category.id,
+            title: category.name,
+            count: activities.length,
+            latest_performed_at: latest,
+            latest_follow_up_on: latestFollowUp,
+          };
+        }) as T[];
+    }
+
+    if (sql.includes('FROM cases') && sql.includes("cases.status = 'tracking'")) {
+      return this.cases
+        .filter((caseItem) => caseItem.plot_id === params[0] && caseItem.status === 'tracking')
+        .map((caseItem) => ({
+          id: caseItem.id,
+          title: caseItem.title,
+          status: caseItem.status,
+          marker: this.holes.find((hole) => hole.id === caseItem.hole_id)?.marker ?? null,
+        })) as T[];
+    }
+
+    if (sql.includes('SELECT name FROM gardens')) {
+      return [{ name: this.gardens[0]?.name }] as T[];
+    }
+
+    if (sql.includes('GROUP_CONCAT(materials.name')) {
+      return this.activities
+        .filter((activity) => activity.plot_id === params[0])
+        .map((activity) => {
+          const category = this.categories.find((item) => item.id === activity.category_id);
+          const materialNames = this.activityMaterials
+            .filter((row) => row.activity_id === activity.id)
+            .map((row) => this.materials.find((material) => material.id === row.material_id)?.name)
+            .filter(Boolean)
+            .join(', ');
+          return {
+            id: activity.id,
+            category_name: category?.name ?? 'กิจกรรม',
+            note: activity.note,
+            performed_at: activity.performed_at,
+            follow_up_on: activity.follow_up_on,
+            material_names: materialNames || null,
+          };
+        })
+        .sort((left, right) => String(right.performed_at).localeCompare(String(left.performed_at)))
+        .slice(0, 5) as T[];
+    }
+
+    if (sql.includes('COALESCE(SUM(amount_due - amount_paid), 0) AS total')) {
+      return [
+        {
+          total: this.laborEntries
+            .filter((entry) => entry.status === 'unpaid')
+            .reduce((sum, entry) => sum + Number(entry.amount_due) - Number(entry.amount_paid), 0),
+        },
+      ] as T[];
+    }
+
+    throw new Error(`Unhandled fake SQL: ${sql}`);
+  }
+
+  async runAsync(sql: string, params: unknown[] = []): Promise<void> {
+    if (sql.includes('INSERT INTO activities')) {
+      const [id, plot_id, crop_cycle_id, category_id, performed_at, note, follow_up_on] = params;
+      this.activities.push({ id, plot_id, crop_cycle_id, category_id, performed_at, note, follow_up_on, status: 'done' });
+      return;
+    }
+
+    if (sql.includes('INSERT INTO activity_targets')) {
+      const [id, activity_id, target_type, target_id] = params;
+      this.activityTargets.push({ id, activity_id, target_type, target_id });
+      return;
+    }
+
+    if (sql.includes('INSERT INTO activity_materials')) {
+      const [id, activity_id, material_id, amount, unit] = params;
+      this.activityMaterials.push({ id, activity_id, material_id, amount, unit });
+      return;
+    }
+
+    if (sql.includes('INSERT INTO activity_participants')) {
+      const [id, activity_id, person_id, pay_type, amount_due] = params;
+      this.activityParticipants.push({ id, activity_id, person_id, pay_type, amount_due, contract_job_id: null, paid_at: null });
+      return;
+    }
+
+    if (sql.includes('INSERT INTO labor_entries')) {
+      const [id, activity_participant_id, person_id, work_date, amount_due, amount_paid, status] = params;
+      this.laborEntries.push({ id, activity_participant_id, person_id, work_date, amount_due, amount_paid, status });
+      return;
+    }
+
+    throw new Error(`Unhandled fake SQL write: ${sql}`);
+  }
+}
+
+const main = async (): Promise<void> => {
+  const db = new OperationalFakeSqlite();
+
+  const emptyToday = await getTodayDashboard(db);
+  assert.equal(emptyToday.plot.name, 'แปลง A');
+  assert.equal(emptyToday.plot.activeCrop?.id, 'crop-2026-plot-a');
+  assert.equal(emptyToday.plot.trackers.find((tracker) => tracker.categoryId === 'cat-spray')?.count, 0);
+  assert.equal(emptyToday.recentItems[0]?.id, 'empty-today');
+
+  const options = await getActivityCaptureOptions(db);
+  assert.equal(options.materials.length >= 2, true, 'Phase 3 requires two selectable materials');
+  assert.equal(options.defaultWorkerId, 'person-worker-somchai');
+
+  const created = await createDemoSprayActivity(db);
+  assert.equal(created.activityId, 'activity-demo-spray');
+  assert.equal(created.cropCycleId, 'crop-2026-plot-a');
+  assert.deepEqual(created.laborEntryIds, ['labor-participant-activity-demo-spray-2']);
+  assert.equal(db.activityMaterials.length, 2, 'spray activity should store two material usages');
+  assert.equal(db.laborEntries.length, 1, 'self participant must not create labor entry; worker must');
+
+  const reloadedToday = await getTodayDashboard(db);
+  assert.equal(reloadedToday.recentItems[0]?.title, 'พ่นยา แปลง A');
+  assert.equal(reloadedToday.unpaidLaborTotal, 600);
+  assert.equal(reloadedToday.plot.trackers.find((tracker) => tracker.categoryId === 'cat-spray')?.count, 1);
+  assert.equal(reloadedToday.plot.trackers.find((tracker) => tracker.categoryId === 'cat-spray')?.nextDueOn, '2026-07-20');
+
+  const plotDashboard = await getPlotDashboard(db);
+  assert.equal(plotDashboard.activeCases[0]?.title, 'A-014 เชื้อราโคนต้น');
+
+  const manual = await createActivity(db, {
+    id: 'activity-manual-fertilizer',
+    plotId: options.defaultPlotId,
+    categoryId: 'cat-fertilizer',
+    performedAt: '2026-07-16T09:00:00.000Z',
+    note: 'ใส่ปุ๋ยหลังฝน',
+    followUpOn: null,
+    targetType: 'plot',
+    targetId: options.defaultPlotId,
+    materials: [{ materialId: options.materials[0].id, amount: 50, unit: 'กรัม' }],
+    participants: [{ personId: 'person-self', payType: 'none', amountDue: 0 }],
+  });
+  assert.equal(manual.cropCycleId, 'crop-2026-plot-a', 'activity should default to active crop by performed date');
+  assert.equal(db.laborEntries.length, 1, 'self-only activity should not create new unpaid labor');
+
+  console.log('OPERATIONAL_SLICE_PASS: local activity create/read/tracker/labor contracts are valid');
+};
+
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exit(1);
+});

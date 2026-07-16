@@ -2,16 +2,19 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { tokens } from '../theme/tokens';
 import { BottomTabBar } from './BottomTabBar';
+import type { BottomTabKey } from './BottomTabBar';
 import type { ChildrenProps, VariantProps } from './types';
 
 type AppShellVariant = 'tabbed' | 'modal' | 'detail';
 
 type AppShellProps = ChildrenProps &
   VariantProps<AppShellVariant> & {
+    activeTab?: BottomTabKey;
+    onTabPress?: (tab: BottomTabKey) => void;
     showTabs?: boolean;
   };
 
-export function AppShell({ children, showTabs = true, variant = 'tabbed' }: AppShellProps) {
+export function AppShell({ activeTab, children, onTabPress, showTabs = true, variant = 'tabbed' }: AppShellProps) {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <View style={[styles.base, variant === 'modal' && styles.modal]}>
@@ -20,7 +23,7 @@ export function AppShell({ children, showTabs = true, variant = 'tabbed' }: AppS
         </ScrollView>
         {showTabs && variant === 'tabbed' ? (
           <SafeAreaView edges={['bottom']} style={styles.tabs}>
-            <BottomTabBar />
+            <BottomTabBar activeTab={activeTab} onTabPress={onTabPress} />
           </SafeAreaView>
         ) : null}
       </View>
