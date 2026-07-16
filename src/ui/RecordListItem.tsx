@@ -25,7 +25,11 @@ export function RecordListItem({ meta, onPress, title, trailing, variant = 'acti
           </Text>
         ) : null}
       </View>
-      {trailing ? <Text style={styles.trailing}>{trailing}</Text> : null}
+      {trailing ? (
+        <Text ellipsizeMode="tail" numberOfLines={1} style={styles.trailing}>
+          {trailing}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -38,6 +42,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: 'row',
     minHeight: 54,
+    paddingRight: 12,
     paddingVertical: 8,
   },
   marker: {
@@ -63,6 +68,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
   },
   title: {
     color: tokens.color.text.primary,
@@ -76,8 +82,11 @@ const styles = StyleSheet.create({
   },
   trailing: {
     color: tokens.color.primary.green,
+    flexShrink: 0,
     fontSize: tokens.typography.caption.size,
     fontWeight: '700',
     marginLeft: 8,
+    maxWidth: 78,
+    textAlign: 'right',
   },
 });

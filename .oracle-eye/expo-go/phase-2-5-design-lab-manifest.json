@@ -1,0 +1,21 @@
+{
+  "phase": "2.5",
+  "lane": "expo-go-device-eye",
+  "status": "operator_accepted",
+  "screen": "DesignLabScreen",
+  "entry": "App.tsx",
+  "targetClient": "Expo Go SDK 54",
+  "asset": "assets/brand/takai-mascot.png",
+  "checklist": [
+    "Android Expo Go opens the Design Lab screen",
+    "status bar and top header do not overlap",
+    "bottom navigation stays above the device safe area",
+    "Thai labels wrap without breaking critical controls",
+    "tracker cards, chips, timeline, list rows, buttons, empty state, and mascot render"
+  ],
+  "truthState": {
+    "rnStaticTokenGate": "closed-by-automated-tests",
+    "expoGoDeviceEye": "closed-by-human-android-expo-go-proof"
+  },
+  "operatorNote": "คุณนนท์ accepted the UI direction as simple, functional, and ready for Phase 3. Device feedback found RecordListItem trailing labels falling outside the right edge; the primitive was repaired before closeout."
+}

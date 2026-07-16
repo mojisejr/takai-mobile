@@ -13,22 +13,23 @@ type TopBarProps = VariantProps<TopBarVariant> & {
 
 export function TopBar({ actionLabel, onActionPress, onBackPress, title, variant = 'default' }: TopBarProps) {
   const showBack = variant === 'back' || variant === 'plot';
+  const isPlot = variant === 'plot';
 
   return (
-    <View style={[styles.base, variant === 'plot' && styles.plot]}>
+    <View style={[styles.base, isPlot && styles.plot]}>
       {showBack ? (
         <Pressable accessibilityLabel="กลับ" accessibilityRole="button" hitSlop={10} onPress={onBackPress}>
-          <Text style={styles.icon}>‹</Text>
+          <Text style={[styles.icon, isPlot && styles.inverseText]}>‹</Text>
         </Pressable>
       ) : (
         <Text style={styles.icon}>☰</Text>
       )}
-      <Text numberOfLines={1} style={[styles.title, variant === 'plot' && styles.plotTitle]}>
+      <Text numberOfLines={1} style={[styles.title, isPlot && styles.inverseText]}>
         {title}
       </Text>
       {actionLabel ? (
         <Pressable accessibilityRole="button" hitSlop={10} onPress={onActionPress}>
-          <Text style={styles.action}>{actionLabel}</Text>
+          <Text style={[styles.action, isPlot && styles.inverseText]}>{actionLabel}</Text>
         </Pressable>
       ) : (
         <View style={styles.actionSlot} />
@@ -47,6 +48,7 @@ const styles = StyleSheet.create({
   },
   plot: {
     backgroundColor: tokens.color.primary.green,
+    borderRadius: tokens.radius.card,
   },
   icon: {
     color: tokens.color.text.primary,
@@ -59,13 +61,13 @@ const styles = StyleSheet.create({
     fontSize: tokens.typography.h2.size,
     fontWeight: '700',
   },
-  plotTitle: {
-    color: tokens.color.text.inverse,
-  },
   action: {
     color: tokens.color.primary.green,
     fontSize: tokens.typography.metadata.size,
     fontWeight: '700',
+  },
+  inverseText: {
+    color: tokens.color.text.inverse,
   },
   actionSlot: {
     width: 28,

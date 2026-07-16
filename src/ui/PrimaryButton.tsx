@@ -25,7 +25,16 @@ export function PrimaryButton({ disabled, label, onPress, testID, variant = 'pri
         pressed && !disabled && styles.pressed,
       ]}
     >
-      <Text style={[styles.label, variant !== 'primary' && styles.secondaryLabel]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          variant === 'secondary' && styles.secondaryLabel,
+          variant === 'tertiary' && styles.secondaryLabel,
+          variant === 'destructive' && styles.destructiveLabel,
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -67,5 +76,8 @@ const styles = StyleSheet.create({
   },
   secondaryLabel: {
     color: tokens.color.primary.green,
+  },
+  destructiveLabel: {
+    color: tokens.color.state.danger,
   },
 });
