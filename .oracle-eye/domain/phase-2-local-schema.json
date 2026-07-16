@@ -1,0 +1,44 @@
+{
+  "truthState": "Domain Schema Gate Closed",
+  "phase": "Phase 2: Local Domain Schema and Seed Data",
+  "database": "takai-local-v1.db",
+  "sqliteAdapter": "expo-sqlite",
+  "migrationIds": [1],
+  "tables": [
+    "gardens",
+    "plots",
+    "crop_cycles",
+    "holes",
+    "plantings",
+    "activity_categories",
+    "activities",
+    "activity_targets",
+    "cases",
+    "people",
+    "activity_participants",
+    "labor_entries",
+    "contract_jobs",
+    "materials",
+    "activity_materials",
+    "media_assets"
+  ],
+  "seed": {
+    "garden": "สวนตาไก๊",
+    "plot": "แปลง A",
+    "activeCrop": "Crop 2026",
+    "sampleHoles": 3,
+    "hasSelfPerson": true,
+    "hasWorkerPerson": true,
+    "hasSampleMaterial": true
+  },
+  "verifiedBy": [
+    "npm run validate",
+    "npm run test:domain",
+    "npm test",
+    "npm run test:design-contract",
+    "npm run test:expo-go-compat",
+    "npx expo install --check",
+    "npx expo-doctor",
+    "validate-design-md --strict"
+  ]
+}
