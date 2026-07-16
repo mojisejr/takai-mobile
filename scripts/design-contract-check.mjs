@@ -5,6 +5,7 @@ const root = process.cwd();
 
 const tokenFile = join(root, 'src/theme/tokens.ts');
 const uiIndexFile = join(root, 'src/ui/index.ts');
+const designLabFile = join(root, 'src/features/design-lab/DesignLabScreen.tsx');
 
 const fail = (message) => {
   console.error(`DESIGN_CONTRACT_FAIL: ${message}`);
@@ -21,6 +22,7 @@ const requireFile = (relativePath) => {
 
 const tokenSource = existsSync(tokenFile) ? readFileSync(tokenFile, 'utf8') : '';
 const uiIndexSource = existsSync(uiIndexFile) ? readFileSync(uiIndexFile, 'utf8') : '';
+const designLabSource = existsSync(designLabFile) ? readFileSync(designLabFile, 'utf8') : '';
 
 const expectedTokens = {
   'color.primary.green': '#2E7D32',
@@ -56,7 +58,14 @@ for (const [name, relativePath] of primitives) {
   if (!uiIndexSource.includes(`export { ${name} }`)) {
     fail(`primitive ${name} is not exported from src/ui/index.ts`);
   }
+
+  if (!designLabSource.includes(name)) {
+    fail(`primitive ${name} is not rendered or imported by the Design Lab`);
+  }
 }
+
+requireFile('assets/brand/takai-mascot.png');
+requireFile('src/features/design-lab/DesignLabScreen.tsx');
 
 if (process.exitCode) {
   process.exit(process.exitCode);
