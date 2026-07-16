@@ -1,0 +1,44 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-1",
+  "claimLabel": "RN Static Token Gate Closed",
+  "createdAt": "2026-07-16T17:22:54+07:00",
+  "sees": [
+    "authored token constants and primitive exports exist",
+    "TypeScript can import the theme contract",
+    "component names match DESIGN.md"
+  ],
+  "doesNotSee": [
+    "real Android touch feel",
+    "safe-area behavior on physical device",
+    "outdoor readability",
+    "native image picker behavior"
+  ],
+  "commands": [
+    {
+      "command": "npm run validate",
+      "status": "passed"
+    },
+    {
+      "command": "npm run test:design-contract",
+      "status": "passed",
+      "summary": "DESIGN_CONTRACT_PASS: tokens and primitive exports match DESIGN.md"
+    },
+    {
+      "command": "npm test",
+      "status": "passed"
+    },
+    {
+      "command": "npx expo-doctor",
+      "status": "passed",
+      "summary": "20/20 checks passed"
+    },
+    {
+      "command": "bash .github/skills/design-init/scripts/validate-design-md.sh projects/takai-mobile/DESIGN.md --strict",
+      "status": "passed"
+    }
+  ],
+  "pendingLanes": [
+    "Expo Go Device Eye"
+  ]
+}

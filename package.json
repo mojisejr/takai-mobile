@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck",
     "test": "npm run typecheck",
-    "test:design-contract": "npm run typecheck"
+    "test:design-contract": "node scripts/design-contract-check.mjs"
   },
   "private": true
 }
