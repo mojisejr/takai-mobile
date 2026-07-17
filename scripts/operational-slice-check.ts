@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { TAKAI_DEMO_SEED } from '../src/domain';
-import type { ActivityCategory, CropCycle, Garden, Hole, Material, Person, Plot } from '../src/domain';
+import type { ActivityCategory, CaseRecord, CropCycle, Garden, Hole, Material, Person, Plot } from '../src/domain';
 import type { SqlExecutor } from '../src/data';
 import {
   createActivity,
@@ -27,22 +27,12 @@ class OperationalFakeSqlite implements SqlExecutor {
   categories: ActivityCategory[] = TAKAI_DEMO_SEED.activityCategories.map((category) => ({ ...category }));
   people: Person[] = TAKAI_DEMO_SEED.people.map((person) => ({ ...person }));
   materials: Material[] = TAKAI_DEMO_SEED.materials.map((material) => ({ ...material }));
+  cases: CaseRecord[] = TAKAI_DEMO_SEED.cases.map((caseRecord) => ({ ...caseRecord }));
   activities: Row[] = [];
   activityTargets: Row[] = [];
   activityMaterials: Row[] = [];
   activityParticipants: Row[] = [];
   laborEntries: Row[] = [];
-  cases: Row[] = [
-    {
-      id: 'case-a-014',
-      plot_id: 'plot-a',
-      hole_id: 'hole-a-014',
-      title: 'A-014 เชื้อราโคนต้น',
-      status: 'tracking',
-      opened_at: '2026-07-10T08:00:00.000Z',
-      closed_at: null,
-    },
-  ];
 
   async execAsync(): Promise<void> {}
 
@@ -52,8 +42,8 @@ class OperationalFakeSqlite implements SqlExecutor {
     }
 
     if (sql.includes('JOIN cases ON cases.hole_id = holes.id')) {
-      const caseItem = this.cases.find((item) => item.plot_id === params[0] && item.status === 'tracking');
-      return caseItem?.hole_id ? ([{ id: caseItem.hole_id }] as T[]) : [];
+      const caseItem = this.cases.find((item) => item.plotId === params[0] && item.status === 'tracking');
+      return caseItem?.holeId ? ([{ id: caseItem.holeId }] as T[]) : [];
     }
 
     if (sql.includes('SELECT id FROM holes WHERE plot_id = ? ORDER BY sort_key ASC LIMIT 1')) {
@@ -195,12 +185,12 @@ class OperationalFakeSqlite implements SqlExecutor {
 
     if (sql.includes('FROM cases') && sql.includes("cases.status = 'tracking'") && sql.includes('cases.plot_id = ?')) {
       return this.cases
-        .filter((caseItem) => caseItem.plot_id === params[0] && caseItem.status === 'tracking')
+        .filter((caseItem) => caseItem.plotId === params[0] && caseItem.status === 'tracking')
         .map((caseItem) => ({
           id: caseItem.id,
           title: caseItem.title,
           status: caseItem.status,
-          marker: this.holes.find((hole) => hole.id === caseItem.hole_id)?.marker ?? null,
+          marker: this.holes.find((hole) => hole.id === caseItem.holeId)?.marker ?? null,
         })) as T[];
     }
 
@@ -270,16 +260,16 @@ class OperationalFakeSqlite implements SqlExecutor {
 
     if (sql.includes('plots.name AS plot_name') && sql.includes('WHERE cases.id = ?')) {
       const caseItem = this.cases.find((item) => item.id === params[0]);
-      const plot = this.plots.find((item) => item.id === caseItem?.plot_id);
-      const hole = this.holes.find((item) => item.id === caseItem?.hole_id);
+      const plot = this.plots.find((item) => item.id === caseItem?.plotId);
+      const hole = this.holes.find((item) => item.id === caseItem?.holeId);
       return caseItem && plot
         ? ([
             {
               id: caseItem.id,
               title: caseItem.title,
               status: caseItem.status,
-              opened_at: caseItem.opened_at,
-              closed_at: caseItem.closed_at,
+              opened_at: caseItem.openedAt,
+              closed_at: caseItem.closedAt,
               marker: hole?.marker ?? null,
               plot_name: plot.name,
             },
@@ -349,12 +339,12 @@ class OperationalFakeSqlite implements SqlExecutor {
 
     if (sql.includes('WHERE cases.hole_id = ?')) {
       return this.cases
-        .filter((caseItem) => caseItem.hole_id === params[0] && caseItem.status === 'tracking')
+        .filter((caseItem) => caseItem.holeId === params[0] && caseItem.status === 'tracking')
         .map((caseItem) => ({
           id: caseItem.id,
           title: caseItem.title,
           status: caseItem.status,
-          marker: this.holes.find((hole) => hole.id === caseItem.hole_id)?.marker ?? null,
+          marker: this.holes.find((hole) => hole.id === caseItem.holeId)?.marker ?? null,
         })) as T[];
     }
 
@@ -414,7 +404,7 @@ class OperationalFakeSqlite implements SqlExecutor {
       const [closedAt, caseId] = params;
       this.cases = this.cases.map((caseItem) =>
         caseItem.id === caseId && caseItem.status === 'tracking'
-          ? { ...caseItem, status: 'closed', closed_at: closedAt }
+          ? { ...caseItem, status: 'closed', closedAt: String(closedAt) }
           : caseItem,
       );
       return;

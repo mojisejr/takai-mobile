@@ -1,5 +1,6 @@
 import type {
   ActivityCategory,
+  CaseRecord,
   CropCycle,
   Garden,
   Hole,
@@ -58,6 +59,17 @@ export const TAKAI_DEMO_SEED = {
     { id: 'cat-prune', name: 'แต่งกิ่ง', kind: 'prune', trackByDefault: true, sortOrder: 3 },
     { id: 'cat-case', name: 'เคส/โรค', kind: 'case', trackByDefault: false, sortOrder: 4 },
   ] satisfies ActivityCategory[],
+  cases: [
+    {
+      id: 'case-a-014',
+      plotId: 'plot-a',
+      holeId: 'hole-a-014',
+      title: 'A-014 เชื้อราโคนต้น',
+      status: 'tracking',
+      openedAt: '2026-07-10T08:00:00.000Z',
+      closedAt: null,
+    },
+  ] satisfies CaseRecord[],
   people: [
     { id: 'person-self', displayName: 'คุณนนท์', role: 'owner', isSelf: true },
     { id: 'person-worker-somchai', displayName: 'สมชาย', role: 'worker', isSelf: false },

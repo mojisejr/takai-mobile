@@ -55,7 +55,7 @@ export function OperationalSliceScreen() {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedCategoryId, setSelectedCategoryId] = useState('cat-spray');
   const [selectedTarget, setSelectedTarget] = useState<'plot' | 'hole' | 'case'>('hole');
-  const [selectedMaterialId, setSelectedMaterialId] = useState('mat-fungicide-a');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('material-fungicide-a');
   const [note, setNote] = useState('พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม');
   const [materialAmount, setMaterialAmount] = useState('20');
   const [followUpDays, setFollowUpDays] = useState('4');
