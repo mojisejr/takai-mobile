@@ -4,9 +4,13 @@ import type { SqlExecutor } from '../../data';
 import { DEMO_NOW, diffDays, formatThaiShortDate, nextDateFrom } from './date';
 import type {
   ActivityCaptureOption,
+  CaseTimeline,
   ActiveCaseSummary,
   CreateActivityInput,
   CreatedActivityResult,
+  HoleDetail,
+  LaborLedger,
+  MaterialLibraryItem,
   PlotDashboard,
   TodayActivityItem,
   TodayDashboard,
@@ -60,6 +64,59 @@ type ActivityItemRow = {
   material_names: string | null;
 };
 
+type MaterialRow = {
+  id: string;
+  name: string;
+  type: string;
+  unit: string;
+  default_rate_per_tank: string | null;
+  photo_uri: string | null;
+  last_used_at: string | null;
+  usage_count: number;
+};
+
+type LaborPersonRow = {
+  person_id: string;
+  display_name: string;
+  unpaid_total: number;
+  unpaid_count: number;
+  latest_work_date: string | null;
+};
+
+type RecentPaidRow = {
+  id: string;
+  display_name: string;
+  amount_paid: number;
+  paid_at: string;
+};
+
+type CaseTimelineRow = {
+  id: string;
+  title: string;
+  status: 'tracking' | 'closed' | 'archived';
+  opened_at: string;
+  closed_at: string | null;
+  marker: string | null;
+  plot_name: string;
+};
+
+type CaseEntryRow = {
+  id: string;
+  category_name: string;
+  note: string;
+  performed_at: string;
+  thumbnail_uri: string | null;
+};
+
+type HoleDetailRow = {
+  id: string;
+  marker: string;
+  status: string;
+  plot_name: string;
+  plant_name: string | null;
+  planted_on: string | null;
+};
+
 type PersonRow = {
   id: string;
   display_name: string;
@@ -89,9 +146,19 @@ const first = <T>(rows: T[]): T => {
 
 export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<ActivityCaptureOption> => {
   const [plot] = await db.getAllAsync<{ id: string }>('SELECT id FROM plots ORDER BY sort_order ASC LIMIT 1');
-  const [hole] = await db.getAllAsync<{ id: string }>('SELECT id FROM holes WHERE plot_id = ? ORDER BY sort_key ASC LIMIT 1', [
-    plot?.id,
-  ]);
+  const [caseHole] = await db.getAllAsync<{ id: string }>(
+    `SELECT holes.id
+     FROM holes
+     JOIN cases ON cases.hole_id = holes.id
+     WHERE holes.plot_id = ? AND cases.status = 'tracking'
+     ORDER BY cases.opened_at DESC
+     LIMIT 1`,
+    [plot?.id],
+  );
+  const [firstHole] = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM holes WHERE plot_id = ? ORDER BY sort_key ASC LIMIT 1',
+    [plot?.id],
+  );
   const categories = await db.getAllAsync<ActivityCategory>(
     `SELECT id, name, kind, track_by_default AS trackByDefault, sort_order AS sortOrder
      FROM activity_categories
@@ -107,8 +174,14 @@ export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<Activi
   return {
     categories,
     materials,
+    people: people.map((person) => ({
+      id: person.id,
+      displayName: person.display_name,
+      role: person.role,
+      isSelf: Boolean(person.is_self),
+    })),
     defaultPlotId: first([plot]).id,
-    defaultHoleId: hole?.id ?? null,
+    defaultHoleId: caseHole?.id ?? firstHole?.id ?? null,
     defaultSelfId: people.find((person) => Boolean(person.is_self))?.id ?? null,
     defaultWorkerId: people.find((person) => !person.is_self)?.id ?? null,
   };
@@ -396,4 +469,256 @@ export const createDemoSprayActivity = async (db: SqlExecutor): Promise<CreatedA
     })),
     participants,
   });
+};
+
+export const createFieldActivity = async (
+  db: SqlExecutor,
+  input: Omit<CreateActivityInput, 'id'> & { idSeed: string },
+): Promise<CreatedActivityResult> => {
+  return createActivity(db, {
+    ...input,
+    id: `activity-${input.idSeed}`,
+  });
+};
+
+export const getMaterialLibrary = async (db: SqlExecutor): Promise<MaterialLibraryItem[]> => {
+  const rows = await db.getAllAsync<MaterialRow>(
+    `SELECT
+       materials.id,
+       materials.name,
+       materials.type,
+       materials.unit,
+       materials.default_rate_per_tank,
+       materials.photo_uri,
+       MAX(activities.performed_at) AS last_used_at,
+       COUNT(activity_materials.id) AS usage_count
+     FROM materials
+     LEFT JOIN activity_materials ON activity_materials.material_id = materials.id
+     LEFT JOIN activities ON activities.id = activity_materials.activity_id
+     GROUP BY materials.id
+     ORDER BY materials.name ASC`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    unit: row.unit,
+    defaultRatePerTank: row.default_rate_per_tank,
+    photoUri: row.photo_uri,
+    lastUsedAt: row.last_used_at,
+    usageCount: Number(row.usage_count),
+  }));
+};
+
+export const getLaborLedger = async (db: SqlExecutor): Promise<LaborLedger> => {
+  const people = await db.getAllAsync<LaborPersonRow>(
+    `SELECT
+       people.id AS person_id,
+       people.display_name,
+       COALESCE(SUM(labor_entries.amount_due - labor_entries.amount_paid), 0) AS unpaid_total,
+       COUNT(labor_entries.id) AS unpaid_count,
+       MAX(labor_entries.work_date) AS latest_work_date
+     FROM people
+     JOIN labor_entries ON labor_entries.person_id = people.id
+     WHERE labor_entries.status = 'unpaid'
+     GROUP BY people.id
+     ORDER BY unpaid_total DESC`,
+  );
+  const recentPaid = await db.getAllAsync<RecentPaidRow>(
+    `SELECT
+       labor_entries.id,
+       people.display_name,
+       labor_entries.amount_paid,
+       labor_entries.work_date AS paid_at
+     FROM labor_entries
+     JOIN people ON people.id = labor_entries.person_id
+     WHERE labor_entries.status = 'paid'
+     ORDER BY labor_entries.work_date DESC
+     LIMIT 5`,
+  );
+
+  return {
+    unpaidTotal: people.reduce((sum, person) => sum + Number(person.unpaid_total), 0),
+    unpaidPeople: people.map((person) => ({
+      personId: person.person_id,
+      displayName: person.display_name,
+      unpaidTotal: Number(person.unpaid_total),
+      unpaidCount: Number(person.unpaid_count),
+      latestWorkDate: person.latest_work_date,
+    })),
+    recentPaid: recentPaid.map((row) => ({
+      id: row.id,
+      displayName: row.display_name,
+      amountPaid: Number(row.amount_paid),
+      paidAt: row.paid_at,
+    })),
+  };
+};
+
+export const settleUnpaidLaborForPerson = async (
+  db: SqlExecutor,
+  personId: string,
+  paidAt = DEMO_NOW,
+): Promise<void> => {
+  await db.runAsync(
+    `UPDATE labor_entries
+     SET amount_paid = amount_due, status = 'paid'
+     WHERE person_id = ? AND status = 'unpaid'`,
+    [personId],
+  );
+
+  await db.runAsync(
+    `UPDATE activity_participants
+     SET paid_at = ?
+     WHERE person_id = ? AND paid_at IS NULL`,
+    [paidAt, personId],
+  );
+};
+
+export const getCaseTimeline = async (db: SqlExecutor, caseId = 'case-a-014'): Promise<CaseTimeline> => {
+  const row = first(
+    await db.getAllAsync<CaseTimelineRow>(
+      `SELECT
+         cases.id,
+         cases.title,
+         cases.status,
+         cases.opened_at,
+         cases.closed_at,
+         holes.marker,
+         plots.name AS plot_name
+       FROM cases
+       JOIN plots ON plots.id = cases.plot_id
+       LEFT JOIN holes ON holes.id = cases.hole_id
+       WHERE cases.id = ?
+       LIMIT 1`,
+      [caseId],
+    ),
+  );
+  const entryRows = await db.getAllAsync<CaseEntryRow>(
+    `SELECT
+       activities.id,
+       activity_categories.name AS category_name,
+       activities.note,
+       activities.performed_at,
+       MIN(media_assets.uri) AS thumbnail_uri
+     FROM activities
+     JOIN activity_targets ON activity_targets.activity_id = activities.id
+     JOIN activity_categories ON activity_categories.id = activities.category_id
+     LEFT JOIN media_assets ON media_assets.owner_type = 'activity' AND media_assets.owner_id = activities.id
+     WHERE activity_targets.target_type = 'case'
+       AND activity_targets.target_id = ?
+     GROUP BY activities.id
+     ORDER BY activities.performed_at ASC`,
+    [caseId],
+  );
+
+  const entries = [
+    {
+      id: `${row.id}-opened`,
+      title: 'เปิดเคส',
+      meta: row.title,
+      performedAt: row.opened_at,
+      dayLabel: 'Day 0',
+      thumbnailUri: null,
+    },
+    ...entryRows.map((entry) => ({
+      id: entry.id,
+      title: entry.category_name,
+      meta: entry.note,
+      performedAt: entry.performed_at,
+      dayLabel: `Day ${diffDays(row.opened_at, entry.performed_at)}`,
+      thumbnailUri: entry.thumbnail_uri,
+    })),
+  ];
+
+  return {
+    id: row.id,
+    title: row.title,
+    targetLabel: row.marker ? `${row.marker} · ${row.plot_name}` : row.plot_name,
+    status: row.status,
+    openedAt: row.opened_at,
+    closedAt: row.closed_at,
+    entries,
+  };
+};
+
+export const closeCase = async (db: SqlExecutor, caseId: string, closedAt = DEMO_NOW): Promise<void> => {
+  await db.runAsync(
+    `UPDATE cases
+     SET status = 'closed', closed_at = ?
+     WHERE id = ? AND status = 'tracking'`,
+    [closedAt, caseId],
+  );
+};
+
+export const getHoleDetail = async (db: SqlExecutor, holeId = 'hole-a-014'): Promise<HoleDetail> => {
+  const row = first(
+    await db.getAllAsync<HoleDetailRow>(
+      `SELECT
+         holes.id,
+         holes.marker,
+         holes.status,
+         plots.name AS plot_name,
+         plantings.plant_name,
+         plantings.planted_on
+       FROM holes
+       JOIN plots ON plots.id = holes.plot_id
+       LEFT JOIN plantings ON plantings.hole_id = holes.id AND plantings.removed_on IS NULL
+       WHERE holes.id = ?
+       LIMIT 1`,
+      [holeId],
+    ),
+  );
+  const activityRows = await db.getAllAsync<ActivityItemRow>(
+    `SELECT
+       activities.id,
+       activity_categories.name AS category_name,
+       activities.note,
+       activities.performed_at,
+       activities.follow_up_on,
+       GROUP_CONCAT(materials.name, ', ') AS material_names
+     FROM activities
+     JOIN activity_targets ON activity_targets.activity_id = activities.id
+     JOIN activity_categories ON activity_categories.id = activities.category_id
+     LEFT JOIN activity_materials ON activity_materials.activity_id = activities.id
+     LEFT JOIN materials ON materials.id = activity_materials.material_id
+     WHERE activity_targets.target_type = 'hole'
+       AND activity_targets.target_id = ?
+     GROUP BY activities.id
+     ORDER BY activities.performed_at DESC
+     LIMIT 8`,
+    [holeId],
+  );
+  const cases = await db.getAllAsync<CaseRow>(
+    `SELECT cases.id, cases.title, cases.status, holes.marker
+     FROM cases
+     LEFT JOIN holes ON holes.id = cases.hole_id
+     WHERE cases.hole_id = ? AND cases.status = 'tracking'
+     ORDER BY cases.opened_at DESC`,
+    [holeId],
+  );
+
+  return {
+    id: row.id,
+    marker: row.marker,
+    status: row.status,
+    plotName: row.plot_name,
+    plantName: row.plant_name,
+    plantedOn: row.planted_on,
+    ageDays: row.planted_on ? diffDays(row.planted_on) : null,
+    activities: activityRows.map((activity) => ({
+      id: activity.id,
+      title: activity.category_name,
+      meta: activity.material_names ? `${activity.note} · ${activity.material_names}` : activity.note,
+      trailing: activity.follow_up_on ? formatThaiShortDate(activity.follow_up_on) : formatThaiShortDate(activity.performed_at),
+      variant: 'activity',
+    })),
+    activeCases: cases.map((caseItem) => ({
+      id: caseItem.id,
+      title: caseItem.title,
+      statusLabel: 'ติดตามอยู่',
+      targetLabel: caseItem.marker ?? row.marker,
+    })),
+  };
 };

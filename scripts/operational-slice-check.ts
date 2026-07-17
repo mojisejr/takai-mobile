@@ -6,9 +6,15 @@ import type { SqlExecutor } from '../src/data';
 import {
   createActivity,
   createDemoSprayActivity,
+  closeCase,
   getActivityCaptureOptions,
+  getCaseTimeline,
+  getHoleDetail,
+  getLaborLedger,
+  getMaterialLibrary,
   getPlotDashboard,
   getTodayDashboard,
+  settleUnpaidLaborForPerson,
 } from '../src/features/operations';
 
 type Row = Record<string, unknown>;
@@ -45,6 +51,11 @@ class OperationalFakeSqlite implements SqlExecutor {
       return [{ id: this.plots[0]?.id }] as T[];
     }
 
+    if (sql.includes('JOIN cases ON cases.hole_id = holes.id')) {
+      const caseItem = this.cases.find((item) => item.plot_id === params[0] && item.status === 'tracking');
+      return caseItem?.hole_id ? ([{ id: caseItem.hole_id }] as T[]) : [];
+    }
+
     if (sql.includes('SELECT id FROM holes WHERE plot_id = ? ORDER BY sort_key ASC LIMIT 1')) {
       return this.holes.filter((hole) => hole.plotId === params[0]).slice(0, 1).map((hole) => ({ id: hole.id })) as T[];
     }
@@ -70,6 +81,29 @@ class OperationalFakeSqlite implements SqlExecutor {
           photoUri: material.photoUri,
           notes: material.notes,
         }))
+        .sort((left, right) => left.name.localeCompare(right.name)) as T[];
+    }
+
+    if (sql.includes('MAX(activities.performed_at) AS last_used_at')) {
+      return this.materials
+        .map((material) => {
+          const usages = this.activityMaterials.filter((row) => row.material_id === material.id);
+          const activityDates = usages
+            .map((usage) => this.activities.find((activity) => activity.id === usage.activity_id)?.performed_at)
+            .filter(Boolean)
+            .map(String)
+            .sort();
+          return {
+            id: material.id,
+            name: material.name,
+            type: material.type,
+            unit: material.unit,
+            default_rate_per_tank: material.defaultRatePerTank,
+            photo_uri: material.photoUri,
+            last_used_at: activityDates.at(-1) ?? null,
+            usage_count: usages.length,
+          };
+        })
         .sort((left, right) => left.name.localeCompare(right.name)) as T[];
     }
 
@@ -159,7 +193,7 @@ class OperationalFakeSqlite implements SqlExecutor {
         }) as T[];
     }
 
-    if (sql.includes('FROM cases') && sql.includes("cases.status = 'tracking'")) {
+    if (sql.includes('FROM cases') && sql.includes("cases.status = 'tracking'") && sql.includes('cases.plot_id = ?')) {
       return this.cases
         .filter((caseItem) => caseItem.plot_id === params[0] && caseItem.status === 'tracking')
         .map((caseItem) => ({
@@ -174,7 +208,7 @@ class OperationalFakeSqlite implements SqlExecutor {
       return [{ name: this.gardens[0]?.name }] as T[];
     }
 
-    if (sql.includes('GROUP_CONCAT(materials.name')) {
+    if (sql.includes('GROUP_CONCAT(materials.name') && !sql.includes("activity_targets.target_type = 'hole'")) {
       return this.activities
         .filter((activity) => activity.plot_id === params[0])
         .map((activity) => {
@@ -205,6 +239,123 @@ class OperationalFakeSqlite implements SqlExecutor {
             .reduce((sum, entry) => sum + Number(entry.amount_due) - Number(entry.amount_paid), 0),
         },
       ] as T[];
+    }
+
+    if (sql.includes('people.id AS person_id') && sql.includes("labor_entries.status = 'unpaid'")) {
+      return this.people
+        .map((person) => {
+          const entries = this.laborEntries.filter((entry) => entry.person_id === person.id && entry.status === 'unpaid');
+          return {
+            person_id: person.id,
+            display_name: person.displayName,
+            unpaid_total: entries.reduce((sum, entry) => sum + Number(entry.amount_due) - Number(entry.amount_paid), 0),
+            unpaid_count: entries.length,
+            latest_work_date: entries.map((entry) => String(entry.work_date)).sort().at(-1) ?? null,
+          };
+        })
+        .filter((person) => person.unpaid_count > 0)
+        .sort((left, right) => right.unpaid_total - left.unpaid_total) as T[];
+    }
+
+    if (sql.includes("labor_entries.status = 'paid'")) {
+      return this.laborEntries
+        .filter((entry) => entry.status === 'paid')
+        .map((entry) => ({
+          id: entry.id,
+          display_name: this.people.find((person) => person.id === entry.person_id)?.displayName ?? 'คนงาน',
+          amount_paid: entry.amount_paid,
+          paid_at: entry.work_date,
+        })) as T[];
+    }
+
+    if (sql.includes('plots.name AS plot_name') && sql.includes('WHERE cases.id = ?')) {
+      const caseItem = this.cases.find((item) => item.id === params[0]);
+      const plot = this.plots.find((item) => item.id === caseItem?.plot_id);
+      const hole = this.holes.find((item) => item.id === caseItem?.hole_id);
+      return caseItem && plot
+        ? ([
+            {
+              id: caseItem.id,
+              title: caseItem.title,
+              status: caseItem.status,
+              opened_at: caseItem.opened_at,
+              closed_at: caseItem.closed_at,
+              marker: hole?.marker ?? null,
+              plot_name: plot.name,
+            },
+          ] as T[])
+        : [];
+    }
+
+    if (sql.includes("activity_targets.target_type = 'case'")) {
+      return this.activities
+        .filter((activity) =>
+          this.activityTargets.some(
+            (target) => target.activity_id === activity.id && target.target_type === 'case' && target.target_id === params[0],
+          ),
+        )
+        .map((activity) => ({
+          id: activity.id,
+          category_name: this.categories.find((category) => category.id === activity.category_id)?.name ?? 'กิจกรรม',
+          note: activity.note,
+          performed_at: activity.performed_at,
+          thumbnail_uri: null,
+        }))
+        .sort((left, right) => String(left.performed_at).localeCompare(String(right.performed_at))) as T[];
+    }
+
+    if (sql.includes('plantings.plant_name') && sql.includes('WHERE holes.id = ?')) {
+      const hole = this.holes.find((item) => item.id === params[0]);
+      const plot = this.plots.find((item) => item.id === hole?.plotId);
+      const planting = TAKAI_DEMO_SEED.plantings.find((item) => item.holeId === hole?.id && !item.removedOn);
+      return hole && plot
+        ? ([
+            {
+              id: hole.id,
+              marker: hole.marker,
+              status: hole.status,
+              plot_name: plot.name,
+              plant_name: planting?.plantName ?? null,
+              planted_on: planting?.plantedOn ?? null,
+            },
+          ] as T[])
+        : [];
+    }
+
+    if (sql.includes("activity_targets.target_type = 'hole'")) {
+      return this.activities
+        .filter((activity) =>
+          this.activityTargets.some(
+            (target) => target.activity_id === activity.id && target.target_type === 'hole' && target.target_id === params[0],
+          ),
+        )
+        .map((activity) => {
+          const category = this.categories.find((item) => item.id === activity.category_id);
+          const materialNames = this.activityMaterials
+            .filter((row) => row.activity_id === activity.id)
+            .map((row) => this.materials.find((material) => material.id === row.material_id)?.name)
+            .filter(Boolean)
+            .join(', ');
+          return {
+            id: activity.id,
+            category_name: category?.name ?? 'กิจกรรม',
+            note: activity.note,
+            performed_at: activity.performed_at,
+            follow_up_on: activity.follow_up_on,
+            material_names: materialNames || null,
+          };
+        }) as T[];
+    }
+
+    if (sql.includes('WHERE cases.hole_id = ?')) {
+      return this.cases
+        .filter((caseItem) => caseItem.hole_id === params[0] && caseItem.status === 'tracking')
+        .map((caseItem) => ({
+          id: caseItem.id,
+          title: caseItem.title,
+          status: caseItem.status,
+          marker: this.holes.find((hole) => hole.id === caseItem.hole_id)?.marker ?? null,
+        })) as T[];
     }
 
     throw new Error(`Unhandled fake SQL: ${sql}`);
@@ -238,6 +389,34 @@ class OperationalFakeSqlite implements SqlExecutor {
     if (sql.includes('INSERT INTO labor_entries')) {
       const [id, activity_participant_id, person_id, work_date, amount_due, amount_paid, status] = params;
       this.laborEntries.push({ id, activity_participant_id, person_id, work_date, amount_due, amount_paid, status });
+      return;
+    }
+
+    if (sql.includes('UPDATE labor_entries')) {
+      const [personId] = params;
+      this.laborEntries = this.laborEntries.map((entry) =>
+        entry.person_id === personId && entry.status === 'unpaid'
+          ? { ...entry, amount_paid: entry.amount_due, status: 'paid' }
+          : entry,
+      );
+      return;
+    }
+
+    if (sql.includes('UPDATE activity_participants')) {
+      const [paidAt, personId] = params;
+      this.activityParticipants = this.activityParticipants.map((participant) =>
+        participant.person_id === personId && !participant.paid_at ? { ...participant, paid_at: paidAt } : participant,
+      );
+      return;
+    }
+
+    if (sql.includes('UPDATE cases')) {
+      const [closedAt, caseId] = params;
+      this.cases = this.cases.map((caseItem) =>
+        caseItem.id === caseId && caseItem.status === 'tracking'
+          ? { ...caseItem, status: 'closed', closed_at: closedAt }
+          : caseItem,
+      );
       return;
     }
 
@@ -288,6 +467,42 @@ const main = async (): Promise<void> => {
   });
   assert.equal(manual.cropCycleId, 'crop-2026-plot-a', 'activity should default to active crop by performed date');
   assert.equal(db.laborEntries.length, 1, 'self-only activity should not create new unpaid labor');
+
+  const caseActivity = await createActivity(db, {
+    id: 'activity-case-follow-up',
+    plotId: options.defaultPlotId,
+    categoryId: 'cat-case',
+    performedAt: '2026-07-17T07:00:00.000Z',
+    note: 'แผลเริ่มแห้ง ขูดและทายาซ้ำ',
+    followUpOn: '2026-07-21',
+    targetType: 'case',
+    targetId: 'case-a-014',
+    materials: [{ materialId: options.materials[0].id, amount: 10, unit: 'cc' }],
+    participants: [],
+  });
+  assert.equal(caseActivity.cropCycleId, 'crop-2026-plot-a');
+
+  const caseTimeline = await getCaseTimeline(db);
+  assert.equal(caseTimeline.entries.length, 2, 'case timeline should include open event and follow-up activity');
+  assert.equal(caseTimeline.entries[1]?.dayLabel, 'Day 7');
+
+  const materialLibrary = await getMaterialLibrary(db);
+  assert.equal(materialLibrary.find((material) => material.id === options.materials[0].id)?.usageCount, 3);
+
+  const holeDetail = await getHoleDetail(db);
+  assert.equal(holeDetail.marker, 'A-014');
+  assert.equal(holeDetail.activeCases[0]?.title, 'A-014 เชื้อราโคนต้น');
+  assert.equal(holeDetail.activities.some((activity) => activity.id === 'activity-demo-spray'), true);
+
+  const laborLedger = await getLaborLedger(db);
+  assert.equal(laborLedger.unpaidTotal, 600);
+  await settleUnpaidLaborForPerson(db, 'person-worker-somchai');
+  const settledLedger = await getLaborLedger(db);
+  assert.equal(settledLedger.unpaidTotal, 0, 'settled worker should no longer appear as unpaid');
+
+  await closeCase(db, 'case-a-014');
+  const closedCase = await getCaseTimeline(db);
+  assert.equal(closedCase.status, 'closed');
 
   console.log('OPERATIONAL_SLICE_PASS: local activity create/read/tracker/labor contracts are valid');
 };

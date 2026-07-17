@@ -1,0 +1,20 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-4-local-workflows",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-07-17T03:22:08.671Z",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/phase-4-local-workflows/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/phase-4-local-workflows/export/index.html",
+    "browserScreenshot": ".oracle-eye/rn-web/phase-4-local-workflows/browser/takai-mobile-h3-rn-web-390x844.png",
+    "browserEvidence": ".oracle-eye/rn-web/phase-4-local-workflows/browser/browser-evidence.json",
+    "manifest": ".oracle-eye/rn-web/phase-4-local-workflows/manifest.json"
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink.",
+    "Browser screenshot/console capture should use this sink for visual proof.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

@@ -1,6 +1,6 @@
 import type { ActivityCategory, EntityId, Material, PayType } from '../../domain';
 
-export type TakaiView = 'today' | 'plot' | 'activity' | 'designLab';
+export type TakaiView = 'today' | 'plot' | 'activity' | 'cases' | 'labor' | 'materials' | 'hole' | 'designLab';
 
 export type TrackerSummary = {
   categoryId: EntityId;
@@ -54,6 +54,12 @@ export type TodayDashboard = {
 export type ActivityCaptureOption = {
   categories: ActivityCategory[];
   materials: Material[];
+  people: Array<{
+    id: EntityId;
+    displayName: string;
+    role: 'owner' | 'worker';
+    isSelf: boolean;
+  }>;
   defaultPlotId: EntityId;
   defaultHoleId: EntityId | null;
   defaultWorkerId: EntityId | null;
@@ -79,7 +85,7 @@ export type CreateActivityInput = {
   performedAt: string;
   note: string;
   followUpOn?: string | null;
-  targetType: 'plot' | 'hole';
+  targetType: 'plot' | 'hole' | 'case';
   targetId: EntityId;
   materials: ActivityMaterialInput[];
   participants: ActivityParticipantInput[];
@@ -89,4 +95,65 @@ export type CreatedActivityResult = {
   activityId: EntityId;
   cropCycleId: EntityId | null;
   laborEntryIds: EntityId[];
+};
+
+export type CaseTimelineEntry = {
+  id: EntityId;
+  title: string;
+  meta: string;
+  performedAt: string;
+  dayLabel: string;
+  thumbnailUri: string | null;
+};
+
+export type CaseTimeline = {
+  id: EntityId;
+  title: string;
+  targetLabel: string;
+  status: 'tracking' | 'closed' | 'archived';
+  openedAt: string;
+  closedAt: string | null;
+  entries: CaseTimelineEntry[];
+};
+
+export type LaborLedgerPerson = {
+  personId: EntityId;
+  displayName: string;
+  unpaidTotal: number;
+  unpaidCount: number;
+  latestWorkDate: string | null;
+};
+
+export type LaborLedger = {
+  unpaidTotal: number;
+  unpaidPeople: LaborLedgerPerson[];
+  recentPaid: Array<{
+    id: EntityId;
+    displayName: string;
+    amountPaid: number;
+    paidAt: string;
+  }>;
+};
+
+export type MaterialLibraryItem = {
+  id: EntityId;
+  name: string;
+  type: string;
+  unit: string;
+  defaultRatePerTank: string | null;
+  photoUri: string | null;
+  lastUsedAt: string | null;
+  usageCount: number;
+};
+
+export type HoleDetail = {
+  id: EntityId;
+  marker: string;
+  status: string;
+  plotName: string;
+  plantName: string | null;
+  plantedOn: string | null;
+  ageDays: number | null;
+  activities: TodayActivityItem[];
+  activeCases: ActiveCaseSummary[];
 };
