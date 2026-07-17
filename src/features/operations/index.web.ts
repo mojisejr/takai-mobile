@@ -2,7 +2,12 @@ import type { Material } from '../../domain';
 import { DEMO_NOW, formatThaiShortDate, nextDateFrom } from './date';
 import type {
   ActivityCaptureOption,
+  CaseTimeline,
   CreatedActivityResult,
+  HoleDetail,
+  LaborLedger,
+  MaterialLibraryItem,
+  CreateActivityInput,
   TakaiView,
   TodayDashboard,
 } from './types';
@@ -40,6 +45,93 @@ const materials: Material[] = [
     notes: 'RN Web preview material',
   },
 ];
+
+const people: ActivityCaptureOption['people'] = [
+  { id: 'person-self', displayName: 'เจ้าของสวน', role: 'owner', isSelf: true },
+  { id: 'person-worker', displayName: 'สมชาย', role: 'worker', isSelf: false },
+];
+
+const buildCaseTimeline = (sprayCount: number, closed = false): CaseTimeline => ({
+  id: 'case-a-014',
+  title: 'A-014 เชื้อราโคนต้น',
+  targetLabel: 'A-014 · แปลง A',
+  status: closed ? 'closed' : 'tracking',
+  openedAt: '2026-07-10T08:00:00.000Z',
+  closedAt: closed ? DEMO_NOW : null,
+  entries: [
+    {
+      id: 'case-a-014-opened',
+      title: 'เปิดเคส',
+      meta: 'พบเชื้อราที่โคนต้น',
+      performedAt: '2026-07-10T08:00:00.000Z',
+      dayLabel: 'Day 0',
+      thumbnailUri: null,
+    },
+    ...(sprayCount > 0
+      ? [
+          {
+            id: 'activity-web-preview-spray',
+            title: 'พ่นยา',
+            meta: 'พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม',
+            performedAt: DEMO_NOW,
+            dayLabel: 'Day 6',
+            thumbnailUri: null,
+          },
+        ]
+      : []),
+  ],
+});
+
+const buildLaborLedger = (sprayCount: number): LaborLedger => ({
+  unpaidTotal: sprayCount > 0 ? 600 : 0,
+  unpaidPeople:
+    sprayCount > 0
+      ? [{ personId: 'person-worker', displayName: 'สมชาย', unpaidTotal: 600, unpaidCount: 1, latestWorkDate: DEMO_NOW }]
+      : [],
+  recentPaid: [],
+});
+
+const buildMaterials = (sprayCount: number): MaterialLibraryItem[] =>
+  materials.map((material) => ({
+    id: material.id,
+    name: material.name,
+    type: material.type,
+    unit: material.unit,
+    defaultRatePerTank: material.defaultRatePerTank ?? null,
+    photoUri: material.photoUri ?? null,
+    lastUsedAt: sprayCount > 0 && material.id === 'mat-fungicide-a' ? DEMO_NOW : null,
+    usageCount: sprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
+  }));
+
+const buildHoleDetail = (sprayCount: number): HoleDetail => ({
+  id: 'hole-a-014',
+  marker: 'A-014',
+  status: 'planted',
+  plotName: 'แปลง A',
+  plantName: 'ทุเรียนหมอนทอง',
+  plantedOn: '2024-10-10',
+  ageDays: 645,
+  activeCases: [
+    {
+      id: 'case-a-014',
+      title: 'A-014 เชื้อราโคนต้น',
+      statusLabel: 'ติดตามอยู่',
+      targetLabel: 'A-014',
+    },
+  ],
+  activities:
+    sprayCount > 0
+      ? [
+          {
+            id: 'activity-web-preview-spray',
+            title: 'พ่นยา',
+            meta: 'พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม · ยา A',
+            trailing: formatThaiShortDate(DEMO_NOW),
+            variant: 'activity',
+          },
+        ]
+      : [],
+});
 
 const buildDashboard = (sprayCount: number): TodayDashboard => ({
   gardenName: 'สวนตาไก๊',
@@ -119,8 +211,9 @@ const buildDashboard = (sprayCount: number): TodayDashboard => ({
 export const getActivityCaptureOptions = async (): Promise<ActivityCaptureOption> => ({
   categories,
   materials,
+  people,
   defaultPlotId: 'plot-a',
-  defaultHoleId: 'hole-a-001',
+  defaultHoleId: 'hole-a-014',
   defaultWorkerId: 'person-worker',
   defaultSelfId: 'person-self',
 });
@@ -137,5 +230,31 @@ export const createDemoSprayActivity = async (db: WebPreviewDb): Promise<Created
     laborEntryIds: ['labor-web-preview'],
   };
 };
+
+export const createFieldActivity = async (
+  db: WebPreviewDb,
+  _input: Omit<CreateActivityInput, 'id'> & { idSeed: string },
+): Promise<CreatedActivityResult> => {
+  db.demoSprayCount += 1;
+  return {
+    activityId: 'activity-web-preview-field',
+    cropCycleId: 'crop-2026',
+    laborEntryIds: ['labor-web-preview'],
+  };
+};
+
+export const getCaseTimeline = async (db: WebPreviewDb): Promise<CaseTimeline> => buildCaseTimeline(db.demoSprayCount);
+
+export const closeCase = async (_db: WebPreviewDb): Promise<void> => {};
+
+export const getLaborLedger = async (db: WebPreviewDb): Promise<LaborLedger> => buildLaborLedger(db.demoSprayCount);
+
+export const settleUnpaidLaborForPerson = async (db: WebPreviewDb): Promise<void> => {
+  db.demoSprayCount = 0;
+};
+
+export const getMaterialLibrary = async (db: WebPreviewDb): Promise<MaterialLibraryItem[]> => buildMaterials(db.demoSprayCount);
+
+export const getHoleDetail = async (db: WebPreviewDb): Promise<HoleDetail> => buildHoleDetail(db.demoSprayCount);
 
 export type { TakaiView };

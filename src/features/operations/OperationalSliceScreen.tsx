@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { initializeTakaiDatabase, type TakaiDatabase } from '../../data';
 import { tokens } from '../../theme/tokens';
 import {
@@ -14,27 +14,64 @@ import {
 } from '../../ui';
 import { DesignLabScreen } from '../design-lab/DesignLabScreen';
 import {
+  closeCase,
   createDemoSprayActivity,
+  createFieldActivity,
   formatThaiShortDate,
   getActivityCaptureOptions,
+  getCaseTimeline,
+  getHoleDetail,
+  getLaborLedger,
+  getMaterialLibrary,
   getTodayDashboard,
+  nextDateFrom,
+  settleUnpaidLaborForPerson,
   type ActivityCaptureOption,
+  type CaseTimeline,
+  type HoleDetail,
+  type LaborLedger,
+  type MaterialLibraryItem,
   type TakaiView,
   type TodayDashboard,
 } from './index';
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'ready'; db: TakaiDatabase; dashboard: TodayDashboard; options: ActivityCaptureOption; message: string | null }
+  | {
+      status: 'ready';
+      db: TakaiDatabase;
+      dashboard: TodayDashboard;
+      options: ActivityCaptureOption;
+      caseTimeline: CaseTimeline;
+      laborLedger: LaborLedger;
+      materials: MaterialLibraryItem[];
+      holeDetail: HoleDetail;
+      message: string | null;
+    }
   | { status: 'error'; message: string };
 
 export function OperationalSliceScreen() {
   const [view, setView] = useState<TakaiView>('today');
   const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const [selectedCategoryId, setSelectedCategoryId] = useState('cat-spray');
+  const [selectedTarget, setSelectedTarget] = useState<'plot' | 'hole' | 'case'>('hole');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('mat-fungicide-a');
+  const [note, setNote] = useState('พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม');
+  const [materialAmount, setMaterialAmount] = useState('20');
+  const [followUpDays, setFollowUpDays] = useState('4');
+  const [includeWorker, setIncludeWorker] = useState(true);
+  const [workerAmount, setWorkerAmount] = useState('600');
 
   const refresh = useCallback(async (db: TakaiDatabase, message: string | null = null) => {
-    const [dashboard, options] = await Promise.all([getTodayDashboard(db), getActivityCaptureOptions(db)]);
-    setState({ status: 'ready', db, dashboard, options, message });
+    const [dashboard, options, caseTimeline, laborLedger, materials, holeDetail] = await Promise.all([
+      getTodayDashboard(db),
+      getActivityCaptureOptions(db),
+      getCaseTimeline(db),
+      getLaborLedger(db),
+      getMaterialLibrary(db),
+      getHoleDetail(db),
+    ]);
+    setState({ status: 'ready', db, dashboard, options, caseTimeline, laborLedger, materials, holeDetail, message });
   }, []);
 
   useEffect(() => {
@@ -43,9 +80,8 @@ export function OperationalSliceScreen() {
     const load = async () => {
       try {
         const db = await initializeTakaiDatabase();
-        const [dashboard, options] = await Promise.all([getTodayDashboard(db), getActivityCaptureOptions(db)]);
         if (!cancelled) {
-          setState({ status: 'ready', db, dashboard, options, message: null });
+          await refresh(db);
         }
       } catch (error) {
         if (!cancelled) {
@@ -61,20 +97,97 @@ export function OperationalSliceScreen() {
     };
   }, []);
 
-  const createActivity = useCallback(async () => {
+  const createActivity = useCallback(async (mode: 'demo' | 'field' = 'field') => {
     if (state.status !== 'ready') return;
     try {
-      await createDemoSprayActivity(state.db);
-      await refresh(state.db, 'บันทึกพ่นยาแล้ว');
+      if (mode === 'demo') {
+        await createDemoSprayActivity(state.db);
+      } else {
+        const material = state.options.materials.find((item) => item.id === selectedMaterialId) ?? state.options.materials[0];
+        const category = state.options.categories.find((item) => item.id === selectedCategoryId) ?? state.options.categories[0];
+        if (!material || !category) {
+          throw new Error('ยังไม่มีหมวดหรือวัสดุให้บันทึก');
+        }
+        const performedAt = new Date().toISOString();
+        const targetType = selectedTarget === 'case' ? 'case' : selectedTarget === 'hole' && state.options.defaultHoleId ? 'hole' : 'plot';
+        const targetId =
+          targetType === 'case'
+            ? state.caseTimeline.id
+            : targetType === 'hole'
+              ? state.options.defaultHoleId ?? state.options.defaultPlotId
+              : state.options.defaultPlotId;
+        const parsedAmount = Number(materialAmount);
+        const parsedFollowUp = Number(followUpDays);
+        const parsedWorkerAmount = Number(workerAmount);
+        await createFieldActivity(state.db, {
+          idSeed: `${Date.now()}`,
+          plotId: state.options.defaultPlotId,
+          categoryId: category.id,
+          performedAt,
+          note: note.trim() || `${category.name} ${state.dashboard.plot.name}`,
+          followUpOn: Number.isFinite(parsedFollowUp) && parsedFollowUp > 0 ? nextDateFrom(performedAt, parsedFollowUp) : null,
+          targetType,
+          targetId,
+          materials: [
+            {
+              materialId: material.id,
+              amount: Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 1,
+              unit: material.unit,
+            },
+          ],
+          participants: [
+            state.options.defaultSelfId
+              ? { personId: state.options.defaultSelfId, payType: 'none' as const, amountDue: 0 }
+              : null,
+            includeWorker && state.options.defaultWorkerId
+              ? {
+                  personId: state.options.defaultWorkerId,
+                  payType: 'daily' as const,
+                  amountDue: Number.isFinite(parsedWorkerAmount) ? parsedWorkerAmount : 0,
+                }
+              : null,
+          ].filter((participant): participant is NonNullable<typeof participant> => Boolean(participant)),
+        });
+      }
+      await refresh(state.db, selectedTarget === 'case' ? 'เพิ่มบันทึกเคสแล้ว' : 'บันทึกกิจกรรมแล้ว');
       setView('today');
     } catch (error) {
       await refresh(state.db, error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
     }
+  }, [
+    followUpDays,
+    includeWorker,
+    materialAmount,
+    note,
+    refresh,
+    selectedCategoryId,
+    selectedMaterialId,
+    selectedTarget,
+    state,
+    workerAmount,
+  ]);
+
+  const markCaseClosed = useCallback(async () => {
+    if (state.status !== 'ready') return;
+    await closeCase(state.db, state.caseTimeline.id);
+    await refresh(state.db, 'ปิดเคสแล้ว');
+    setView('cases');
+  }, [refresh, state]);
+
+  const settleFirstWorker = useCallback(async () => {
+    if (state.status !== 'ready') return;
+    const person = state.laborLedger.unpaidPeople[0];
+    if (!person) return;
+    await settleUnpaidLaborForPerson(state.db, person.personId);
+    await refresh(state.db, `จ่ายค่าแรง ${person.displayName} แล้ว`);
+    setView('labor');
   }, [refresh, state]);
 
   const activeTab = useMemo(() => {
     if (view === 'plot') return 'plots';
     if (view === 'activity') return 'activity';
+    if (view === 'cases') return 'cases';
+    if (view === 'labor' || view === 'materials' || view === 'hole') return 'menu';
     if (view === 'designLab') return 'menu';
     return 'today';
   }, [view]);
@@ -108,6 +221,20 @@ export function OperationalSliceScreen() {
 
   const { dashboard, options, message } = state;
   const plot = dashboard.plot;
+  const screenTitle =
+    view === 'plot'
+      ? plot.name
+      : view === 'activity'
+        ? 'บันทึกกิจกรรม'
+        : view === 'cases'
+          ? 'เคส'
+          : view === 'labor'
+            ? 'ค่าแรง'
+            : view === 'materials'
+              ? 'วัสดุ'
+              : view === 'hole'
+                ? `หลุม ${state.holeDetail.marker}`
+                : 'วันนี้';
 
   return (
     <AppShell activeTab={activeTab} onTabPress={(tab) => {
@@ -116,7 +243,7 @@ export function OperationalSliceScreen() {
       if (tab === 'activity') setView('activity');
       if (tab === 'menu') setView('designLab');
     }}>
-      <TopBar title={view === 'plot' ? plot.name : view === 'activity' ? 'บันทึกกิจกรรม' : 'วันนี้'} actionLabel="ออฟไลน์" />
+      <TopBar title={screenTitle} actionLabel="ออฟไลน์" />
 
       {message ? <StatusChip label={message} variant={message.includes('ไม่') ? 'overdue' : 'active'} /> : null}
 
@@ -141,7 +268,7 @@ export function OperationalSliceScreen() {
             </View>
           </FieldCard>
 
-          <PrimaryButton label="+ บันทึกพ่นยาตัวอย่าง" onPress={createActivity} />
+          <PrimaryButton label="+ บันทึกกิจกรรม" onPress={() => setView('activity')} />
 
           <SectionHeader title="รายการล่าสุด" />
           <View style={styles.list}>
@@ -168,6 +295,13 @@ export function OperationalSliceScreen() {
               variant={tracker.categoryId === 'cat-spray' ? 'spray' : tracker.categoryId === 'cat-fertilizer' ? 'fertilizer' : 'pruning'}
             />
           ))}
+
+          <SectionHeader title="สมุดที่ต้องดู" />
+          <View style={styles.quickGrid}>
+            <QuickAction label="เคส" value={`${plot.activeCases.length} ติดตาม`} onPress={() => setView('cases')} />
+            <QuickAction label="ค่าแรง" value={`${dashboard.unpaidLaborTotal.toLocaleString('th-TH')} บาท`} onPress={() => setView('labor')} />
+            <QuickAction label="วัสดุ" value={`${state.materials.length} รายการ`} onPress={() => setView('materials')} />
+          </View>
         </>
       ) : null}
 
@@ -218,6 +352,7 @@ export function OperationalSliceScreen() {
               <RecordListItem title="ยังไม่มีเคสที่ต้องติดตาม" meta="เมื่อเปิดเคส ระบบจะแสดงตรงนี้" trailing="ดี" variant="case" />
             )}
           </View>
+          <PrimaryButton label={`ดูหลุม ${state.holeDetail.marker}`} onPress={() => setView('hole')} variant="secondary" />
         </>
       ) : null}
 
@@ -226,20 +361,169 @@ export function OperationalSliceScreen() {
           <SectionHeader title="1. เลือกหมวด" />
           <View style={styles.chipWrap}>
             {options.categories.map((category) => (
-              <StatusChip key={category.id} label={category.name} variant={category.id === 'cat-spray' ? 'active' : 'today'} />
+              <SelectPill
+                active={category.id === selectedCategoryId}
+                key={category.id}
+                label={category.name}
+                onPress={() => setSelectedCategoryId(category.id)}
+              />
             ))}
           </View>
 
-          <SectionHeader title="2. รายละเอียด" />
+          <SectionHeader title="2. เป้าหมาย" />
+          <View style={styles.chipWrap}>
+            <SelectPill active={selectedTarget === 'plot'} label="ทั้งแปลง" onPress={() => setSelectedTarget('plot')} />
+            <SelectPill active={selectedTarget === 'hole'} label={state.holeDetail.marker} onPress={() => setSelectedTarget('hole')} />
+            <SelectPill active={selectedTarget === 'case'} label="เคส A-014" onPress={() => setSelectedTarget('case')} />
+          </View>
+
+          <SectionHeader title="3. รายละเอียด" />
           <FieldCard>
-            <Text style={styles.cardTitle}>พ่นยา {plot.name}</Text>
-            <Text style={styles.muted}>เป้าหมาย: {options.defaultHoleId ? 'หลุมแรกในแปลง' : 'ทั้งแปลง'}</Text>
-            <Text style={styles.muted}>วัสดุ: {options.materials.slice(0, 2).map((material) => material.name).join(' + ')}</Text>
-            <Text style={styles.muted}>ค่าแรง: เจ้าของไม่คิดเงิน + คนงาน 600 บาท</Text>
+            <Text style={styles.inputLabel}>บันทึก</Text>
+            <TextInput multiline onChangeText={setNote} style={[styles.input, styles.textArea]} value={note} />
+            <Text style={styles.inputLabel}>วัสดุ</Text>
+            <View style={styles.chipWrap}>
+              {options.materials.slice(0, 4).map((material) => (
+                <SelectPill
+                  active={material.id === selectedMaterialId}
+                  key={material.id}
+                  label={material.name}
+                  onPress={() => setSelectedMaterialId(material.id)}
+                />
+              ))}
+            </View>
+            <View style={styles.formRow}>
+              <View style={styles.formCell}>
+                <Text style={styles.inputLabel}>ปริมาณ</Text>
+                <TextInput keyboardType="numeric" onChangeText={setMaterialAmount} style={styles.input} value={materialAmount} />
+              </View>
+              <View style={styles.formCell}>
+                <Text style={styles.inputLabel}>ติดตามอีกกี่วัน</Text>
+                <TextInput keyboardType="numeric" onChangeText={setFollowUpDays} style={styles.input} value={followUpDays} />
+              </View>
+            </View>
           </FieldCard>
 
-          <PrimaryButton label="บันทึกกิจกรรมลงเครื่อง" onPress={createActivity} />
+          <SectionHeader title="4. ค่าแรง" />
+          <FieldCard>
+            <Pressable onPress={() => setIncludeWorker((value) => !value)} style={styles.toggleRow}>
+              <StatusChip label={includeWorker ? 'มีคนงาน' : 'ทำเอง'} variant={includeWorker ? 'unpaid' : 'paid'} />
+              <Text style={styles.muted}>{includeWorker ? 'สร้างรายการค้างจ่ายจากกิจกรรมนี้' : 'ไม่คิดค่าแรง แต่ยังเก็บประวัติงาน'}</Text>
+            </Pressable>
+            {includeWorker ? (
+              <>
+                <Text style={styles.inputLabel}>ค่าแรง</Text>
+                <TextInput keyboardType="numeric" onChangeText={setWorkerAmount} style={styles.input} value={workerAmount} />
+              </>
+            ) : null}
+          </FieldCard>
+
+          <PrimaryButton label="บันทึกกิจกรรมลงเครื่อง" onPress={() => createActivity('field')} />
           <PrimaryButton label="กลับวันนี้" onPress={() => setView('today')} variant="secondary" />
+        </>
+      ) : null}
+
+      {view === 'cases' ? (
+        <>
+          <FieldCard variant="raised">
+            <View style={styles.heroRow}>
+              <View style={styles.flex}>
+                <Text style={styles.eyebrow}>{state.caseTimeline.targetLabel}</Text>
+                <Text style={styles.title}>{state.caseTimeline.title}</Text>
+              </View>
+              <StatusChip label={state.caseTimeline.status === 'tracking' ? 'ติดตามอยู่' : 'ปิดเคส'} variant={state.caseTimeline.status === 'tracking' ? 'active' : 'closed'} />
+            </View>
+          </FieldCard>
+          <SectionHeader title="ไทม์ไลน์เคส" actionLabel="เพิ่มบันทึก" onActionPress={() => {
+            setSelectedTarget('case');
+            setView('activity');
+          }} />
+          <View style={styles.list}>
+            {state.caseTimeline.entries.map((entry) => (
+              <RecordListItem key={entry.id} meta={entry.meta} title={`${entry.dayLabel} · ${entry.title}`} trailing={formatThaiShortDate(entry.performedAt)} variant="case" />
+            ))}
+          </View>
+          {state.caseTimeline.status === 'tracking' ? (
+            <PrimaryButton label="ปิดเคส" onPress={markCaseClosed} variant="secondary" />
+          ) : null}
+        </>
+      ) : null}
+
+      {view === 'labor' ? (
+        <>
+          <FieldCard variant="raised">
+            <Text style={styles.eyebrow}>ค่าแรงค้างจ่าย</Text>
+            <Text style={styles.title}>{state.laborLedger.unpaidTotal.toLocaleString('th-TH')} บาท</Text>
+            <Text style={styles.muted}>{state.laborLedger.unpaidPeople.length} คนที่ต้องเคลียร์</Text>
+          </FieldCard>
+          <SectionHeader title="ค้างจ่าย" />
+          <View style={styles.list}>
+            {state.laborLedger.unpaidPeople.length ? (
+              state.laborLedger.unpaidPeople.map((person) => (
+                <RecordListItem
+                  key={person.personId}
+                  meta={`${person.unpaidCount} รายการ · ล่าสุด ${formatThaiShortDate(person.latestWorkDate)}`}
+                  title={person.displayName}
+                  trailing={`${person.unpaidTotal.toLocaleString('th-TH')} บาท`}
+                  variant="labor"
+                />
+              ))
+            ) : (
+              <RecordListItem title="ไม่มีค่าแรงค้างจ่าย" meta="งานที่ทำเองยังเก็บประวัติ แต่ไม่สร้างยอดจ่าย" trailing="จบ" variant="labor" />
+            )}
+          </View>
+          <PrimaryButton disabled={!state.laborLedger.unpaidPeople.length} label="จ่ายคนแรกทั้งหมด" onPress={settleFirstWorker} />
+        </>
+      ) : null}
+
+      {view === 'materials' ? (
+        <>
+          <SectionHeader title="วัสดุ" actionLabel="บันทึก" onActionPress={() => setView('activity')} />
+          <View style={styles.list}>
+            {state.materials.map((material) => (
+              <RecordListItem
+                key={material.id}
+                meta={`${material.defaultRatePerTank ?? 'ยังไม่ตั้งอัตรา'} · ใช้แล้ว ${material.usageCount} ครั้ง`}
+                title={material.name}
+                trailing={material.lastUsedAt ? formatThaiShortDate(material.lastUsedAt) : material.unit}
+                variant="material"
+              />
+            ))}
+          </View>
+          <PrimaryButton label="ดู Design Lab" onPress={() => setView('designLab')} variant="secondary" />
+        </>
+      ) : null}
+
+      {view === 'hole' ? (
+        <>
+          <FieldCard variant="raised">
+            <Text style={styles.eyebrow}>{state.holeDetail.plotName}</Text>
+            <Text style={styles.title}>หลุม {state.holeDetail.marker}</Text>
+            <Text style={styles.muted}>
+              {state.holeDetail.plantName
+                ? `${state.holeDetail.plantName} · อายุ ${state.holeDetail.ageDays ?? 0} วัน`
+                : 'ยังไม่มีต้นปลูก'}
+            </Text>
+          </FieldCard>
+          <SectionHeader title="เคสในหลุม" />
+          <View style={styles.list}>
+            {state.holeDetail.activeCases.map((caseItem) => (
+              <RecordListItem key={caseItem.id} meta={caseItem.targetLabel} title={caseItem.title} trailing={caseItem.statusLabel} variant="case" />
+            ))}
+          </View>
+          <SectionHeader title="ประวัติหลุม" actionLabel="เพิ่ม" onActionPress={() => {
+            setSelectedTarget('hole');
+            setView('activity');
+          }} />
+          <View style={styles.list}>
+            {state.holeDetail.activities.length ? (
+              state.holeDetail.activities.map((activity) => (
+                <RecordListItem key={activity.id} meta={activity.meta} title={activity.title} trailing={activity.trailing} variant="hole" />
+              ))
+            ) : (
+              <RecordListItem title="ยังไม่มีประวัติกิจกรรมในหลุมนี้" meta="บันทึกกิจกรรมแล้วจะมาอยู่ตรงนี้" trailing="เริ่ม" variant="hole" />
+            )}
+          </View>
         </>
       ) : null}
     </AppShell>
@@ -252,6 +536,23 @@ function Metric({ danger, label, value }: { danger?: boolean; label: string; val
       <Text style={styles.metricValue}>{value}</Text>
       <Text style={[styles.metricLabel, danger && styles.danger]}>{label}</Text>
     </View>
+  );
+}
+
+function SelectPill({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.selectPill, active && styles.selectPillActive]}>
+      <Text style={[styles.selectPillText, active && styles.selectPillTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function QuickAction({ label, onPress, value }: { label: string; onPress: () => void; value: string }) {
+  return (
+    <Pressable onPress={onPress} style={styles.quickAction}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -328,5 +629,72 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: tokens.spacing.control,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    gap: tokens.spacing.control,
+  },
+  quickAction: {
+    backgroundColor: tokens.color.surface.card,
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.card,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 74,
+    justifyContent: 'center',
+    padding: tokens.spacing.control,
+  },
+  selectPill: {
+    backgroundColor: tokens.color.surface.card,
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.chip,
+    borderWidth: 1,
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  selectPillActive: {
+    backgroundColor: '#EAF4EA',
+    borderColor: tokens.color.primary.green,
+  },
+  selectPillText: {
+    color: tokens.color.text.muted,
+    fontSize: tokens.typography.metadata.size,
+    fontWeight: '700',
+  },
+  selectPillTextActive: {
+    color: tokens.color.primary.green,
+  },
+  inputLabel: {
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.caption.size,
+    fontWeight: '700',
+    marginBottom: 6,
+    marginTop: 10,
+  },
+  input: {
+    backgroundColor: tokens.color.surface.muted,
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.button,
+    borderWidth: 1,
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.body.size,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  textArea: {
+    minHeight: 92,
+    textAlignVertical: 'top',
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: tokens.spacing.control,
+  },
+  formCell: {
+    flex: 1,
+  },
+  toggleRow: {
+    gap: 4,
   },
 });
