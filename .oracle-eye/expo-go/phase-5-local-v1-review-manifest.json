@@ -1,0 +1,44 @@
+{
+  "phase": "5",
+  "lane": "expo-go-device-eye",
+  "status": "operator_pending",
+  "title": "Local v1 Review",
+  "targetClient": "Expo Go SDK 54",
+  "gateOfRecord": "Android Expo Go real workday trial",
+  "claimLabelWhenClosed": "Expo Go Device Eye Closed",
+  "automatedEvidence": {
+    "typecheck": "required",
+    "domainTests": "required",
+    "operationsTests": "required",
+    "phase5ReviewContract": "required",
+    "designContract": "required",
+    "expoGoCompatibility": "required",
+    "expoDoctor": "required"
+  },
+  "trialChecklist": [
+    "Open Today Dashboard",
+    "Record one activity for plot or hole",
+    "Attach material usage amount when relevant",
+    "Record self-work without unpaid labor",
+    "Record worker/payable labor when relevant",
+    "Set follow-up or due date",
+    "Review Plot Dashboard tracker state",
+    "Review Case Timeline when relevant",
+    "Review Labor Ledger unpaid/paid state",
+    "Review Materials Library",
+    "Review Hole Detail history"
+  ],
+  "truthState": {
+    "hardGate": "pending-current-run",
+    "rnStaticTokenGate": "covered-by-design-contract-test",
+    "rnWebEye": "advisory-not-gate-of-record",
+    "expoGoDeviceEye": "pending-human-device-proof",
+    "nativeEye": "out-of-scope"
+  },
+  "decisionOptions": [
+    "repair-phase-4-ux",
+    "add-local-json-export",
+    "start-supabase-sync-plan",
+    "continue-local-first-polish"
+  ]
+}
