@@ -1,6 +1,6 @@
 import type { ActivityCategory, EntityId, Material, PayType } from '../../domain';
 
-export type TakaiView = 'today' | 'plot' | 'activity' | 'cases' | 'labor' | 'materials' | 'hole' | 'designLab';
+export type TakaiView = 'today' | 'plot' | 'activity' | 'cases' | 'labor' | 'materials' | 'hole' | 'menu' | 'designLab';
 
 export type TrackerSummary = {
   categoryId: EntityId;
@@ -106,6 +106,18 @@ export type CaseTimelineEntry = {
   thumbnailUri: string | null;
 };
 
+export type CaseListItem = {
+  id: EntityId;
+  title: string;
+  targetLabel: string;
+  status: 'tracking' | 'closed' | 'archived';
+  statusLabel: string;
+  openedAt: string;
+  closedAt: string | null;
+  latestActivityAt: string | null;
+  entryCount: number;
+};
+
 export type CaseTimeline = {
   id: EntityId;
   title: string;
@@ -114,6 +126,17 @@ export type CaseTimeline = {
   openedAt: string;
   closedAt: string | null;
   entries: CaseTimelineEntry[];
+};
+
+export type MenuDashboard = {
+  gardenName: string;
+  activeCaseCount: number;
+  closedCaseCount: number;
+  unpaidLaborTotal: number;
+  materialCount: number;
+  plotCount: number;
+  holeCount: number;
+  localStatusLabel: string;
 };
 
 export type LaborLedgerPerson = {

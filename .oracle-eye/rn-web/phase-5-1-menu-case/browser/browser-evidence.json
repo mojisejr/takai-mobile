@@ -1,0 +1,24 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-5-1-menu-case",
+  "lane": "rn-web-eye",
+  "targetUrl": "http://localhost:19081",
+  "viewport": "390x844",
+  "screensChecked": [
+    "today-dashboard-mobile-viewport"
+  ],
+  "screenshot": ".oracle-eye/rn-web/phase-5-1-menu-case/browser/takai-mobile-phase-5-1-menu-case-today-390x844.png",
+  "consoleErrorCount": "not-collected-by-current-mcp-toolset",
+  "failedNetworkRequestCount": "not-collected-by-current-mcp-toolset",
+  "knownWarnings": [
+    "npx expo export emitted FORCE_COLOR/NO_COLOR warnings only"
+  ],
+  "claimLabel": "RN Web Eye Pending - export and today mobile render evidence collected",
+  "notes": [
+    "Expo web export passed and the Today surface rendered at 390x844 after the RN Web preview adapter exported getCaseList/getMenuDashboard.",
+    "Current Playwright MCP surface did not expose click/evaluate/console collection, so Menu/Case interaction remains advisory pending Expo Go device proof.",
+    "This evidence does not close Expo Go Device Eye or Native Eye."
+  ],
+  "generatedAt": "2026-07-17T23:01:07.113Z",
+  "updatedAt": "2026-07-17T23:04:19.252Z"
+}

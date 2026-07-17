@@ -8,9 +8,11 @@ import {
   createDemoSprayActivity,
   closeCase,
   getActivityCaptureOptions,
+  getCaseList,
   getCaseTimeline,
   getHoleDetail,
   getLaborLedger,
+  getMenuDashboard,
   getMaterialLibrary,
   getPlotDashboard,
   getTodayDashboard,
@@ -196,6 +198,59 @@ class OperationalFakeSqlite implements SqlExecutor {
 
     if (sql.includes('SELECT name FROM gardens')) {
       return [{ name: this.gardens[0]?.name }] as T[];
+    }
+
+    if (sql.trim() === 'SELECT COUNT(*) AS count FROM materials') {
+      return [{ count: this.materials.length }] as T[];
+    }
+
+    if (sql.trim() === 'SELECT COUNT(*) AS count FROM plots') {
+      return [{ count: this.plots.length }] as T[];
+    }
+
+    if (sql.trim() === 'SELECT COUNT(*) AS count FROM holes') {
+      return [{ count: this.holes.length }] as T[];
+    }
+
+    if (sql.includes('FROM cases') && sql.includes('GROUP BY status')) {
+      const counts = new Map<string, number>();
+      for (const caseItem of this.cases) {
+        counts.set(caseItem.status, (counts.get(caseItem.status) ?? 0) + 1);
+      }
+      return [...counts.entries()].map(([status, count]) => ({ status, count })) as T[];
+    }
+
+    if (sql.includes('COUNT(activity_targets.id) AS entry_count')) {
+      const statusFilter = params[0] as string | null;
+      return this.cases
+        .filter((caseItem) => !statusFilter || caseItem.status === statusFilter)
+        .map((caseItem) => {
+          const targets = this.activityTargets.filter(
+            (target) => target.target_type === 'case' && target.target_id === caseItem.id,
+          );
+          const activityDates = targets
+            .map((target) => this.activities.find((activity) => activity.id === target.activity_id)?.performed_at)
+            .filter(Boolean)
+            .map(String)
+            .sort();
+          const plot = this.plots.find((item) => item.id === caseItem.plotId);
+          const hole = this.holes.find((item) => item.id === caseItem.holeId);
+          return {
+            id: caseItem.id,
+            title: caseItem.title,
+            status: caseItem.status,
+            opened_at: caseItem.openedAt,
+            closed_at: caseItem.closedAt,
+            marker: hole?.marker ?? null,
+            plot_name: plot?.name ?? 'แปลง',
+            entry_count: targets.length,
+            latest_activity_at: activityDates.at(-1) ?? null,
+          };
+        })
+        .sort((left, right) => {
+          const order = { tracking: 0, closed: 1, archived: 2 } as Record<string, number>;
+          return order[String(left.status)] - order[String(right.status)] || String(right.opened_at).localeCompare(String(left.opened_at));
+        }) as T[];
     }
 
     if (sql.includes('GROUP_CONCAT(materials.name') && !sql.includes("activity_targets.target_type = 'hole'")) {
@@ -443,6 +498,17 @@ const main = async (): Promise<void> => {
   const plotDashboard = await getPlotDashboard(db);
   assert.equal(plotDashboard.activeCases[0]?.title, 'A-014 เชื้อราโคนต้น');
 
+  const initialCases = await getCaseList(db);
+  assert.equal(initialCases.length, TAKAI_DEMO_SEED.cases.length, 'case list should derive from canonical seed');
+  assert.equal(initialCases[0]?.status, 'tracking');
+  assert.equal(initialCases[0]?.targetLabel, 'A-014 · แปลง A');
+
+  const initialMenu = await getMenuDashboard(db);
+  assert.equal(initialMenu.gardenName, 'สวนตาไก๊');
+  assert.equal(initialMenu.activeCaseCount, 1);
+  assert.equal(initialMenu.materialCount, TAKAI_DEMO_SEED.materials.length);
+  assert.equal(initialMenu.localStatusLabel, 'ออฟไลน์ 100%');
+
   const manual = await createActivity(db, {
     id: 'activity-manual-fertilizer',
     plotId: options.defaultPlotId,
@@ -476,6 +542,10 @@ const main = async (): Promise<void> => {
   assert.equal(caseTimeline.entries.length, 2, 'case timeline should include open event and follow-up activity');
   assert.equal(caseTimeline.entries[1]?.dayLabel, 'Day 7');
 
+  const activeCasesAfterFollowUp = await getCaseList(db, 'tracking');
+  assert.equal(activeCasesAfterFollowUp[0]?.entryCount, 1, 'selected case list should count follow-up evidence');
+  assert.equal(activeCasesAfterFollowUp[0]?.latestActivityAt, '2026-07-17T07:00:00.000Z');
+
   const materialLibrary = await getMaterialLibrary(db);
   assert.equal(materialLibrary.find((material) => material.id === options.materials[0].id)?.usageCount, 3);
 
@@ -493,6 +563,13 @@ const main = async (): Promise<void> => {
   await closeCase(db, 'case-a-014');
   const closedCase = await getCaseTimeline(db);
   assert.equal(closedCase.status, 'closed');
+  const activeCasesAfterClose = await getCaseList(db, 'tracking');
+  assert.equal(activeCasesAfterClose.length, 0, 'closed case should leave the active case list');
+  const closedCases = await getCaseList(db, 'closed');
+  assert.equal(closedCases[0]?.id, 'case-a-014', 'closed case should remain readable in history');
+  const menuAfterClose = await getMenuDashboard(db);
+  assert.equal(menuAfterClose.activeCaseCount, 0);
+  assert.equal(menuAfterClose.closedCaseCount, 1);
 
   console.log('OPERATIONAL_SLICE_PASS: local activity create/read/tracker/labor contracts are valid');
 };

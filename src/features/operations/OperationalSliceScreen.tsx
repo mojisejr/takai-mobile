@@ -4,6 +4,7 @@ import { initializeTakaiDatabase, type TakaiDatabase } from '../../data';
 import { tokens } from '../../theme/tokens';
 import {
   AppShell,
+  EvidenceTimeline,
   FieldCard,
   PrimaryButton,
   RecordListItem,
@@ -19,17 +20,21 @@ import {
   createFieldActivity,
   formatThaiShortDate,
   getActivityCaptureOptions,
+  getCaseList,
   getCaseTimeline,
   getHoleDetail,
   getLaborLedger,
+  getMenuDashboard,
   getMaterialLibrary,
   getTodayDashboard,
   nextDateFrom,
   settleUnpaidLaborForPerson,
   type ActivityCaptureOption,
+  type CaseListItem,
   type CaseTimeline,
   type HoleDetail,
   type LaborLedger,
+  type MenuDashboard,
   type MaterialLibraryItem,
   type TakaiView,
   type TodayDashboard,
@@ -42,8 +47,10 @@ type LoadState =
       db: TakaiDatabase;
       dashboard: TodayDashboard;
       options: ActivityCaptureOption;
+      caseList: CaseListItem[];
       caseTimeline: CaseTimeline;
       laborLedger: LaborLedger;
+      menuDashboard: MenuDashboard;
       materials: MaterialLibraryItem[];
       holeDetail: HoleDetail;
       message: string | null;
@@ -61,18 +68,23 @@ export function OperationalSliceScreen() {
   const [followUpDays, setFollowUpDays] = useState('4');
   const [includeWorker, setIncludeWorker] = useState(true);
   const [workerAmount, setWorkerAmount] = useState('600');
+  const [selectedCaseId, setSelectedCaseId] = useState('case-a-014');
 
-  const refresh = useCallback(async (db: TakaiDatabase, message: string | null = null) => {
-    const [dashboard, options, caseTimeline, laborLedger, materials, holeDetail] = await Promise.all([
+  const refresh = useCallback(async (db: TakaiDatabase, message: string | null = null, caseId = selectedCaseId) => {
+    const [dashboard, options, caseList, laborLedger, menuDashboard, materials, holeDetail] = await Promise.all([
       getTodayDashboard(db),
       getActivityCaptureOptions(db),
-      getCaseTimeline(db),
+      getCaseList(db),
       getLaborLedger(db),
+      getMenuDashboard(db),
       getMaterialLibrary(db),
       getHoleDetail(db),
     ]);
-    setState({ status: 'ready', db, dashboard, options, caseTimeline, laborLedger, materials, holeDetail, message });
-  }, []);
+    const resolvedCaseId = caseList.some((caseItem) => caseItem.id === caseId) ? caseId : caseList[0]?.id ?? 'case-a-014';
+    const caseTimeline = await getCaseTimeline(db, resolvedCaseId);
+    setSelectedCaseId(resolvedCaseId);
+    setState({ status: 'ready', db, dashboard, options, caseList, caseTimeline, laborLedger, menuDashboard, materials, holeDetail, message });
+  }, [selectedCaseId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,10 +161,10 @@ export function OperationalSliceScreen() {
           ].filter((participant): participant is NonNullable<typeof participant> => Boolean(participant)),
         });
       }
-      await refresh(state.db, selectedTarget === 'case' ? 'เพิ่มบันทึกเคสแล้ว' : 'บันทึกกิจกรรมแล้ว');
-      setView('today');
+      await refresh(state.db, selectedTarget === 'case' ? 'เพิ่มบันทึกเคสแล้ว' : 'บันทึกกิจกรรมแล้ว', state.caseTimeline.id);
+      setView(selectedTarget === 'case' ? 'cases' : 'today');
     } catch (error) {
-      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
+      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ', state.caseTimeline.id);
     }
   }, [
     followUpDays,
@@ -170,7 +182,14 @@ export function OperationalSliceScreen() {
   const markCaseClosed = useCallback(async () => {
     if (state.status !== 'ready') return;
     await closeCase(state.db, state.caseTimeline.id);
-    await refresh(state.db, 'ปิดเคสแล้ว');
+    await refresh(state.db, 'ปิดเคสแล้ว', state.caseTimeline.id);
+    setView('cases');
+  }, [refresh, state]);
+
+  const openCase = useCallback(async (caseId: string) => {
+    if (state.status !== 'ready') return;
+    setSelectedCaseId(caseId);
+    await refresh(state.db, null, caseId);
     setView('cases');
   }, [refresh, state]);
 
@@ -187,7 +206,7 @@ export function OperationalSliceScreen() {
     if (view === 'plot') return 'plots';
     if (view === 'activity') return 'activity';
     if (view === 'cases') return 'cases';
-    if (view === 'labor' || view === 'materials' || view === 'hole') return 'menu';
+    if (view === 'labor' || view === 'materials' || view === 'hole' || view === 'menu') return 'menu';
     if (view === 'designLab') return 'menu';
     return 'today';
   }, [view]);
@@ -234,6 +253,8 @@ export function OperationalSliceScreen() {
               ? 'วัสดุ'
               : view === 'hole'
                 ? `หลุม ${state.holeDetail.marker}`
+                : view === 'menu'
+                  ? 'เมนู'
                 : 'วันนี้';
 
   return (
@@ -241,7 +262,8 @@ export function OperationalSliceScreen() {
       if (tab === 'today') setView('today');
       if (tab === 'plots') setView('plot');
       if (tab === 'activity') setView('activity');
-      if (tab === 'menu') setView('designLab');
+      if (tab === 'cases') setView('cases');
+      if (tab === 'menu') setView('menu');
     }}>
       <TopBar title={screenTitle} actionLabel="ออฟไลน์" />
 
@@ -343,6 +365,7 @@ export function OperationalSliceScreen() {
                 <RecordListItem
                   key={caseItem.id}
                   meta={caseItem.targetLabel}
+                  onPress={() => openCase(caseItem.id)}
                   title={caseItem.title}
                   trailing={caseItem.statusLabel}
                   variant="case"
@@ -374,7 +397,7 @@ export function OperationalSliceScreen() {
           <View style={styles.chipWrap}>
             <SelectPill active={selectedTarget === 'plot'} label="ทั้งแปลง" onPress={() => setSelectedTarget('plot')} />
             <SelectPill active={selectedTarget === 'hole'} label={state.holeDetail.marker} onPress={() => setSelectedTarget('hole')} />
-            <SelectPill active={selectedTarget === 'case'} label="เคส A-014" onPress={() => setSelectedTarget('case')} />
+            <SelectPill active={selectedTarget === 'case'} label={state.caseTimeline.title} onPress={() => setSelectedTarget('case')} />
           </View>
 
           <SectionHeader title="3. รายละเอียด" />
@@ -423,6 +446,64 @@ export function OperationalSliceScreen() {
         </>
       ) : null}
 
+      {view === 'menu' ? (
+        <>
+          <FieldCard variant="raised">
+            <View style={styles.heroRow}>
+              <View style={styles.flex}>
+                <Text style={styles.eyebrow}>{state.menuDashboard.gardenName}</Text>
+                <Text style={styles.title}>สมุดจัดการสวน</Text>
+                <Text style={styles.muted}>ทุกอย่างเก็บในเครื่องก่อน ยังไม่ sync cloud</Text>
+              </View>
+              <StatusChip label={state.menuDashboard.localStatusLabel} variant="offline" />
+            </View>
+            <View style={styles.summaryGrid}>
+              <Metric label="เคสติดตาม" value={`${state.menuDashboard.activeCaseCount}`} />
+              <Metric label="ค่าแรงค้าง" value={`${state.menuDashboard.unpaidLaborTotal.toLocaleString('th-TH')}`} danger={state.menuDashboard.unpaidLaborTotal > 0} />
+              <Metric label="วัสดุ" value={`${state.menuDashboard.materialCount}`} />
+            </View>
+          </FieldCard>
+
+          <SectionHeader title="ไปทำงานต่อ" />
+          <View style={styles.list}>
+            <RecordListItem
+              meta={`${state.menuDashboard.activeCaseCount} เคสติดตาม · ${state.menuDashboard.closedCaseCount} เก็บประวัติ`}
+              onPress={() => setView('cases')}
+              title="เคส"
+              trailing="เปิด"
+              variant="case"
+            />
+            <RecordListItem
+              meta={`${state.laborLedger.unpaidPeople.length} คน · ${state.laborLedger.unpaidTotal.toLocaleString('th-TH')} บาท`}
+              onPress={() => setView('labor')}
+              title="ค่าแรง"
+              trailing="เปิด"
+              variant="labor"
+            />
+            <RecordListItem
+              meta={`${state.materials.length} รายการ · ใช้เลือกตอนบันทึกกิจกรรม`}
+              onPress={() => setView('materials')}
+              title="วัสดุ"
+              trailing="เปิด"
+              variant="material"
+            />
+            <RecordListItem
+              meta={`${state.menuDashboard.plotCount} แปลง · ${state.menuDashboard.holeCount} หลุม`}
+              onPress={() => setView('plot')}
+              title="แปลงและหลุม"
+              trailing="เปิด"
+              variant="hole"
+            />
+          </View>
+
+          <SectionHeader title="ระบบ" />
+          <View style={styles.list}>
+            <RecordListItem title="สำรองข้อมูล" meta="เตรียมไว้สำหรับ export/local backup ใน phase ถัดไป" trailing="เร็วๆ นี้" variant="activity" />
+            <RecordListItem title="Design Lab" meta="พื้นที่ตรวจ primitive สำหรับนักพัฒนา" onPress={() => setView('designLab')} trailing="Dev" variant="activity" />
+          </View>
+        </>
+      ) : null}
+
       {view === 'cases' ? (
         <>
           <FieldCard variant="raised">
@@ -430,22 +511,49 @@ export function OperationalSliceScreen() {
               <View style={styles.flex}>
                 <Text style={styles.eyebrow}>{state.caseTimeline.targetLabel}</Text>
                 <Text style={styles.title}>{state.caseTimeline.title}</Text>
+                <Text style={styles.muted}>
+                  เปิด {formatThaiShortDate(state.caseTimeline.openedAt)}
+                  {state.caseTimeline.closedAt ? ` · ปิด ${formatThaiShortDate(state.caseTimeline.closedAt)}` : ''}
+                </Text>
               </View>
-              <StatusChip label={state.caseTimeline.status === 'tracking' ? 'ติดตามอยู่' : 'ปิดเคส'} variant={state.caseTimeline.status === 'tracking' ? 'active' : 'closed'} />
+              <StatusChip label={caseStatusLabel(state.caseTimeline.status)} variant={caseStatusVariant(state.caseTimeline.status)} />
             </View>
           </FieldCard>
-          <SectionHeader title="ไทม์ไลน์เคส" actionLabel="เพิ่มบันทึก" onActionPress={() => {
+
+          <SectionHeader title="เคสทั้งหมด" />
+          <View style={styles.list}>
+            {state.caseList.map((caseItem) => (
+              <RecordListItem
+                key={caseItem.id}
+                meta={`${caseItem.targetLabel} · ${caseItem.entryCount} บันทึก`}
+                onPress={() => openCase(caseItem.id)}
+                title={caseItem.title}
+                trailing={caseItem.statusLabel}
+                variant="case"
+              />
+            ))}
+          </View>
+
+          <SectionHeader title="ไทม์ไลน์เคส" actionLabel={state.caseTimeline.status === 'tracking' ? 'เพิ่มบันทึก' : undefined} onActionPress={() => {
             setSelectedTarget('case');
             setView('activity');
           }} />
-          <View style={styles.list}>
-            {state.caseTimeline.entries.map((entry) => (
-              <RecordListItem key={entry.id} meta={entry.meta} title={`${entry.dayLabel} · ${entry.title}`} trailing={formatThaiShortDate(entry.performedAt)} variant="case" />
-            ))}
-          </View>
+          <FieldCard>
+            <EvidenceTimeline
+              items={state.caseTimeline.entries.map((entry) => ({
+                id: entry.id,
+                dateLabel: formatThaiShortDate(entry.performedAt),
+                dayLabel: entry.dayLabel,
+                title: entry.title,
+                note: entry.meta,
+              }))}
+              variant="case"
+            />
+          </FieldCard>
           {state.caseTimeline.status === 'tracking' ? (
             <PrimaryButton label="ปิดเคส" onPress={markCaseClosed} variant="secondary" />
           ) : null}
+          <PrimaryButton label="กลับเมนู" onPress={() => setView('menu')} variant="secondary" />
         </>
       ) : null}
 
@@ -537,6 +645,18 @@ function Metric({ danger, label, value }: { danger?: boolean; label: string; val
       <Text style={[styles.metricLabel, danger && styles.danger]}>{label}</Text>
     </View>
   );
+}
+
+function caseStatusLabel(status: CaseTimeline['status']) {
+  if (status === 'tracking') return 'ติดตามอยู่';
+  if (status === 'closed') return 'ปิดเคส';
+  return 'เก็บเข้าแฟ้ม';
+}
+
+function caseStatusVariant(status: CaseTimeline['status']) {
+  if (status === 'tracking') return 'active';
+  if (status === 'closed') return 'closed';
+  return 'archived';
 }
 
 function SelectPill({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {

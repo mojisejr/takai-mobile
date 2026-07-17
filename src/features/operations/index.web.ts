@@ -2,10 +2,12 @@ import type { Material } from '../../domain';
 import { DEMO_NOW, formatThaiShortDate, nextDateFrom } from './date';
 import type {
   ActivityCaptureOption,
+  CaseListItem,
   CaseTimeline,
   CreatedActivityResult,
   HoleDetail,
   LaborLedger,
+  MenuDashboard,
   MaterialLibraryItem,
   CreateActivityInput,
   TakaiView,
@@ -16,6 +18,7 @@ export * from './date';
 export type * from './types';
 
 type WebPreviewDb = {
+  closedCase: boolean;
   demoSprayCount: number;
 };
 
@@ -103,7 +106,34 @@ const buildMaterials = (sprayCount: number): MaterialLibraryItem[] =>
     usageCount: sprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
   }));
 
-const buildHoleDetail = (sprayCount: number): HoleDetail => ({
+const buildCaseList = (sprayCount: number, closedCase: boolean, statusFilter?: CaseListItem['status']): CaseListItem[] => {
+  const caseItem: CaseListItem = {
+    id: 'case-a-014',
+    title: 'A-014 เชื้อราโคนต้น',
+    targetLabel: 'A-014 · แปลง A',
+    status: closedCase ? 'closed' : 'tracking',
+    statusLabel: closedCase ? 'ปิดเคส' : 'ติดตามอยู่',
+    openedAt: '2026-07-10T08:00:00.000Z',
+    closedAt: closedCase ? DEMO_NOW : null,
+    latestActivityAt: sprayCount > 0 ? DEMO_NOW : null,
+    entryCount: sprayCount,
+  };
+
+  return !statusFilter || caseItem.status === statusFilter ? [caseItem] : [];
+};
+
+const buildMenuDashboard = (sprayCount: number, closedCase: boolean): MenuDashboard => ({
+  gardenName: 'สวนตาไก๊',
+  activeCaseCount: closedCase ? 0 : 1,
+  closedCaseCount: closedCase ? 1 : 0,
+  unpaidLaborTotal: sprayCount > 0 ? 600 : 0,
+  materialCount: materials.length,
+  plotCount: 1,
+  holeCount: 300,
+  localStatusLabel: 'ออฟไลน์ 100%',
+});
+
+const buildHoleDetail = (sprayCount: number, closedCase = false): HoleDetail => ({
   id: 'hole-a-014',
   marker: 'A-014',
   status: 'planted',
@@ -111,14 +141,16 @@ const buildHoleDetail = (sprayCount: number): HoleDetail => ({
   plantName: 'ทุเรียนหมอนทอง',
   plantedOn: '2024-10-10',
   ageDays: 645,
-  activeCases: [
-    {
-      id: 'case-a-014',
-      title: 'A-014 เชื้อราโคนต้น',
-      statusLabel: 'ติดตามอยู่',
-      targetLabel: 'A-014',
-    },
-  ],
+  activeCases: closedCase
+    ? []
+    : [
+        {
+          id: 'case-a-014',
+          title: 'A-014 เชื้อราโคนต้น',
+          statusLabel: 'ติดตามอยู่',
+          targetLabel: 'A-014',
+        },
+      ],
   activities:
     sprayCount > 0
       ? [
@@ -133,7 +165,7 @@ const buildHoleDetail = (sprayCount: number): HoleDetail => ({
       : [],
 });
 
-const buildDashboard = (sprayCount: number): TodayDashboard => ({
+const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard => ({
   gardenName: 'สวนตาไก๊',
   unpaidLaborTotal: sprayCount > 0 ? 600 : 0,
   plot: {
@@ -178,14 +210,16 @@ const buildDashboard = (sprayCount: number): TodayDashboard => ({
         progress: 1,
       },
     ],
-    activeCases: [
-      {
-        id: 'case-a-014',
-        title: 'เชื้อราที่โคนต้น',
-        statusLabel: 'ติดตามอยู่',
-        targetLabel: 'หลุม A-014',
-      },
-    ],
+    activeCases: closedCase
+      ? []
+      : [
+          {
+            id: 'case-a-014',
+            title: 'เชื้อราที่โคนต้น',
+            statusLabel: 'ติดตามอยู่',
+            targetLabel: 'หลุม A-014',
+          },
+        ],
   },
   recentItems: sprayCount > 0
     ? [
@@ -219,7 +253,7 @@ export const getActivityCaptureOptions = async (): Promise<ActivityCaptureOption
 });
 
 export const getTodayDashboard = async (db: WebPreviewDb): Promise<TodayDashboard> => {
-  return buildDashboard(db.demoSprayCount);
+  return buildDashboard(db.demoSprayCount, db.closedCase);
 };
 
 export const createDemoSprayActivity = async (db: WebPreviewDb): Promise<CreatedActivityResult> => {
@@ -243,9 +277,20 @@ export const createFieldActivity = async (
   };
 };
 
-export const getCaseTimeline = async (db: WebPreviewDb): Promise<CaseTimeline> => buildCaseTimeline(db.demoSprayCount);
+export const getCaseList = async (
+  db: WebPreviewDb,
+  statusFilter?: CaseListItem['status'],
+): Promise<CaseListItem[]> => buildCaseList(db.demoSprayCount, db.closedCase, statusFilter);
 
-export const closeCase = async (_db: WebPreviewDb): Promise<void> => {};
+export const getMenuDashboard = async (db: WebPreviewDb): Promise<MenuDashboard> =>
+  buildMenuDashboard(db.demoSprayCount, db.closedCase);
+
+export const getCaseTimeline = async (db: WebPreviewDb, _caseId = 'case-a-014'): Promise<CaseTimeline> =>
+  buildCaseTimeline(db.demoSprayCount, db.closedCase);
+
+export const closeCase = async (db: WebPreviewDb): Promise<void> => {
+  db.closedCase = true;
+};
 
 export const getLaborLedger = async (db: WebPreviewDb): Promise<LaborLedger> => buildLaborLedger(db.demoSprayCount);
 
@@ -255,6 +300,6 @@ export const settleUnpaidLaborForPerson = async (db: WebPreviewDb): Promise<void
 
 export const getMaterialLibrary = async (db: WebPreviewDb): Promise<MaterialLibraryItem[]> => buildMaterials(db.demoSprayCount);
 
-export const getHoleDetail = async (db: WebPreviewDb): Promise<HoleDetail> => buildHoleDetail(db.demoSprayCount);
+export const getHoleDetail = async (db: WebPreviewDb): Promise<HoleDetail> => buildHoleDetail(db.demoSprayCount, db.closedCase);
 
 export type { TakaiView };
