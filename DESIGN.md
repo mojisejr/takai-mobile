@@ -35,6 +35,23 @@ verify_eyes:
       - bun run validate
       - bun run test:design-contract
     claim_label: RN Static Token Gate Closed
+  - kind: rn-web-eye
+    gate: advisory-after-rendered-ui-changes
+    sees:
+      - Expo Web bundle and React Native Web rendered mobile preview
+      - web-only route render failures and obvious viewport regressions
+      - console and request failures when paired with browser capture
+    does_not_see:
+      - real Android touch feel
+      - physical safe-area and gesture behavior
+      - native SQLite runtime behavior
+      - camera or image picker behavior
+      - EAS/internal build packaging
+    artifact_sink: projects/takai-mobile/.oracle-eye/rn-web
+    commands:
+      - npm run eye:rn-web
+      - browser capture at mobile viewport when visual proof is required
+    claim_label: RN Web Eye Closed
   - kind: expo-go-device-eye
     gate: pending
     sees:

@@ -1,0 +1,28 @@
+{
+  "project": "takai-mobile",
+  "phase": "h3-harness-adoption",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "url": "http://localhost:8084/",
+  "title": "ตาไก๊ - เพื่อนชาวสวน",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "console": {
+    "errors": 0,
+    "warnings": 1,
+    "note": "Playwright MCP reported 0 errors and 1 warning during the H3 render check."
+  },
+  "screenshot": ".oracle-eye/rn-web/h3-harness-adoption/browser/takai-mobile-h3-rn-web-390x844.png",
+  "observedText": [
+    "สวนตาไก๊",
+    "แปลง A",
+    "RN Web preview ใช้ข้อมูลจำลอง ไม่แตะ SQLite",
+    "Tracker สำคัญ"
+  ],
+  "doesNotClose": [
+    "Expo Go Device Eye",
+    "Native Eye"
+  ]
+}

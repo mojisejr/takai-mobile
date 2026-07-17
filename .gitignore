@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Oracle Eye generated web bundles (recreated by npm run eye:rn-web)
+.oracle-eye/rn-web/*/export/

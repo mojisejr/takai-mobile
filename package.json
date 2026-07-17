@@ -7,8 +7,10 @@
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-safe-area-context": "~5.6.0"
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-web": "^0.21.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
@@ -26,7 +28,8 @@
     "test:domain": "tsx scripts/domain-schema-check.ts",
     "test:operations": "tsx scripts/operational-slice-check.ts",
     "test:design-contract": "node scripts/design-contract-check.mjs",
-    "test:expo-go-compat": "node scripts/expo-go-compat-check.mjs"
+    "test:expo-go-compat": "node scripts/expo-go-compat-check.mjs",
+    "eye:rn-web": "node scripts/rn-web-eye-check.mjs"
   },
   "private": true
 }
