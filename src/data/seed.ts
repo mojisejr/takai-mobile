@@ -77,6 +77,18 @@ export const seedDemoGarden = async (db: SqlExecutor): Promise<void> => {
     });
   }
 
+  for (const caseRecord of TAKAI_DEMO_SEED.cases) {
+    await insertOrIgnore(db, 'cases', {
+      id: caseRecord.id,
+      plot_id: caseRecord.plotId,
+      hole_id: caseRecord.holeId,
+      title: caseRecord.title,
+      status: caseRecord.status,
+      opened_at: caseRecord.openedAt,
+      closed_at: caseRecord.closedAt,
+    });
+  }
+
   for (const person of TAKAI_DEMO_SEED.people) {
     await insertOrIgnore(db, 'people', {
       id: person.id,

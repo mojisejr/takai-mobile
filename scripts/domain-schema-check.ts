@@ -10,6 +10,7 @@ import {
   type ActivityParticipant,
   type CropCycle,
 } from '../src/domain';
+import { seedDemoGarden } from '../src/data/seed';
 import { runMigrations, type SqlExecutor } from '../src/data/migrations';
 import { TAKAI_MIGRATIONS } from '../src/data/schema';
 
@@ -33,6 +34,23 @@ class FakeSqlite implements SqlExecutor {
     this.runStatements.push(sql);
     if (sql.startsWith('INSERT INTO schema_migrations')) {
       this.appliedIds.add(Number(params?.[0]));
+    }
+  }
+}
+
+class SeedFakeSqlite implements SqlExecutor {
+  insertedTables: string[] = [];
+
+  async execAsync(): Promise<void> {}
+
+  async getAllAsync<T>(): Promise<T[]> {
+    return [];
+  }
+
+  async runAsync(sql: string): Promise<void> {
+    const match = sql.match(/^INSERT OR IGNORE INTO ([a-z_]+)/);
+    if (match?.[1]) {
+      this.insertedTables.push(match[1]);
     }
   }
 }
@@ -71,6 +89,7 @@ assert.equal(TAKAI_DEMO_SEED.plots[0]?.name, 'แปลง A');
 assert.equal(TAKAI_DEMO_SEED.cropCycles[0]?.status, 'active');
 assert.ok(TAKAI_DEMO_SEED.holes.length >= 3);
 assert.ok(TAKAI_DEMO_SEED.activityCategories.some((category) => category.id === 'cat-spray'));
+assert.ok(TAKAI_DEMO_SEED.cases.some((caseRecord) => caseRecord.id === 'case-a-014'));
 assert.ok(TAKAI_DEMO_SEED.people.some((person) => person.isSelf));
 assert.ok(TAKAI_DEMO_SEED.people.some((person) => !person.isSelf));
 assert.ok(TAKAI_DEMO_SEED.materials.some((material) => material.type === 'fungicide'));
@@ -142,9 +161,12 @@ const main = async (): Promise<void> => {
   const db = new FakeSqlite();
   const firstRun = await runMigrations(db);
   const secondRun = await runMigrations(db);
+  const seedDb = new SeedFakeSqlite();
+  await seedDemoGarden(seedDb);
 
   assert.deepEqual(firstRun, [1], 'empty database should apply first migration');
   assert.deepEqual(secondRun, [], 'rerunning migrations should be idempotent');
+  assert.ok(seedDb.insertedTables.includes('cases'), 'demo seed must include the case timeline record');
   assert.ok(db.execStatements.some((statement) => statement.includes('PRAGMA foreign_keys = ON')));
   assert.ok(
     db.execStatements.some((statement) =>
