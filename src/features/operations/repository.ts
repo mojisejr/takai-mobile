@@ -5,11 +5,13 @@ import { DEMO_NOW, diffDays, formatThaiShortDate, nextDateFrom } from './date';
 import type {
   ActivityCaptureOption,
   CaseTimeline,
+  CaseListItem,
   ActiveCaseSummary,
   CreateActivityInput,
   CreatedActivityResult,
   HoleDetail,
   LaborLedger,
+  MenuDashboard,
   MaterialLibraryItem,
   PlotDashboard,
   TodayActivityItem,
@@ -45,6 +47,23 @@ type CaseRow = {
   title: string;
   status: string;
   marker: string | null;
+};
+
+type CaseListRow = {
+  id: string;
+  title: string;
+  status: 'tracking' | 'closed' | 'archived';
+  opened_at: string;
+  closed_at: string | null;
+  marker: string | null;
+  plot_name: string;
+  entry_count: number;
+  latest_activity_at: string | null;
+};
+
+type CaseStatusCountRow = {
+  status: 'tracking' | 'closed' | 'archived';
+  count: number;
 };
 
 type TrackerRow = {
@@ -142,6 +161,12 @@ const first = <T>(rows: T[]): T => {
     throw new Error('TAKAI local seed is missing required data');
   }
   return rows[0];
+};
+
+const caseStatusLabel = (status: 'tracking' | 'closed' | 'archived'): string => {
+  if (status === 'tracking') return 'ติดตามอยู่';
+  if (status === 'closed') return 'ปิดเคส';
+  return 'เก็บเข้าแฟ้ม';
 };
 
 export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<ActivityCaptureOption> => {
@@ -437,6 +462,84 @@ export const getTodayDashboard = async (db: SqlExecutor): Promise<TodayDashboard
     plot,
     recentItems,
     unpaidLaborTotal: Number(labor?.total ?? 0),
+  };
+};
+
+export const getCaseList = async (
+  db: SqlExecutor,
+  statusFilter?: 'tracking' | 'closed' | 'archived',
+): Promise<CaseListItem[]> => {
+  const rows = await db.getAllAsync<CaseListRow>(
+    `SELECT
+       cases.id,
+       cases.title,
+       cases.status,
+       cases.opened_at,
+       cases.closed_at,
+       holes.marker,
+       plots.name AS plot_name,
+       COUNT(activity_targets.id) AS entry_count,
+       MAX(activities.performed_at) AS latest_activity_at
+     FROM cases
+     JOIN plots ON plots.id = cases.plot_id
+     LEFT JOIN holes ON holes.id = cases.hole_id
+     LEFT JOIN activity_targets
+       ON activity_targets.target_type = 'case'
+      AND activity_targets.target_id = cases.id
+     LEFT JOIN activities ON activities.id = activity_targets.activity_id
+     WHERE (? IS NULL OR cases.status = ?)
+     GROUP BY cases.id
+     ORDER BY
+       CASE cases.status
+         WHEN 'tracking' THEN 0
+         WHEN 'closed' THEN 1
+         ELSE 2
+       END,
+       cases.opened_at DESC`,
+    [statusFilter ?? null, statusFilter ?? null],
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    targetLabel: row.marker ? `${row.marker} · ${row.plot_name}` : row.plot_name,
+    status: row.status,
+    statusLabel: caseStatusLabel(row.status),
+    openedAt: row.opened_at,
+    closedAt: row.closed_at,
+    latestActivityAt: row.latest_activity_at,
+    entryCount: Number(row.entry_count),
+  }));
+};
+
+export const getMenuDashboard = async (db: SqlExecutor): Promise<MenuDashboard> => {
+  const [garden] = await db.getAllAsync<{ name: string }>('SELECT name FROM gardens ORDER BY created_at ASC LIMIT 1');
+  const [labor] = await db.getAllAsync<{ total: number }>(
+    `SELECT COALESCE(SUM(amount_due - amount_paid), 0) AS total
+     FROM labor_entries
+     WHERE status = 'unpaid'`,
+  );
+  const caseRows = await db.getAllAsync<CaseStatusCountRow>(
+    `SELECT status, COUNT(*) AS count
+     FROM cases
+     GROUP BY status`,
+  );
+  const [materials] = await db.getAllAsync<CountRow>('SELECT COUNT(*) AS count FROM materials');
+  const [plots] = await db.getAllAsync<CountRow>('SELECT COUNT(*) AS count FROM plots');
+  const [holes] = await db.getAllAsync<CountRow>('SELECT COUNT(*) AS count FROM holes');
+
+  const caseCount = (status: CaseStatusCountRow['status']) =>
+    Number(caseRows.find((row) => row.status === status)?.count ?? 0);
+
+  return {
+    gardenName: garden?.name ?? 'สวนตาไก๊',
+    activeCaseCount: caseCount('tracking'),
+    closedCaseCount: caseCount('closed') + caseCount('archived'),
+    unpaidLaborTotal: Number(labor?.total ?? 0),
+    materialCount: Number(materials?.count ?? 0),
+    plotCount: Number(plots?.count ?? 0),
+    holeCount: Number(holes?.count ?? 0),
+    localStatusLabel: 'ออฟไลน์ 100%',
   };
 };
 
