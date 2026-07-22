@@ -7,6 +7,7 @@ import type {
   CaseTimeline,
   CaseListItem,
   ActiveCaseSummary,
+  CategoryInput,
   CreateActivityInput,
   CreatedActivityResult,
   HoleDetail,
@@ -14,6 +15,8 @@ import type {
   MenuDashboard,
   MaterialLibraryItem,
   PlotDashboard,
+  PersonDirectoryItem,
+  PersonInput,
   TodayActivityItem,
   TodayDashboard,
   TrackerSummary,
@@ -141,6 +144,10 @@ type PersonRow = {
   display_name: string;
   role: 'owner' | 'worker';
   is_self: number;
+  specialty: string;
+  phone: string;
+  note: string;
+  archived_at: string | null;
 };
 
 type ParticipantForLabor = {
@@ -156,6 +163,25 @@ const generatedId = (prefix: string, performedAt: string): string => {
   return `${prefix}-${compact}`;
 };
 
+const requireName = (displayName: string): string => {
+  const normalized = displayName.trim();
+  if (!normalized) {
+    throw new Error('TAKAI requires a person display name');
+  }
+  return normalized;
+};
+
+const toPersonDirectoryItem = (person: PersonRow): PersonDirectoryItem => ({
+  id: person.id,
+  displayName: person.display_name,
+  role: person.role,
+  isSelf: Boolean(person.is_self),
+  specialty: person.specialty,
+  phone: person.phone,
+  note: person.note,
+  archivedAt: person.archived_at,
+});
+
 const first = <T>(rows: T[]): T => {
   if (!rows[0]) {
     throw new Error('TAKAI local seed is missing required data');
@@ -167,6 +193,168 @@ const caseStatusLabel = (status: 'tracking' | 'closed' | 'archived'): string => 
   if (status === 'tracking') return 'ติดตามอยู่';
   if (status === 'closed') return 'ปิดเคส';
   return 'เก็บเข้าแฟ้ม';
+};
+
+export const listActivityCategories = async (db: SqlExecutor, includeArchived = false): Promise<ActivityCategory[]> => {
+  const rows = await db.getAllAsync<{
+    id: string;
+    name: string;
+    kind: ActivityCategory['kind'];
+    track_by_default: number;
+    sort_order: number;
+    archived_at: string | null;
+  }>(
+    `SELECT id, name, kind, track_by_default, sort_order, archived_at
+     FROM activity_categories
+     ${includeArchived ? '' : 'WHERE archived_at IS NULL'}
+     ORDER BY sort_order ASC, name ASC`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    kind: row.kind,
+    trackByDefault: Boolean(row.track_by_default),
+    sortOrder: Number(row.sort_order),
+    archivedAt: row.archived_at,
+  }));
+};
+
+export const createActivityCategory = async (
+  db: SqlExecutor,
+  input: CategoryInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  const id = input.id ?? generatedId('category', createdAt);
+  const name = requireName(input.name);
+  await db.runAsync(
+    `INSERT INTO activity_categories (id, name, kind, track_by_default, sort_order, archived_at)
+     VALUES (?, ?, ?, 0, ?, NULL)`,
+    [id, name, input.kind, input.sortOrder ?? 0],
+  );
+  return id;
+};
+
+export const updateActivityCategory = async (db: SqlExecutor, categoryId: string, input: CategoryInput): Promise<void> => {
+  await db.runAsync(
+    `UPDATE activity_categories
+     SET name = ?, kind = ?, sort_order = ?
+     WHERE id = ?`,
+    [requireName(input.name), input.kind, input.sortOrder ?? 0, categoryId],
+  );
+};
+
+export const archiveActivityCategory = async (
+  db: SqlExecutor,
+  categoryId: string,
+  archivedAt = DEMO_NOW,
+): Promise<void> => {
+  await db.runAsync('UPDATE activity_categories SET archived_at = ? WHERE id = ?', [archivedAt, categoryId]);
+};
+
+export const restoreActivityCategory = async (db: SqlExecutor, categoryId: string): Promise<void> => {
+  await db.runAsync('UPDATE activity_categories SET archived_at = NULL WHERE id = ?', [categoryId]);
+};
+
+export const listPeople = async (db: SqlExecutor, includeArchived = false): Promise<PersonDirectoryItem[]> => {
+  const people = await db.getAllAsync<PersonRow>(
+    `SELECT id, display_name, role, is_self, specialty, phone, note, archived_at
+     FROM people
+     ${includeArchived ? '' : 'WHERE archived_at IS NULL'}
+     ORDER BY is_self DESC, display_name ASC`,
+  );
+  return people.map(toPersonDirectoryItem);
+};
+
+export const createPerson = async (
+  db: SqlExecutor,
+  input: PersonInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  const id = input.id ?? generatedId('person', createdAt);
+  await db.runAsync(
+    `INSERT INTO people (id, display_name, role, is_self, specialty, phone, note, archived_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+    [
+      id,
+      requireName(input.displayName),
+      input.role ?? 'worker',
+      Number(input.isSelf ?? false),
+      input.specialty?.trim() ?? '',
+      input.phone?.trim() ?? '',
+      input.note?.trim() ?? '',
+    ],
+  );
+  return id;
+};
+
+export const updatePerson = async (db: SqlExecutor, personId: string, input: PersonInput): Promise<void> => {
+  await db.runAsync(
+    `UPDATE people
+     SET display_name = ?, role = ?, is_self = ?, specialty = ?, phone = ?, note = ?
+     WHERE id = ?`,
+    [
+      requireName(input.displayName),
+      input.role ?? 'worker',
+      Number(input.isSelf ?? false),
+      input.specialty?.trim() ?? '',
+      input.phone?.trim() ?? '',
+      input.note?.trim() ?? '',
+      personId,
+    ],
+  );
+};
+
+export const archivePerson = async (db: SqlExecutor, personId: string, archivedAt = DEMO_NOW): Promise<void> => {
+  await db.runAsync('UPDATE people SET archived_at = ? WHERE id = ?', [archivedAt, personId]);
+};
+
+export const restorePerson = async (db: SqlExecutor, personId: string): Promise<void> => {
+  await db.runAsync('UPDATE people SET archived_at = NULL WHERE id = ?', [personId]);
+};
+
+const assertActiveCategory = async (db: SqlExecutor, categoryId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM activity_categories WHERE id = ? AND archived_at IS NULL LIMIT 1',
+    [categoryId],
+  );
+  if (!rows[0]) {
+    throw new Error(`TAKAI activity category is unavailable: ${categoryId}`);
+  }
+};
+
+const assertActivePerson = async (db: SqlExecutor, personId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>('SELECT id FROM people WHERE id = ? AND archived_at IS NULL LIMIT 1', [personId]);
+  if (!rows[0]) {
+    throw new Error(`TAKAI activity participant is unavailable: ${personId}`);
+  }
+};
+
+export const pinPlotTracker = async (
+  db: SqlExecutor,
+  plotId: string,
+  categoryId: string,
+  createdAt = DEMO_NOW,
+): Promise<void> => {
+  await assertActiveCategory(db, categoryId);
+  await db.runAsync(
+    `INSERT INTO plot_trackers (plot_id, category_id, created_at, archived_at)
+     VALUES (?, ?, ?, NULL)
+     ON CONFLICT(plot_id, category_id) DO UPDATE SET archived_at = NULL`,
+    [plotId, categoryId, createdAt],
+  );
+};
+
+export const unpinPlotTracker = async (
+  db: SqlExecutor,
+  plotId: string,
+  categoryId: string,
+  archivedAt = DEMO_NOW,
+): Promise<void> => {
+  await db.runAsync(
+    'UPDATE plot_trackers SET archived_at = ? WHERE plot_id = ? AND category_id = ?',
+    [archivedAt, plotId, categoryId],
+  );
 };
 
 export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<ActivityCaptureOption> => {
@@ -185,8 +373,9 @@ export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<Activi
     [plot?.id],
   );
   const categories = await db.getAllAsync<ActivityCategory>(
-    `SELECT id, name, kind, track_by_default AS trackByDefault, sort_order AS sortOrder
+    `SELECT id, name, kind, track_by_default AS trackByDefault, sort_order AS sortOrder, archived_at AS archivedAt
      FROM activity_categories
+     WHERE archived_at IS NULL
      ORDER BY sort_order ASC`,
   );
   const materials = await db.getAllAsync<Material>(
@@ -194,7 +383,12 @@ export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<Activi
      FROM materials
      ORDER BY name ASC`,
   );
-  const people = await db.getAllAsync<PersonRow>('SELECT id, display_name, role, is_self FROM people ORDER BY is_self DESC');
+  const people = await db.getAllAsync<PersonRow>(
+    `SELECT id, display_name, role, is_self, specialty, phone, note, archived_at
+     FROM people
+     WHERE archived_at IS NULL
+     ORDER BY is_self DESC`,
+  );
 
   return {
     categories,
@@ -232,6 +426,10 @@ export const resolveActiveCropId = async (
 
 export const createActivity = async (db: SqlExecutor, input: CreateActivityInput): Promise<CreatedActivityResult> => {
   const activityId = input.id ?? generatedId('activity', input.performedAt);
+  await assertActiveCategory(db, input.categoryId);
+  for (const participant of input.participants) {
+    await assertActivePerson(db, participant.personId);
+  }
   const cropCycleId = await resolveActiveCropId(db, input.plotId, input.performedAt);
 
   await db.runAsync(
@@ -254,7 +452,9 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
     );
   }
 
-  const people = await db.getAllAsync<PersonRow>('SELECT id, display_name, role, is_self FROM people');
+  const people = await db.getAllAsync<PersonRow>(
+    'SELECT id, display_name, role, is_self, specialty, phone, note, archived_at FROM people',
+  );
   const participantsForLabor: ParticipantForLabor[] = [];
 
   for (const [index, participant] of input.participants.entries()) {
@@ -328,6 +528,39 @@ const buildTracker = (row: TrackerRow): TrackerSummary => {
   };
 };
 
+const getTrackerRows = async (
+  db: SqlExecutor,
+  plotId: string,
+  cropCycleId: string | null,
+): Promise<TrackerRow[]> => {
+  return db.getAllAsync<TrackerRow>(
+    `SELECT
+       activity_categories.id AS category_id,
+       activity_categories.name AS title,
+       COUNT(activities.id) AS count,
+       MAX(activities.performed_at) AS latest_performed_at,
+       MAX(activities.follow_up_on) AS latest_follow_up_on
+     FROM plot_trackers
+     JOIN activity_categories ON activity_categories.id = plot_trackers.category_id
+     LEFT JOIN activities
+       ON activities.category_id = activity_categories.id
+      AND activities.plot_id = plot_trackers.plot_id
+      AND activities.status = 'done'
+      AND (? IS NULL OR activities.crop_cycle_id = ?)
+     WHERE plot_trackers.plot_id = ?
+       AND plot_trackers.archived_at IS NULL
+       AND activity_categories.archived_at IS NULL
+     GROUP BY activity_categories.id
+     ORDER BY activity_categories.sort_order ASC, activity_categories.name ASC`,
+    [cropCycleId, cropCycleId, plotId],
+  );
+};
+
+export const listPlotTrackers = async (db: SqlExecutor, plotId: string): Promise<TrackerSummary[]> => {
+  const rows = await getTrackerRows(db, plotId, null);
+  return rows.map(buildTracker);
+};
+
 export const getPlotDashboard = async (db: SqlExecutor, plotId = 'plot-a'): Promise<PlotDashboard> => {
   const plot = first(
     await db.getAllAsync<PlotRow>(
@@ -359,24 +592,7 @@ export const getPlotDashboard = async (db: SqlExecutor, plotId = 'plot-a'): Prom
       [plot.id],
     ),
   );
-  const trackerRows = await db.getAllAsync<TrackerRow>(
-    `SELECT
-       activity_categories.id AS category_id,
-       activity_categories.name AS title,
-       COUNT(activities.id) AS count,
-       MAX(activities.performed_at) AS latest_performed_at,
-       MAX(activities.follow_up_on) AS latest_follow_up_on
-     FROM activity_categories
-     LEFT JOIN activities
-       ON activities.category_id = activity_categories.id
-      AND activities.plot_id = ?
-      AND activities.status = 'done'
-      AND (? IS NULL OR activities.crop_cycle_id = ?)
-     WHERE activity_categories.track_by_default = 1
-     GROUP BY activity_categories.id
-     ORDER BY activity_categories.sort_order ASC`,
-    [plot.id, crop?.id ?? null, crop?.id ?? null],
-  );
+  const trackerRows = await getTrackerRows(db, plot.id, crop?.id ?? null);
   const cases = await db.getAllAsync<CaseRow>(
     `SELECT cases.id, cases.title, cases.status, holes.marker
      FROM cases
@@ -648,6 +864,7 @@ export const getLaborLedger = async (db: SqlExecutor): Promise<LaborLedger> => {
       displayName: person.display_name,
       unpaidTotal: Number(person.unpaid_total),
       unpaidCount: Number(person.unpaid_count),
+      sourceCount: Number(person.unpaid_count),
       latestWorkDate: person.latest_work_date,
     })),
     recentPaid: recentPaid.map((row) => ({

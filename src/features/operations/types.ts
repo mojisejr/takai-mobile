@@ -1,4 +1,4 @@
-import type { ActivityCategory, EntityId, Material, PayType } from '../../domain';
+import type { ActivityCategory, EntityId, Material, PayType, PersonRole } from '../../domain';
 
 export type TakaiView = 'today' | 'plot' | 'activity' | 'cases' | 'labor' | 'materials' | 'hole' | 'menu' | 'designLab';
 
@@ -64,6 +64,34 @@ export type ActivityCaptureOption = {
   defaultHoleId: EntityId | null;
   defaultWorkerId: EntityId | null;
   defaultSelfId: EntityId | null;
+};
+
+export type CategoryInput = {
+  id?: EntityId;
+  name: string;
+  kind: ActivityCategory['kind'];
+  sortOrder?: number;
+};
+
+export type PersonDirectoryItem = {
+  id: EntityId;
+  displayName: string;
+  role: PersonRole;
+  isSelf: boolean;
+  specialty: string;
+  phone: string;
+  note: string;
+  archivedAt: string | null;
+};
+
+export type PersonInput = {
+  id?: EntityId;
+  displayName: string;
+  role?: PersonRole;
+  isSelf?: boolean;
+  specialty?: string;
+  phone?: string;
+  note?: string;
 };
 
 export type ActivityMaterialInput = {
@@ -144,6 +172,7 @@ export type LaborLedgerPerson = {
   displayName: string;
   unpaidTotal: number;
   unpaidCount: number;
+  sourceCount: number;
   latestWorkDate: string | null;
 };
 

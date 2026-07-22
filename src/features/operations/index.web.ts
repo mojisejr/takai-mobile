@@ -89,7 +89,16 @@ const buildLaborLedger = (sprayCount: number): LaborLedger => ({
   unpaidTotal: sprayCount > 0 ? 600 : 0,
   unpaidPeople:
     sprayCount > 0
-      ? [{ personId: 'person-worker', displayName: 'สมชาย', unpaidTotal: 600, unpaidCount: 1, latestWorkDate: DEMO_NOW }]
+      ? [
+          {
+            personId: 'person-worker',
+            displayName: 'สมชาย',
+            unpaidTotal: 600,
+            unpaidCount: 1,
+            sourceCount: 1,
+            latestWorkDate: DEMO_NOW,
+          },
+        ]
       : [],
   recentPaid: [],
 });
