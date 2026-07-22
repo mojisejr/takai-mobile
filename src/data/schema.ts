@@ -147,4 +147,24 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         ON labor_entries(person_id, status, work_date)`,
     ],
   },
+  {
+    id: 2,
+    name: 'workers_trackers_and_archives',
+    statements: [
+      `ALTER TABLE activity_categories ADD COLUMN archived_at TEXT`,
+      `ALTER TABLE people ADD COLUMN specialty TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE people ADD COLUMN phone TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE people ADD COLUMN note TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE people ADD COLUMN archived_at TEXT`,
+      `CREATE TABLE IF NOT EXISTS plot_trackers (
+        plot_id TEXT NOT NULL REFERENCES plots(id) ON DELETE CASCADE,
+        category_id TEXT NOT NULL REFERENCES activity_categories(id),
+        created_at TEXT NOT NULL,
+        archived_at TEXT,
+        PRIMARY KEY (plot_id, category_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_plot_trackers_plot_active
+        ON plot_trackers(plot_id, archived_at)`,
+    ],
+  },
 ];

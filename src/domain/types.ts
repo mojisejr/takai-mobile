@@ -59,6 +59,14 @@ export interface ActivityCategory {
   kind: 'spray' | 'fertilizer' | 'prune' | 'case' | 'labor' | 'note' | 'other';
   trackByDefault: boolean;
   sortOrder: number;
+  archivedAt?: ISODateTime | null;
+}
+
+export interface PlotTracker {
+  plotId: EntityId;
+  categoryId: EntityId;
+  createdAt: ISODateTime;
+  archivedAt?: ISODateTime | null;
 }
 
 export interface Activity {
@@ -94,6 +102,10 @@ export interface Person {
   displayName: string;
   role: PersonRole;
   isSelf: boolean;
+  specialty?: string | null;
+  phone?: string | null;
+  note?: string | null;
+  archivedAt?: ISODateTime | null;
 }
 
 export interface ActivityParticipant {
