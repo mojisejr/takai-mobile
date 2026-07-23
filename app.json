@@ -24,6 +24,12 @@
     },
     "plugins": [
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1506fb8d-5e0c-47b0-ab26-5d7ca80e89d2"
+      }
+    },
+    "owner": "nonthasak"
   }
 }

@@ -1,0 +1,27 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-5-2-workers-trackers",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-07-23T02:10:18.365Z",
+  "viewport": "390x844",
+  "exportDir": ".oracle-eye/rn-web/phase-5-2-workers-trackers/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/phase-5-2-workers-trackers/export/index.html",
+    "browserScreenshots": [
+      ".oracle-eye/rn-web/phase-5-2-workers-trackers/browser/takai-mobile-phase-5-2-workers-trackers-today-390x844.png",
+      ".oracle-eye/rn-web/phase-5-2-workers-trackers/browser/takai-mobile-phase-5-2-workers-trackers-plot-390x844.png",
+      ".oracle-eye/rn-web/phase-5-2-workers-trackers/browser/takai-mobile-phase-5-2-workers-trackers-activity-390x844.png",
+      ".oracle-eye/rn-web/phase-5-2-workers-trackers/browser/takai-mobile-phase-5-2-workers-trackers-menu-390x844.png",
+      ".oracle-eye/rn-web/phase-5-2-workers-trackers/browser/takai-mobile-phase-5-2-workers-trackers-worker-directory-390x844.png",
+      ".oracle-eye/rn-web/phase-5-2-workers-trackers/browser/takai-mobile-phase-5-2-workers-trackers-labor-390x844.png"
+    ],
+    "browserEvidence": ".oracle-eye/rn-web/phase-5-2-workers-trackers/browser/browser-evidence.json",
+    "manifest": ".oracle-eye/rn-web/phase-5-2-workers-trackers/manifest.json"
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink.",
+    "Browser screenshot/console capture should use this sink for visual proof.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}
