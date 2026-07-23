@@ -40,6 +40,7 @@ class FakeSqlite implements SqlExecutor {
 
 class SeedFakeSqlite implements SqlExecutor {
   insertedTables: string[] = [];
+  runStatements: string[] = [];
 
   async execAsync(): Promise<void> {}
 
@@ -48,6 +49,7 @@ class SeedFakeSqlite implements SqlExecutor {
   }
 
   async runAsync(sql: string): Promise<void> {
+    this.runStatements.push(sql);
     const match = sql.match(/^INSERT OR IGNORE INTO ([a-z_]+)/);
     if (match?.[1]) {
       this.insertedTables.push(match[1]);
@@ -69,6 +71,7 @@ const requiredTables = [
   'holes',
   'plantings',
   'activity_categories',
+  'plot_trackers',
   'activities',
   'activity_targets',
   'cases',
@@ -89,9 +92,13 @@ assert.equal(TAKAI_DEMO_SEED.plots[0]?.name, 'แปลง A');
 assert.equal(TAKAI_DEMO_SEED.cropCycles[0]?.status, 'active');
 assert.ok(TAKAI_DEMO_SEED.holes.length >= 3);
 assert.ok(TAKAI_DEMO_SEED.activityCategories.some((category) => category.id === 'cat-spray'));
+assert.ok(TAKAI_DEMO_SEED.plotTrackers.some((tracker) => tracker.plotId === 'plot-a' && tracker.categoryId === 'cat-spray'));
+assert.ok(TAKAI_DEMO_SEED.plotTrackers.every((tracker) => tracker.archivedAt === null));
 assert.ok(TAKAI_DEMO_SEED.cases.some((caseRecord) => caseRecord.id === 'case-a-014'));
 assert.ok(TAKAI_DEMO_SEED.people.some((person) => person.isSelf));
 assert.ok(TAKAI_DEMO_SEED.people.some((person) => !person.isSelf));
+assert.ok(TAKAI_DEMO_SEED.people.every((person) => person.role === 'owner' || person.role === 'worker'));
+assert.equal(TAKAI_DEMO_SEED.people.find((person) => person.id === 'person-worker-somchai')?.specialty, 'แต่งกิ่ง');
 assert.ok(TAKAI_DEMO_SEED.materials.some((material) => material.type === 'fungicide'));
 
 const crop2025: CropCycle = {
@@ -161,17 +168,42 @@ const main = async (): Promise<void> => {
   const db = new FakeSqlite();
   const firstRun = await runMigrations(db);
   const secondRun = await runMigrations(db);
+  const upgradeDb = new FakeSqlite();
+  upgradeDb.appliedIds.add(1);
+  const upgradeRun = await runMigrations(upgradeDb);
   const seedDb = new SeedFakeSqlite();
   await seedDemoGarden(seedDb);
 
-  assert.deepEqual(firstRun, [1], 'empty database should apply first migration');
+  assert.deepEqual(firstRun, [1, 2, 3], 'empty database should apply every ordered migration');
   assert.deepEqual(secondRun, [], 'rerunning migrations should be idempotent');
+  assert.deepEqual(upgradeRun, [2, 3], 'a migration 1 database must upgrade without replaying its original schema');
   assert.ok(seedDb.insertedTables.includes('cases'), 'demo seed must include the case timeline record');
+  assert.ok(seedDb.insertedTables.includes('plot_trackers'), 'demo seed must include per-plot tracker defaults');
+  assert.ok(
+    seedDb.runStatements.some((statement) => statement.startsWith('INSERT OR IGNORE INTO plot_trackers')),
+    'seed must not re-pin a tracker that was manually archived',
+  );
   assert.ok(db.execStatements.some((statement) => statement.includes('PRAGMA foreign_keys = ON')));
   assert.ok(
     db.execStatements.some((statement) =>
       statement.includes('CREATE UNIQUE INDEX IF NOT EXISTS idx_crop_cycles_one_active_per_plot'),
     ),
+  );
+  assert.ok(
+    TAKAI_MIGRATIONS[1]?.statements.some((statement) => statement.includes('ALTER TABLE activity_categories ADD COLUMN archived_at')),
+    'migration 2 must archive categories without rewriting migration 1',
+  );
+  assert.ok(
+    TAKAI_MIGRATIONS[1]?.statements.some((statement) => statement.includes('CREATE TABLE IF NOT EXISTS plot_trackers')),
+    'migration 2 must create history-safe per-plot trackers',
+  );
+  assert.ok(
+    TAKAI_MIGRATIONS[2]?.statements.some((statement) => statement.includes('ALTER TABLE materials ADD COLUMN archived_at')),
+    'migration 3 must archive materials without rewriting existing material records',
+  );
+  assert.ok(
+    TAKAI_MIGRATIONS[2]?.statements.some((statement) => statement.includes('ADD COLUMN sort_order')),
+    'migration 3 must preserve material usage order',
   );
 
   console.log('DOMAIN_SCHEMA_PASS: migrations, seed data, crop rules, and labor derivation are valid');

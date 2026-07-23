@@ -7,13 +7,17 @@ import type {
   CaseTimeline,
   CaseListItem,
   ActiveCaseSummary,
+  CategoryInput,
   CreateActivityInput,
   CreatedActivityResult,
   HoleDetail,
   LaborLedger,
   MenuDashboard,
+  MaterialInput,
   MaterialLibraryItem,
   PlotDashboard,
+  PersonDirectoryItem,
+  PersonInput,
   TodayActivityItem,
   TodayDashboard,
   TrackerSummary,
@@ -92,6 +96,26 @@ type MaterialRow = {
   photo_uri: string | null;
   last_used_at: string | null;
   usage_count: number;
+  archived_at: string | null;
+};
+
+type CapturePlotRow = {
+  id: string;
+  name: string;
+};
+
+type CaptureHoleRow = {
+  id: string;
+  plot_id: string;
+  marker: string;
+  status: 'empty' | 'planted';
+};
+
+type CaptureCaseRow = {
+  id: string;
+  plot_id: string;
+  hole_id: string | null;
+  title: string;
 };
 
 type LaborPersonRow = {
@@ -141,6 +165,10 @@ type PersonRow = {
   display_name: string;
   role: 'owner' | 'worker';
   is_self: number;
+  specialty: string;
+  phone: string;
+  note: string;
+  archived_at: string | null;
 };
 
 type ParticipantForLabor = {
@@ -156,6 +184,41 @@ const generatedId = (prefix: string, performedAt: string): string => {
   return `${prefix}-${compact}`;
 };
 
+const requireName = (displayName: string): string => {
+  const normalized = displayName.trim();
+  if (!normalized) {
+    throw new Error('TAKAI requires a person display name');
+  }
+  return normalized;
+};
+
+const requireMaterialName = (name: string): string => {
+  const normalized = name.trim();
+  if (!normalized) {
+    throw new Error('TAKAI requires a material name');
+  }
+  return normalized;
+};
+
+const requireMaterialUnit = (unit: string): string => {
+  const normalized = unit.trim();
+  if (!normalized) {
+    throw new Error('TAKAI requires a material unit');
+  }
+  return normalized;
+};
+
+const toPersonDirectoryItem = (person: PersonRow): PersonDirectoryItem => ({
+  id: person.id,
+  displayName: person.display_name,
+  role: person.role,
+  isSelf: Boolean(person.is_self),
+  specialty: person.specialty,
+  phone: person.phone,
+  note: person.note,
+  archivedAt: person.archived_at,
+});
+
 const first = <T>(rows: T[]): T => {
   if (!rows[0]) {
     throw new Error('TAKAI local seed is missing required data');
@@ -169,46 +232,344 @@ const caseStatusLabel = (status: 'tracking' | 'closed' | 'archived'): string => 
   return 'เก็บเข้าแฟ้ม';
 };
 
-export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<ActivityCaptureOption> => {
-  const [plot] = await db.getAllAsync<{ id: string }>('SELECT id FROM plots ORDER BY sort_order ASC LIMIT 1');
-  const [caseHole] = await db.getAllAsync<{ id: string }>(
-    `SELECT holes.id
-     FROM holes
-     JOIN cases ON cases.hole_id = holes.id
-     WHERE holes.plot_id = ? AND cases.status = 'tracking'
-     ORDER BY cases.opened_at DESC
-     LIMIT 1`,
-    [plot?.id],
-  );
-  const [firstHole] = await db.getAllAsync<{ id: string }>(
-    'SELECT id FROM holes WHERE plot_id = ? ORDER BY sort_key ASC LIMIT 1',
-    [plot?.id],
-  );
-  const categories = await db.getAllAsync<ActivityCategory>(
-    `SELECT id, name, kind, track_by_default AS trackByDefault, sort_order AS sortOrder
+export const listActivityCategories = async (db: SqlExecutor, includeArchived = false): Promise<ActivityCategory[]> => {
+  const rows = await db.getAllAsync<{
+    id: string;
+    name: string;
+    kind: ActivityCategory['kind'];
+    track_by_default: number;
+    sort_order: number;
+    archived_at: string | null;
+  }>(
+    `SELECT id, name, kind, track_by_default, sort_order, archived_at
      FROM activity_categories
-     ORDER BY sort_order ASC`,
+     ${includeArchived ? '' : 'WHERE archived_at IS NULL'}
+     ORDER BY sort_order ASC, name ASC`,
   );
-  const materials = await db.getAllAsync<Material>(
-    `SELECT id, name, type, unit, default_rate_per_tank AS defaultRatePerTank, photo_uri AS photoUri, notes
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    kind: row.kind,
+    trackByDefault: Boolean(row.track_by_default),
+    sortOrder: Number(row.sort_order),
+    archivedAt: row.archived_at,
+  }));
+};
+
+export const createActivityCategory = async (
+  db: SqlExecutor,
+  input: CategoryInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  const id = input.id ?? generatedId('category', createdAt);
+  const name = requireName(input.name);
+  await db.runAsync(
+    `INSERT INTO activity_categories (id, name, kind, track_by_default, sort_order, archived_at)
+     VALUES (?, ?, ?, 0, ?, NULL)`,
+    [id, name, input.kind, input.sortOrder ?? 0],
+  );
+  return id;
+};
+
+export const updateActivityCategory = async (db: SqlExecutor, categoryId: string, input: CategoryInput): Promise<void> => {
+  await db.runAsync(
+    `UPDATE activity_categories
+     SET name = ?, kind = ?, sort_order = ?
+     WHERE id = ?`,
+    [requireName(input.name), input.kind, input.sortOrder ?? 0, categoryId],
+  );
+};
+
+export const archiveActivityCategory = async (
+  db: SqlExecutor,
+  categoryId: string,
+  archivedAt = DEMO_NOW,
+): Promise<void> => {
+  await db.runAsync('UPDATE activity_categories SET archived_at = ? WHERE id = ?', [archivedAt, categoryId]);
+};
+
+export const restoreActivityCategory = async (db: SqlExecutor, categoryId: string): Promise<void> => {
+  await db.runAsync('UPDATE activity_categories SET archived_at = NULL WHERE id = ?', [categoryId]);
+};
+
+export const listPeople = async (db: SqlExecutor, includeArchived = false): Promise<PersonDirectoryItem[]> => {
+  const people = await db.getAllAsync<PersonRow>(
+    `SELECT id, display_name, role, is_self, specialty, phone, note, archived_at
+     FROM people
+     ${includeArchived ? '' : 'WHERE archived_at IS NULL'}
+     ORDER BY is_self DESC, display_name ASC`,
+  );
+  return people.map(toPersonDirectoryItem);
+};
+
+export const createPerson = async (
+  db: SqlExecutor,
+  input: PersonInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  const id = input.id ?? generatedId('person', createdAt);
+  await db.runAsync(
+    `INSERT INTO people (id, display_name, role, is_self, specialty, phone, note, archived_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+    [
+      id,
+      requireName(input.displayName),
+      input.role ?? 'worker',
+      Number(input.isSelf ?? false),
+      input.specialty?.trim() ?? '',
+      input.phone?.trim() ?? '',
+      input.note?.trim() ?? '',
+    ],
+  );
+  return id;
+};
+
+export const updatePerson = async (db: SqlExecutor, personId: string, input: PersonInput): Promise<void> => {
+  await db.runAsync(
+    `UPDATE people
+     SET display_name = ?, role = ?, is_self = ?, specialty = ?, phone = ?, note = ?
+     WHERE id = ?`,
+    [
+      requireName(input.displayName),
+      input.role ?? 'worker',
+      Number(input.isSelf ?? false),
+      input.specialty?.trim() ?? '',
+      input.phone?.trim() ?? '',
+      input.note?.trim() ?? '',
+      personId,
+    ],
+  );
+};
+
+export const archivePerson = async (db: SqlExecutor, personId: string, archivedAt = DEMO_NOW): Promise<void> => {
+  await db.runAsync('UPDATE people SET archived_at = ? WHERE id = ?', [archivedAt, personId]);
+};
+
+export const restorePerson = async (db: SqlExecutor, personId: string): Promise<void> => {
+  await db.runAsync('UPDATE people SET archived_at = NULL WHERE id = ?', [personId]);
+};
+
+export const listMaterials = async (db: SqlExecutor, includeArchived = false): Promise<MaterialLibraryItem[]> => {
+  const rows = await db.getAllAsync<MaterialRow>(
+    `SELECT
+       materials.id,
+       materials.name,
+       materials.type,
+       materials.unit,
+       materials.default_rate_per_tank,
+       materials.photo_uri,
+       materials.archived_at,
+       MAX(activities.performed_at) AS last_used_at,
+       COUNT(activity_materials.id) AS usage_count
      FROM materials
-     ORDER BY name ASC`,
+     LEFT JOIN activity_materials ON activity_materials.material_id = materials.id
+     LEFT JOIN activities ON activities.id = activity_materials.activity_id
+     ${includeArchived ? '' : 'WHERE materials.archived_at IS NULL'}
+     GROUP BY materials.id
+     ORDER BY materials.archived_at IS NOT NULL ASC, materials.name ASC`,
   );
-  const people = await db.getAllAsync<PersonRow>('SELECT id, display_name, role, is_self FROM people ORDER BY is_self DESC');
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    unit: row.unit,
+    defaultRatePerTank: row.default_rate_per_tank,
+    photoUri: row.photo_uri,
+    lastUsedAt: row.last_used_at,
+    usageCount: Number(row.usage_count),
+    archivedAt: row.archived_at,
+  }));
+};
+
+export const createMaterial = async (
+  db: SqlExecutor,
+  input: MaterialInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  const id = input.id ?? generatedId('material', createdAt);
+  await db.runAsync(
+    `INSERT INTO materials (id, name, type, unit, default_rate_per_tank, photo_uri, notes, created_at, archived_at)
+     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL)`,
+    [
+      id,
+      requireMaterialName(input.name),
+      input.type,
+      requireMaterialUnit(input.unit),
+      input.defaultRatePerTank?.trim() || null,
+      input.notes?.trim() || null,
+      createdAt,
+    ],
+  );
+  return id;
+};
+
+export const updateMaterial = async (db: SqlExecutor, materialId: string, input: MaterialInput): Promise<void> => {
+  await db.runAsync(
+    `UPDATE materials
+     SET name = ?, type = ?, unit = ?, default_rate_per_tank = ?, notes = ?
+     WHERE id = ?`,
+    [
+      requireMaterialName(input.name),
+      input.type,
+      requireMaterialUnit(input.unit),
+      input.defaultRatePerTank?.trim() || null,
+      input.notes?.trim() || null,
+      materialId,
+    ],
+  );
+};
+
+export const archiveMaterial = async (db: SqlExecutor, materialId: string, archivedAt = DEMO_NOW): Promise<void> => {
+  await db.runAsync('UPDATE materials SET archived_at = ? WHERE id = ?', [archivedAt, materialId]);
+};
+
+export const restoreMaterial = async (db: SqlExecutor, materialId: string): Promise<void> => {
+  await db.runAsync('UPDATE materials SET archived_at = NULL WHERE id = ?', [materialId]);
+};
+
+const assertActiveCategory = async (db: SqlExecutor, categoryId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM activity_categories WHERE id = ? AND archived_at IS NULL LIMIT 1',
+    [categoryId],
+  );
+  if (!rows[0]) {
+    throw new Error(`TAKAI activity category is unavailable: ${categoryId}`);
+  }
+};
+
+const assertActivePerson = async (db: SqlExecutor, personId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>('SELECT id FROM people WHERE id = ? AND archived_at IS NULL LIMIT 1', [personId]);
+  if (!rows[0]) {
+    throw new Error(`TAKAI activity participant is unavailable: ${personId}`);
+  }
+};
+
+const assertActiveMaterial = async (db: SqlExecutor, materialId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM materials WHERE id = ? AND archived_at IS NULL LIMIT 1',
+    [materialId],
+  );
+  if (!rows[0]) {
+    throw new Error(`TAKAI activity material is unavailable: ${materialId}`);
+  }
+};
+
+const materialUsageValues = (material: CreateActivityInput['materials'][number], index: number) => {
+  const amount = Number(material.amount);
+  const unit = material.unit.trim();
+  const waterVolume = material.waterVolume == null ? null : Number(material.waterVolume);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error(`TAKAI activity material amount must be positive: ${material.materialId}`);
+  }
+  if (!unit) {
+    throw new Error(`TAKAI activity material unit is required: ${material.materialId}`);
+  }
+  if (waterVolume != null && (!Number.isFinite(waterVolume) || waterVolume <= 0)) {
+    throw new Error(`TAKAI activity material water volume must be positive: ${material.materialId}`);
+  }
+
+  return {
+    amount,
+    unit,
+    waterVolume,
+    waterUnit: material.waterUnit?.trim() || null,
+    dilutionText: material.dilutionText?.trim() || null,
+    note: material.note?.trim() || null,
+    sortOrder: material.sortOrder ?? index,
+  };
+};
+
+export const pinPlotTracker = async (
+  db: SqlExecutor,
+  plotId: string,
+  categoryId: string,
+  createdAt = DEMO_NOW,
+): Promise<void> => {
+  await assertActiveCategory(db, categoryId);
+  await db.runAsync(
+    `INSERT INTO plot_trackers (plot_id, category_id, created_at, archived_at)
+     VALUES (?, ?, ?, NULL)
+     ON CONFLICT(plot_id, category_id) DO UPDATE SET archived_at = NULL`,
+    [plotId, categoryId, createdAt],
+  );
+};
+
+export const unpinPlotTracker = async (
+  db: SqlExecutor,
+  plotId: string,
+  categoryId: string,
+  archivedAt = DEMO_NOW,
+): Promise<void> => {
+  await db.runAsync(
+    'UPDATE plot_trackers SET archived_at = ? WHERE plot_id = ? AND category_id = ?',
+    [archivedAt, plotId, categoryId],
+  );
+};
+
+export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<ActivityCaptureOption> => {
+  const [plots, holes, activeCases, categories, materials, people] = await Promise.all([
+    db.getAllAsync<CapturePlotRow>('SELECT id, name FROM plots ORDER BY sort_order ASC, name ASC'),
+    db.getAllAsync<CaptureHoleRow>(
+      `SELECT id, plot_id, marker, status
+       FROM holes
+       WHERE status IN ('empty', 'planted')
+       ORDER BY plot_id ASC, sort_key ASC`,
+    ),
+    db.getAllAsync<CaptureCaseRow>(
+      `SELECT id, plot_id, hole_id, title
+       FROM cases
+       WHERE status = 'tracking'
+       ORDER BY opened_at DESC`,
+    ),
+    db.getAllAsync<ActivityCategory>(
+    `SELECT id, name, kind, track_by_default AS trackByDefault, sort_order AS sortOrder, archived_at AS archivedAt
+     FROM activity_categories
+     WHERE archived_at IS NULL
+     ORDER BY sort_order ASC`,
+    ),
+    db.getAllAsync<Material>(
+    `SELECT id, name, type, unit, default_rate_per_tank AS defaultRatePerTank, photo_uri AS photoUri, notes,
+            created_at AS createdAt, archived_at AS archivedAt
+     FROM materials
+     WHERE archived_at IS NULL
+     ORDER BY name ASC`,
+    ),
+    db.getAllAsync<PersonRow>(
+    `SELECT id, display_name, role, is_self, specialty, phone, note, archived_at
+     FROM people
+     WHERE archived_at IS NULL
+     ORDER BY is_self DESC`,
+    ),
+  ]);
+  const defaultPlot = first(plots);
+  const defaultCase = activeCases.find((caseRecord) => caseRecord.plot_id === defaultPlot.id && caseRecord.hole_id);
+  const defaultHole = holes.find((hole) => hole.id === defaultCase?.hole_id) ?? holes.find((hole) => hole.plot_id === defaultPlot.id);
 
   return {
     categories,
     materials,
+    plots: plots.map((plot) => ({ id: plot.id, name: plot.name })),
+    holes: holes.map((hole) => ({ id: hole.id, plotId: hole.plot_id, marker: hole.marker, status: hole.status })),
+    activeCases: activeCases.map((caseRecord) => ({
+      id: caseRecord.id,
+      plotId: caseRecord.plot_id,
+      holeId: caseRecord.hole_id,
+      title: caseRecord.title,
+    })),
     people: people.map((person) => ({
       id: person.id,
       displayName: person.display_name,
       role: person.role,
       isSelf: Boolean(person.is_self),
     })),
-    defaultPlotId: first([plot]).id,
-    defaultHoleId: caseHole?.id ?? firstHole?.id ?? null,
+    defaultPlotId: defaultPlot.id,
+    defaultHoleId: defaultHole?.id ?? null,
     defaultSelfId: people.find((person) => Boolean(person.is_self))?.id ?? null,
     defaultWorkerId: people.find((person) => !person.is_self)?.id ?? null,
+    defaultPerformedAt: DEMO_NOW,
   };
 };
 
@@ -232,6 +593,14 @@ export const resolveActiveCropId = async (
 
 export const createActivity = async (db: SqlExecutor, input: CreateActivityInput): Promise<CreatedActivityResult> => {
   const activityId = input.id ?? generatedId('activity', input.performedAt);
+  await assertActiveCategory(db, input.categoryId);
+  for (const participant of input.participants) {
+    await assertActivePerson(db, participant.personId);
+  }
+  const materialUsages = input.materials.map(materialUsageValues);
+  for (const material of input.materials) {
+    await assertActiveMaterial(db, material.materialId);
+  }
   const cropCycleId = await resolveActiveCropId(db, input.plotId, input.performedAt);
 
   await db.runAsync(
@@ -247,14 +616,29 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
   );
 
   for (const [index, material] of input.materials.entries()) {
+    const usage = materialUsages[index];
     await db.runAsync(
-      `INSERT INTO activity_materials (id, activity_id, material_id, amount, unit)
-       VALUES (?, ?, ?, ?, ?)`,
-      [`activity-material-${activityId}-${index + 1}`, activityId, material.materialId, material.amount, material.unit],
+      `INSERT INTO activity_materials (
+         id, activity_id, material_id, amount, unit, water_volume, water_unit, dilution_text, note, sort_order
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `activity-material-${activityId}-${index + 1}`,
+        activityId,
+        material.materialId,
+        usage.amount,
+        usage.unit,
+        usage.waterVolume,
+        usage.waterUnit,
+        usage.dilutionText,
+        usage.note,
+        usage.sortOrder,
+      ],
     );
   }
 
-  const people = await db.getAllAsync<PersonRow>('SELECT id, display_name, role, is_self FROM people');
+  const people = await db.getAllAsync<PersonRow>(
+    'SELECT id, display_name, role, is_self, specialty, phone, note, archived_at FROM people',
+  );
   const participantsForLabor: ParticipantForLabor[] = [];
 
   for (const [index, participant] of input.participants.entries()) {
@@ -328,6 +712,39 @@ const buildTracker = (row: TrackerRow): TrackerSummary => {
   };
 };
 
+const getTrackerRows = async (
+  db: SqlExecutor,
+  plotId: string,
+  cropCycleId: string | null,
+): Promise<TrackerRow[]> => {
+  return db.getAllAsync<TrackerRow>(
+    `SELECT
+       activity_categories.id AS category_id,
+       activity_categories.name AS title,
+       COUNT(activities.id) AS count,
+       MAX(activities.performed_at) AS latest_performed_at,
+       MAX(activities.follow_up_on) AS latest_follow_up_on
+     FROM plot_trackers
+     JOIN activity_categories ON activity_categories.id = plot_trackers.category_id
+     LEFT JOIN activities
+       ON activities.category_id = activity_categories.id
+      AND activities.plot_id = plot_trackers.plot_id
+      AND activities.status = 'done'
+      AND (? IS NULL OR activities.crop_cycle_id = ?)
+     WHERE plot_trackers.plot_id = ?
+       AND plot_trackers.archived_at IS NULL
+       AND activity_categories.archived_at IS NULL
+     GROUP BY activity_categories.id
+     ORDER BY activity_categories.sort_order ASC, activity_categories.name ASC`,
+    [cropCycleId, cropCycleId, plotId],
+  );
+};
+
+export const listPlotTrackers = async (db: SqlExecutor, plotId: string): Promise<TrackerSummary[]> => {
+  const rows = await getTrackerRows(db, plotId, null);
+  return rows.map(buildTracker);
+};
+
 export const getPlotDashboard = async (db: SqlExecutor, plotId = 'plot-a'): Promise<PlotDashboard> => {
   const plot = first(
     await db.getAllAsync<PlotRow>(
@@ -359,24 +776,7 @@ export const getPlotDashboard = async (db: SqlExecutor, plotId = 'plot-a'): Prom
       [plot.id],
     ),
   );
-  const trackerRows = await db.getAllAsync<TrackerRow>(
-    `SELECT
-       activity_categories.id AS category_id,
-       activity_categories.name AS title,
-       COUNT(activities.id) AS count,
-       MAX(activities.performed_at) AS latest_performed_at,
-       MAX(activities.follow_up_on) AS latest_follow_up_on
-     FROM activity_categories
-     LEFT JOIN activities
-       ON activities.category_id = activity_categories.id
-      AND activities.plot_id = ?
-      AND activities.status = 'done'
-      AND (? IS NULL OR activities.crop_cycle_id = ?)
-     WHERE activity_categories.track_by_default = 1
-     GROUP BY activity_categories.id
-     ORDER BY activity_categories.sort_order ASC`,
-    [plot.id, crop?.id ?? null, crop?.id ?? null],
-  );
+  const trackerRows = await getTrackerRows(db, plot.id, crop?.id ?? null);
   const cases = await db.getAllAsync<CaseRow>(
     `SELECT cases.id, cases.title, cases.status, holes.marker
      FROM cases
@@ -584,35 +984,7 @@ export const createFieldActivity = async (
   });
 };
 
-export const getMaterialLibrary = async (db: SqlExecutor): Promise<MaterialLibraryItem[]> => {
-  const rows = await db.getAllAsync<MaterialRow>(
-    `SELECT
-       materials.id,
-       materials.name,
-       materials.type,
-       materials.unit,
-       materials.default_rate_per_tank,
-       materials.photo_uri,
-       MAX(activities.performed_at) AS last_used_at,
-       COUNT(activity_materials.id) AS usage_count
-     FROM materials
-     LEFT JOIN activity_materials ON activity_materials.material_id = materials.id
-     LEFT JOIN activities ON activities.id = activity_materials.activity_id
-     GROUP BY materials.id
-     ORDER BY materials.name ASC`,
-  );
-
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    unit: row.unit,
-    defaultRatePerTank: row.default_rate_per_tank,
-    photoUri: row.photo_uri,
-    lastUsedAt: row.last_used_at,
-    usageCount: Number(row.usage_count),
-  }));
-};
+export const getMaterialLibrary = async (db: SqlExecutor): Promise<MaterialLibraryItem[]> => listMaterials(db, true);
 
 export const getLaborLedger = async (db: SqlExecutor): Promise<LaborLedger> => {
   const people = await db.getAllAsync<LaborPersonRow>(
@@ -648,6 +1020,7 @@ export const getLaborLedger = async (db: SqlExecutor): Promise<LaborLedger> => {
       displayName: person.display_name,
       unpaidTotal: Number(person.unpaid_total),
       unpaidCount: Number(person.unpaid_count),
+      sourceCount: Number(person.unpaid_count),
       latestWorkDate: person.latest_work_date,
     })),
     recentPaid: recentPaid.map((row) => ({

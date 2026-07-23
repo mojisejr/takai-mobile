@@ -8,6 +8,7 @@ import type {
   Person,
   Planting,
   Plot,
+  PlotTracker,
 } from './types';
 
 export const TAKAI_DEMO_SEED = {
@@ -54,11 +55,16 @@ export const TAKAI_DEMO_SEED = {
     },
   ] satisfies Planting[],
   activityCategories: [
-    { id: 'cat-spray', name: 'พ่นยา', kind: 'spray', trackByDefault: true, sortOrder: 1 },
-    { id: 'cat-fertilizer', name: 'ใส่ปุ๋ย', kind: 'fertilizer', trackByDefault: true, sortOrder: 2 },
-    { id: 'cat-prune', name: 'แต่งกิ่ง', kind: 'prune', trackByDefault: true, sortOrder: 3 },
-    { id: 'cat-case', name: 'เคส/โรค', kind: 'case', trackByDefault: false, sortOrder: 4 },
+    { id: 'cat-spray', name: 'พ่นยา', kind: 'spray', trackByDefault: true, sortOrder: 1, archivedAt: null },
+    { id: 'cat-fertilizer', name: 'ใส่ปุ๋ย', kind: 'fertilizer', trackByDefault: true, sortOrder: 2, archivedAt: null },
+    { id: 'cat-prune', name: 'แต่งกิ่ง', kind: 'prune', trackByDefault: true, sortOrder: 3, archivedAt: null },
+    { id: 'cat-case', name: 'เคส/โรค', kind: 'case', trackByDefault: false, sortOrder: 4, archivedAt: null },
   ] satisfies ActivityCategory[],
+  plotTrackers: [
+    { plotId: 'plot-a', categoryId: 'cat-spray', createdAt: '2026-01-01T00:00:00.000Z', archivedAt: null },
+    { plotId: 'plot-a', categoryId: 'cat-fertilizer', createdAt: '2026-01-01T00:00:00.000Z', archivedAt: null },
+    { plotId: 'plot-a', categoryId: 'cat-prune', createdAt: '2026-01-01T00:00:00.000Z', archivedAt: null },
+  ] satisfies PlotTracker[],
   cases: [
     {
       id: 'case-a-014',
@@ -71,8 +77,26 @@ export const TAKAI_DEMO_SEED = {
     },
   ] satisfies CaseRecord[],
   people: [
-    { id: 'person-self', displayName: 'คุณนนท์', role: 'owner', isSelf: true },
-    { id: 'person-worker-somchai', displayName: 'สมชาย', role: 'worker', isSelf: false },
+    {
+      id: 'person-self',
+      displayName: 'คุณนนท์',
+      role: 'owner',
+      isSelf: true,
+      specialty: '',
+      phone: '',
+      note: '',
+      archivedAt: null,
+    },
+    {
+      id: 'person-worker-somchai',
+      displayName: 'สมชาย',
+      role: 'worker',
+      isSelf: false,
+      specialty: 'แต่งกิ่ง',
+      phone: '',
+      note: '',
+      archivedAt: null,
+    },
   ] satisfies Person[],
   materials: [
     {
@@ -83,6 +107,8 @@ export const TAKAI_DEMO_SEED = {
       defaultRatePerTank: '20 cc / 20 L',
       photoUri: null,
       notes: 'ตัวอย่างวัสดุสำหรับทดสอบกิจกรรมพ่นยา',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      archivedAt: null,
     },
     {
       id: 'material-spreader-a',
@@ -92,6 +118,8 @@ export const TAKAI_DEMO_SEED = {
       defaultRatePerTank: '10 cc / 20 L',
       photoUri: null,
       notes: 'ตัวอย่างวัสดุเสริมสำหรับบันทึกพ่นยา',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      archivedAt: null,
     },
   ] satisfies Material[],
 };

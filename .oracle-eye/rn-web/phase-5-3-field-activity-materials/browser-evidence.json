@@ -1,0 +1,48 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-5-3-field-activity-materials",
+  "lane": "rn-web-eye",
+  "targetUrl": "http://localhost:8081/",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "screensChecked": [
+    "Today",
+    "Plot",
+    "Menu",
+    "Activity no-material state",
+    "Activity two-material spray",
+    "Activity inline material add/select",
+    "Materials catalog archive/history",
+    "Activity selected-worker pay"
+  ],
+  "screenshots": [
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/today-390x844.png",
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/plot-390x844.png",
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/menu-390x844.png",
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/activity-no-material-390x844.png",
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/activity-two-material-spray-390x844.png",
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/activity-inline-material-add-390x844.png",
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/materials-catalog-archive-history-390x844.png",
+    ".oracle-eye/rn-web/phase-5-3-field-activity-materials/activity-selected-worker-pay-390x844.png"
+  ],
+  "console": {
+    "errors": 0,
+    "warnings": 1,
+    "errorsArtifact": ".oracle-eye/rn-web/phase-5-3-field-activity-materials/console-errors.txt",
+    "warningsArtifact": ".oracle-eye/rn-web/phase-5-3-field-activity-materials/console-warnings.txt"
+  },
+  "failedNetworkRequestCount": 0,
+  "networkArtifact": ".oracle-eye/rn-web/phase-5-3-field-activity-materials/network-requests.txt",
+  "knownWarnings": [
+    "React Native Web reports deprecated shadow style props; use boxShadow."
+  ],
+  "claimLabel": "RN Web Eye Closed",
+  "doesNotClose": [
+    "Expo Go Device Eye",
+    "Native Eye",
+    "Android keyboard, touch, safe-area, or native SQLite behavior"
+  ],
+  "generatedAt": "2026-07-23T12:45:50+0700"
+}

@@ -1,0 +1,18 @@
+{
+  "phase": "phase-5-3-field-activity-materials",
+  "lane": "rn-static-eye",
+  "claim": "RN Static Token Gate Closed",
+  "truth": "Static source and contract evidence only. It does not prove Android keyboard, touch, safe area, native SQLite, or field comprehension.",
+  "commands": [
+    "npm run validate",
+    "npm run test:design-contract",
+    "npm run test:activity-materials-ui"
+  ],
+  "coverage": [
+    "six-section activity composition",
+    "optional no-material default",
+    "multi-row material payload fields",
+    "inline material add and catalog management source contract",
+    "real plot target and date-time state"
+  ]
+}

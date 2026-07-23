@@ -1,14 +1,18 @@
-import type { Material } from '../../domain';
+import type { ActivityCategory, Material } from '../../domain';
 import { DEMO_NOW, formatThaiShortDate, nextDateFrom } from './date';
 import type {
   ActivityCaptureOption,
+  CategoryInput,
   CaseListItem,
   CaseTimeline,
   CreatedActivityResult,
   HoleDetail,
   LaborLedger,
   MenuDashboard,
+  MaterialInput,
   MaterialLibraryItem,
+  PersonDirectoryItem,
+  PersonInput,
   CreateActivityInput,
   TakaiView,
   TodayDashboard,
@@ -20,39 +24,11 @@ export type * from './types';
 type WebPreviewDb = {
   closedCase: boolean;
   demoSprayCount: number;
+  categories: Array<ActivityCategory & { archivedAt: string | null }>;
+  people: PersonDirectoryItem[];
+  materials: Material[];
+  trackedCategoryIds: string[];
 };
-
-const categories: ActivityCaptureOption['categories'] = [
-  { id: 'cat-spray', name: 'พ่นยา', kind: 'spray', trackByDefault: true, sortOrder: 1 },
-  { id: 'cat-fertilizer', name: 'ใส่ปุ๋ย', kind: 'fertilizer', trackByDefault: true, sortOrder: 2 },
-  { id: 'cat-prune', name: 'แต่งกิ่ง', kind: 'prune', trackByDefault: true, sortOrder: 3 },
-];
-
-const materials: Material[] = [
-  {
-    id: 'mat-fungicide-a',
-    name: 'ยา A',
-    type: 'fungicide',
-    unit: 'cc',
-    defaultRatePerTank: '20 cc / น้ำ 20 L',
-    photoUri: null,
-    notes: 'RN Web preview material',
-  },
-  {
-    id: 'mat-clean-water',
-    name: 'น้ำสะอาด',
-    type: 'other',
-    unit: 'L',
-    defaultRatePerTank: '20 L',
-    photoUri: null,
-    notes: 'RN Web preview material',
-  },
-];
-
-const people: ActivityCaptureOption['people'] = [
-  { id: 'person-self', displayName: 'เจ้าของสวน', role: 'owner', isSelf: true },
-  { id: 'person-worker', displayName: 'สมชาย', role: 'worker', isSelf: false },
-];
 
 const buildCaseTimeline = (sprayCount: number, closed = false): CaseTimeline => ({
   id: 'case-a-014',
@@ -89,21 +65,31 @@ const buildLaborLedger = (sprayCount: number): LaborLedger => ({
   unpaidTotal: sprayCount > 0 ? 600 : 0,
   unpaidPeople:
     sprayCount > 0
-      ? [{ personId: 'person-worker', displayName: 'สมชาย', unpaidTotal: 600, unpaidCount: 1, latestWorkDate: DEMO_NOW }]
+      ? [
+          {
+            personId: 'person-worker',
+            displayName: 'สมชาย',
+            unpaidTotal: 600,
+            unpaidCount: 1,
+            sourceCount: 1,
+            latestWorkDate: DEMO_NOW,
+          },
+        ]
       : [],
   recentPaid: [],
 });
 
-const buildMaterials = (sprayCount: number): MaterialLibraryItem[] =>
-  materials.map((material) => ({
+const buildMaterials = (db: WebPreviewDb, includeArchived = true): MaterialLibraryItem[] =>
+  db.materials.filter((material) => includeArchived || !material.archivedAt).map((material) => ({
     id: material.id,
     name: material.name,
     type: material.type,
     unit: material.unit,
     defaultRatePerTank: material.defaultRatePerTank ?? null,
     photoUri: material.photoUri ?? null,
-    lastUsedAt: sprayCount > 0 && material.id === 'mat-fungicide-a' ? DEMO_NOW : null,
-    usageCount: sprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
+    lastUsedAt: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? DEMO_NOW : null,
+    usageCount: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
+    archivedAt: material.archivedAt,
   }));
 
 const buildCaseList = (sprayCount: number, closedCase: boolean, statusFilter?: CaseListItem['status']): CaseListItem[] => {
@@ -122,12 +108,12 @@ const buildCaseList = (sprayCount: number, closedCase: boolean, statusFilter?: C
   return !statusFilter || caseItem.status === statusFilter ? [caseItem] : [];
 };
 
-const buildMenuDashboard = (sprayCount: number, closedCase: boolean): MenuDashboard => ({
+const buildMenuDashboard = (sprayCount: number, closedCase: boolean, materialCount: number): MenuDashboard => ({
   gardenName: 'สวนตาไก๊',
   activeCaseCount: closedCase ? 0 : 1,
   closedCaseCount: closedCase ? 1 : 0,
   unpaidLaborTotal: sprayCount > 0 ? 600 : 0,
-  materialCount: materials.length,
+  materialCount,
   plotCount: 1,
   holeCount: 300,
   localStatusLabel: 'ออฟไลน์ 100%',
@@ -165,9 +151,9 @@ const buildHoleDetail = (sprayCount: number, closedCase = false): HoleDetail => 
       : [],
 });
 
-const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard => ({
+const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
   gardenName: 'สวนตาไก๊',
-  unpaidLaborTotal: sprayCount > 0 ? 600 : 0,
+  unpaidLaborTotal: db.demoSprayCount > 0 ? 600 : 0,
   plot: {
     id: 'plot-a',
     name: 'แปลง A',
@@ -185,11 +171,11 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
       {
         categoryId: 'cat-spray',
         title: 'พ่นยา',
-        count: sprayCount,
-        latestPerformedAt: sprayCount > 0 ? DEMO_NOW : null,
-        elapsedDays: sprayCount > 0 ? 0 : null,
-        nextDueOn: sprayCount > 0 ? nextDateFrom(DEMO_NOW, 4) : null,
-        progress: sprayCount > 0 ? 0.2 : 0,
+        count: db.demoSprayCount,
+        latestPerformedAt: db.demoSprayCount > 0 ? DEMO_NOW : null,
+        elapsedDays: db.demoSprayCount > 0 ? 0 : null,
+        nextDueOn: db.demoSprayCount > 0 ? nextDateFrom(DEMO_NOW, 4) : null,
+        progress: db.demoSprayCount > 0 ? 0.2 : 0,
       },
       {
         categoryId: 'cat-fertilizer',
@@ -209,8 +195,8 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
         nextDueOn: '2026-07-28',
         progress: 1,
       },
-    ],
-    activeCases: closedCase
+    ].filter((tracker) => db.trackedCategoryIds.includes(tracker.categoryId)),
+    activeCases: db.closedCase
       ? []
       : [
           {
@@ -221,7 +207,7 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
           },
         ],
   },
-  recentItems: sprayCount > 0
+  recentItems: db.demoSprayCount > 0
     ? [
         {
           id: 'activity-web-preview-spray',
@@ -242,18 +228,143 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
       ],
 });
 
-export const getActivityCaptureOptions = async (): Promise<ActivityCaptureOption> => ({
-  categories,
-  materials,
-  people,
+export const getActivityCaptureOptions = async (db: WebPreviewDb): Promise<ActivityCaptureOption> => ({
+  categories: db.categories.filter((category) => !category.archivedAt),
+  materials: db.materials.filter((material) => !material.archivedAt),
+  plots: [{ id: 'plot-a', name: 'แปลง A' }],
+  holes: [{ id: 'hole-a-014', plotId: 'plot-a', marker: 'A-014', status: 'planted' }],
+  activeCases: [{ id: 'case-a-014', plotId: 'plot-a', holeId: 'hole-a-014', title: 'A-014 เชื้อราโคนต้น' }],
+  people: db.people.filter((person) => !person.archivedAt).map(({ specialty: _specialty, phone: _phone, note: _note, archivedAt: _archivedAt, ...person }) => person),
   defaultPlotId: 'plot-a',
   defaultHoleId: 'hole-a-014',
-  defaultWorkerId: 'person-worker',
-  defaultSelfId: 'person-self',
+  defaultWorkerId: db.people.find((person) => !person.isSelf && !person.archivedAt)?.id ?? null,
+  defaultSelfId: db.people.find((person) => person.isSelf && !person.archivedAt)?.id ?? null,
+  defaultPerformedAt: DEMO_NOW,
 });
 
+export const listActivityCategories = async (db: WebPreviewDb, includeArchived = false): Promise<ActivityCategory[]> =>
+  db.categories.filter((category) => includeArchived || !category.archivedAt);
+
+export const createActivityCategory = async (db: WebPreviewDb, input: CategoryInput): Promise<string> => {
+  const id = input.id ?? `category-web-${db.categories.length + 1}`;
+  db.categories.push({
+    id,
+    name: input.name.trim(),
+    kind: input.kind,
+    trackByDefault: false,
+    sortOrder: input.sortOrder ?? db.categories.length + 1,
+    archivedAt: null,
+  });
+  return id;
+};
+
+export const updateActivityCategory = async (db: WebPreviewDb, categoryId: string, input: CategoryInput): Promise<void> => {
+  const category = db.categories.find((item) => item.id === categoryId);
+  if (category) Object.assign(category, { name: input.name.trim(), kind: input.kind, sortOrder: input.sortOrder ?? category.sortOrder });
+};
+
+export const archiveActivityCategory = async (db: WebPreviewDb, categoryId: string): Promise<void> => {
+  const category = db.categories.find((item) => item.id === categoryId);
+  if (category) category.archivedAt = DEMO_NOW;
+};
+
+export const restoreActivityCategory = async (db: WebPreviewDb, categoryId: string): Promise<void> => {
+  const category = db.categories.find((item) => item.id === categoryId);
+  if (category) category.archivedAt = null;
+};
+
+export const listPeople = async (db: WebPreviewDb, includeArchived = false): Promise<PersonDirectoryItem[]> =>
+  db.people.filter((person) => includeArchived || !person.archivedAt);
+
+export const createPerson = async (db: WebPreviewDb, input: PersonInput): Promise<string> => {
+  const id = input.id ?? `person-web-${db.people.length + 1}`;
+  db.people.push({
+    id,
+    displayName: input.displayName.trim(),
+    role: input.role ?? 'worker',
+    isSelf: input.isSelf ?? false,
+    specialty: input.specialty?.trim() ?? '',
+    phone: input.phone?.trim() ?? '',
+    note: input.note?.trim() ?? '',
+    archivedAt: null,
+  });
+  return id;
+};
+
+export const updatePerson = async (db: WebPreviewDb, personId: string, input: PersonInput): Promise<void> => {
+  const person = db.people.find((item) => item.id === personId);
+  if (person) Object.assign(person, { ...input, displayName: input.displayName.trim(), role: input.role ?? 'worker', isSelf: input.isSelf ?? false });
+};
+
+export const archivePerson = async (db: WebPreviewDb, personId: string): Promise<void> => {
+  const person = db.people.find((item) => item.id === personId);
+  if (person) person.archivedAt = DEMO_NOW;
+};
+
+export const restorePerson = async (db: WebPreviewDb, personId: string): Promise<void> => {
+  const person = db.people.find((item) => item.id === personId);
+  if (person) person.archivedAt = null;
+};
+
+export const listMaterials = async (db: WebPreviewDb, includeArchived = false): Promise<MaterialLibraryItem[]> =>
+  buildMaterials(db, includeArchived);
+
+export const createMaterial = async (db: WebPreviewDb, input: MaterialInput): Promise<string> => {
+  const id = input.id ?? `material-web-${db.materials.length + 1}`;
+  const name = input.name.trim();
+  const unit = input.unit.trim();
+  if (!name) throw new Error('TAKAI requires a material name');
+  if (!unit) throw new Error('TAKAI requires a material unit');
+  db.materials.push({
+    id,
+    name,
+    type: input.type,
+    unit,
+    defaultRatePerTank: input.defaultRatePerTank?.trim() || null,
+    photoUri: null,
+    notes: input.notes?.trim() || null,
+    createdAt: DEMO_NOW,
+    archivedAt: null,
+  });
+  return id;
+};
+
+export const updateMaterial = async (db: WebPreviewDb, materialId: string, input: MaterialInput): Promise<void> => {
+  const material = db.materials.find((item) => item.id === materialId);
+  if (!material) return;
+  const name = input.name.trim();
+  const unit = input.unit.trim();
+  if (!name) throw new Error('TAKAI requires a material name');
+  if (!unit) throw new Error('TAKAI requires a material unit');
+  Object.assign(material, {
+    name,
+    type: input.type,
+    unit,
+    defaultRatePerTank: input.defaultRatePerTank?.trim() || null,
+    notes: input.notes?.trim() || null,
+  });
+};
+
+export const archiveMaterial = async (db: WebPreviewDb, materialId: string): Promise<void> => {
+  const material = db.materials.find((item) => item.id === materialId);
+  if (material) material.archivedAt = DEMO_NOW;
+};
+
+export const restoreMaterial = async (db: WebPreviewDb, materialId: string): Promise<void> => {
+  const material = db.materials.find((item) => item.id === materialId);
+  if (material) material.archivedAt = null;
+};
+
+export const pinPlotTracker = async (db: WebPreviewDb, _plotId: string, categoryId: string): Promise<void> => {
+  if (!db.trackedCategoryIds.includes(categoryId)) db.trackedCategoryIds.push(categoryId);
+};
+
+export const unpinPlotTracker = async (db: WebPreviewDb, _plotId: string, categoryId: string): Promise<void> => {
+  db.trackedCategoryIds = db.trackedCategoryIds.filter((id) => id !== categoryId);
+};
+
 export const getTodayDashboard = async (db: WebPreviewDb): Promise<TodayDashboard> => {
-  return buildDashboard(db.demoSprayCount, db.closedCase);
+  return buildDashboard(db);
 };
 
 export const createDemoSprayActivity = async (db: WebPreviewDb): Promise<CreatedActivityResult> => {
@@ -283,7 +394,7 @@ export const getCaseList = async (
 ): Promise<CaseListItem[]> => buildCaseList(db.demoSprayCount, db.closedCase, statusFilter);
 
 export const getMenuDashboard = async (db: WebPreviewDb): Promise<MenuDashboard> =>
-  buildMenuDashboard(db.demoSprayCount, db.closedCase);
+  buildMenuDashboard(db.demoSprayCount, db.closedCase, db.materials.length);
 
 export const getCaseTimeline = async (db: WebPreviewDb, _caseId = 'case-a-014'): Promise<CaseTimeline> =>
   buildCaseTimeline(db.demoSprayCount, db.closedCase);
@@ -298,7 +409,7 @@ export const settleUnpaidLaborForPerson = async (db: WebPreviewDb): Promise<void
   db.demoSprayCount = 0;
 };
 
-export const getMaterialLibrary = async (db: WebPreviewDb): Promise<MaterialLibraryItem[]> => buildMaterials(db.demoSprayCount);
+export const getMaterialLibrary = async (db: WebPreviewDb): Promise<MaterialLibraryItem[]> => buildMaterials(db, true);
 
 export const getHoleDetail = async (db: WebPreviewDb): Promise<HoleDetail> => buildHoleDetail(db.demoSprayCount, db.closedCase);
 

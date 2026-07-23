@@ -1,0 +1,2 @@
+1. [GET] http://localhost:8081/ => [200] OK
+2. [GET] http://localhost:8081/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable => [200] OK

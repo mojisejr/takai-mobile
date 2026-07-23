@@ -74,6 +74,17 @@ export const seedDemoGarden = async (db: SqlExecutor): Promise<void> => {
       kind: category.kind,
       track_by_default: category.trackByDefault,
       sort_order: category.sortOrder,
+      archived_at: category.archivedAt,
+    });
+  }
+
+  for (const tracker of TAKAI_DEMO_SEED.plotTrackers) {
+    // INSERT OR IGNORE preserves a manually archived plot/category relation; seed never re-pins it.
+    await insertOrIgnore(db, 'plot_trackers', {
+      plot_id: tracker.plotId,
+      category_id: tracker.categoryId,
+      created_at: tracker.createdAt,
+      archived_at: tracker.archivedAt,
     });
   }
 
@@ -95,6 +106,10 @@ export const seedDemoGarden = async (db: SqlExecutor): Promise<void> => {
       display_name: person.displayName,
       role: person.role,
       is_self: person.isSelf,
+      specialty: person.specialty,
+      phone: person.phone,
+      note: person.note,
+      archived_at: person.archivedAt,
     });
   }
 
@@ -107,6 +122,8 @@ export const seedDemoGarden = async (db: SqlExecutor): Promise<void> => {
       default_rate_per_tank: material.defaultRatePerTank,
       photo_uri: material.photoUri,
       notes: material.notes,
+      created_at: material.createdAt,
+      archived_at: material.archivedAt,
     });
   }
 };

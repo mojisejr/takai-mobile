@@ -147,4 +147,41 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         ON labor_entries(person_id, status, work_date)`,
     ],
   },
+  {
+    id: 2,
+    name: 'workers_trackers_and_archives',
+    statements: [
+      `ALTER TABLE activity_categories ADD COLUMN archived_at TEXT`,
+      `ALTER TABLE people ADD COLUMN specialty TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE people ADD COLUMN phone TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE people ADD COLUMN note TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE people ADD COLUMN archived_at TEXT`,
+      `CREATE TABLE IF NOT EXISTS plot_trackers (
+        plot_id TEXT NOT NULL REFERENCES plots(id) ON DELETE CASCADE,
+        category_id TEXT NOT NULL REFERENCES activity_categories(id),
+        created_at TEXT NOT NULL,
+        archived_at TEXT,
+        PRIMARY KEY (plot_id, category_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_plot_trackers_plot_active
+        ON plot_trackers(plot_id, archived_at)`,
+    ],
+  },
+  {
+    id: 3,
+    name: 'truthful_activity_materials',
+    statements: [
+      `ALTER TABLE materials ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE materials ADD COLUMN archived_at TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN water_volume REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN water_unit TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN dilution_text TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN note TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
+      `CREATE INDEX IF NOT EXISTS idx_materials_active_created
+        ON materials(archived_at, created_at, name)`,
+      `CREATE INDEX IF NOT EXISTS idx_activity_materials_activity_sort
+        ON activity_materials(activity_id, sort_order)`,
+    ],
+  },
 ];

@@ -1,6 +1,18 @@
-import type { ActivityCategory, EntityId, Material, PayType } from '../../domain';
+import type { ActivityCategory, EntityId, ISODateTime, Material, MaterialType, PayType, PersonRole } from '../../domain';
 
-export type TakaiView = 'today' | 'plot' | 'activity' | 'cases' | 'labor' | 'materials' | 'hole' | 'menu' | 'designLab';
+export type TakaiView =
+  | 'today'
+  | 'plot'
+  | 'activity'
+  | 'cases'
+  | 'labor'
+  | 'materials'
+  | 'hole'
+  | 'menu'
+  | 'categories'
+  | 'workers'
+  | 'trackerManage'
+  | 'designLab';
 
 export type TrackerSummary = {
   categoryId: EntityId;
@@ -54,6 +66,22 @@ export type TodayDashboard = {
 export type ActivityCaptureOption = {
   categories: ActivityCategory[];
   materials: Material[];
+  plots: Array<{
+    id: EntityId;
+    name: string;
+  }>;
+  holes: Array<{
+    id: EntityId;
+    plotId: EntityId;
+    marker: string;
+    status: 'empty' | 'planted';
+  }>;
+  activeCases: Array<{
+    id: EntityId;
+    plotId: EntityId;
+    holeId: EntityId | null;
+    title: string;
+  }>;
   people: Array<{
     id: EntityId;
     displayName: string;
@@ -64,12 +92,55 @@ export type ActivityCaptureOption = {
   defaultHoleId: EntityId | null;
   defaultWorkerId: EntityId | null;
   defaultSelfId: EntityId | null;
+  defaultPerformedAt: ISODateTime;
+};
+
+export type CategoryInput = {
+  id?: EntityId;
+  name: string;
+  kind: ActivityCategory['kind'];
+  sortOrder?: number;
+};
+
+export type PersonDirectoryItem = {
+  id: EntityId;
+  displayName: string;
+  role: PersonRole;
+  isSelf: boolean;
+  specialty: string;
+  phone: string;
+  note: string;
+  archivedAt: string | null;
+};
+
+export type PersonInput = {
+  id?: EntityId;
+  displayName: string;
+  role?: PersonRole;
+  isSelf?: boolean;
+  specialty?: string;
+  phone?: string;
+  note?: string;
+};
+
+export type MaterialInput = {
+  id?: EntityId;
+  name: string;
+  type: MaterialType;
+  unit: string;
+  defaultRatePerTank?: string | null;
+  notes?: string | null;
 };
 
 export type ActivityMaterialInput = {
   materialId: EntityId;
   amount: number;
   unit: string;
+  waterVolume?: number | null;
+  waterUnit?: string | null;
+  dilutionText?: string | null;
+  note?: string | null;
+  sortOrder?: number;
 };
 
 export type ActivityParticipantInput = {
@@ -82,7 +153,7 @@ export type CreateActivityInput = {
   id?: EntityId;
   plotId: EntityId;
   categoryId: EntityId;
-  performedAt: string;
+  performedAt: ISODateTime;
   note: string;
   followUpOn?: string | null;
   targetType: 'plot' | 'hole' | 'case';
@@ -144,6 +215,7 @@ export type LaborLedgerPerson = {
   displayName: string;
   unpaidTotal: number;
   unpaidCount: number;
+  sourceCount: number;
   latestWorkDate: string | null;
 };
 
@@ -167,6 +239,7 @@ export type MaterialLibraryItem = {
   photoUri: string | null;
   lastUsedAt: string | null;
   usageCount: number;
+  archivedAt: string | null;
 };
 
 export type HoleDetail = {

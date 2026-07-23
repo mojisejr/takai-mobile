@@ -1,0 +1,28 @@
+{
+  "phase": "5.1",
+  "lane": "expo-go-device-eye",
+  "status": "operator_accepted",
+  "title": "Menu and Case Flow",
+  "screen": "OperationalSliceScreen",
+  "entry": "App.tsx",
+  "targetClient": "Expo Go SDK 54",
+  "gateOfRecord": "Android Expo Go operator proof",
+  "claimLabel": "Expo Go Device Eye Closed",
+  "verifiedAt": "2026-07-19T06:12:06+07:00",
+  "checklist": [
+    "Bottom tab `เคส` opens the Case surface",
+    "Case detail/timeline remains readable on Android Expo Go",
+    "Closing a case does not delete history",
+    "Closed case history remains understandable",
+    "Menu+Case flow is accepted to continue to the next milestone"
+  ],
+  "operatorNote": "คุณนนท์ accidentally closed a case during Android Expo Go testing, then confirmed the history still exists and remains readable. This closes the Menu+Case device gate.",
+  "truthState": {
+    "hardGate": "closed-by-post-merge-automated-tests",
+    "rnStaticTokenGate": "covered-by-design-contract-test",
+    "rnWebEye": "advisory-evidence-collected-in-pr-9",
+    "expoGoDeviceEye": "closed-by-human-android-expo-go-proof",
+    "nativeEye": "out-of-scope"
+  },
+  "nextMilestone": "Categories + People + Labor"
+}
