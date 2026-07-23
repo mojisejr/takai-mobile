@@ -5,10 +5,12 @@ import type { ActivityCategory, CaseRecord, CropCycle, Garden, Hole, Material, P
 import type { SqlExecutor } from '../src/data';
 import {
   archiveActivityCategory,
+  archiveMaterial,
   archivePerson,
   createActivity,
   createActivityCategory,
   createDemoSprayActivity,
+  createMaterial,
   createPerson,
   closeCase,
   getActivityCaptureOptions,
@@ -21,14 +23,17 @@ import {
   getPlotDashboard,
   getTodayDashboard,
   listActivityCategories,
+  listMaterials,
   listPeople,
   listPlotTrackers,
   pinPlotTracker,
   restoreActivityCategory,
+  restoreMaterial,
   restorePerson,
   settleUnpaidLaborForPerson,
   unpinPlotTracker,
   updateActivityCategory,
+  updateMaterial,
   updatePerson,
 } from '../src/features/operations';
 
@@ -53,6 +58,24 @@ class OperationalFakeSqlite implements SqlExecutor {
   async execAsync(): Promise<void> {}
 
   async getAllAsync<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+    if (sql.includes('SELECT id, name FROM plots ORDER BY sort_order ASC, name ASC')) {
+      return this.plots
+        .map((plot) => ({ id: plot.id, name: plot.name, sort_order: plot.sortOrder }))
+        .sort((left, right) => Number(left.sort_order) - Number(right.sort_order) || left.name.localeCompare(right.name)) as T[];
+    }
+
+    if (sql.includes("FROM holes\n       WHERE status IN ('empty', 'planted')")) {
+      return this.holes
+        .filter((hole) => hole.status === 'empty' || hole.status === 'planted')
+        .map((hole) => ({ id: hole.id, plot_id: hole.plotId, marker: hole.marker, status: hole.status })) as T[];
+    }
+
+    if (sql.includes("FROM cases\n       WHERE status = 'tracking'")) {
+      return this.cases
+        .filter((caseItem) => caseItem.status === 'tracking')
+        .map((caseItem) => ({ id: caseItem.id, plot_id: caseItem.plotId, hole_id: caseItem.holeId ?? null, title: caseItem.title })) as T[];
+    }
+
     if (sql.includes('SELECT id FROM plots ORDER BY sort_order ASC LIMIT 1')) {
       return [{ id: this.plots[0]?.id }] as T[];
     }
@@ -108,7 +131,9 @@ class OperationalFakeSqlite implements SqlExecutor {
     }
 
     if (sql.includes('MAX(activities.performed_at) AS last_used_at')) {
+      const activeOnly = sql.includes('WHERE materials.archived_at IS NULL');
       return this.materials
+        .filter((material) => !activeOnly || !material.archivedAt)
         .map((material) => {
           const usages = this.activityMaterials.filter((row) => row.material_id === material.id);
           const activityDates = usages
@@ -123,6 +148,7 @@ class OperationalFakeSqlite implements SqlExecutor {
             unit: material.unit,
             default_rate_per_tank: material.defaultRatePerTank,
             photo_uri: material.photoUri,
+            archived_at: material.archivedAt ?? null,
             last_used_at: activityDates.at(-1) ?? null,
             usage_count: usages.length,
           };
@@ -523,6 +549,61 @@ class OperationalFakeSqlite implements SqlExecutor {
       return;
     }
 
+    if (sql.includes('INSERT INTO materials')) {
+      const [id, name, type, unit, defaultRatePerTank, notes, createdAt] = params as [
+        string,
+        string,
+        Material['type'],
+        string,
+        string | null,
+        string | null,
+        string,
+      ];
+      this.materials.push({
+        id,
+        name,
+        type,
+        unit,
+        defaultRatePerTank,
+        photoUri: null,
+        notes,
+        createdAt,
+        archivedAt: null,
+      });
+      return;
+    }
+
+    if (sql.includes('UPDATE materials SET archived_at = ?')) {
+      const [archivedAt, materialId] = params as [string, string];
+      this.materials = this.materials.map((material) =>
+        material.id === materialId ? { ...material, archivedAt } : material,
+      );
+      return;
+    }
+
+    if (sql.includes('UPDATE materials SET archived_at = NULL')) {
+      const [materialId] = params as [string];
+      this.materials = this.materials.map((material) =>
+        material.id === materialId ? { ...material, archivedAt: null } : material,
+      );
+      return;
+    }
+
+    if (sql.includes('UPDATE materials')) {
+      const [name, type, unit, defaultRatePerTank, notes, materialId] = params as [
+        string,
+        Material['type'],
+        string,
+        string | null,
+        string | null,
+        string,
+      ];
+      this.materials = this.materials.map((material) =>
+        material.id === materialId ? { ...material, name, type, unit, defaultRatePerTank, notes } : material,
+      );
+      return;
+    }
+
     if (sql.includes('UPDATE people SET archived_at = ?')) {
       const [archivedAt, personId] = params as [string, string];
       this.people = this.people.map((person) => (person.id === personId ? { ...person, archivedAt } : person));
@@ -658,7 +739,66 @@ const main = async (): Promise<void> => {
 
   const options = await getActivityCaptureOptions(db);
   assert.equal(options.materials.length >= 2, true, 'Phase 3 requires two selectable materials');
+  assert.deepEqual(options.plots.map((plot) => plot.id), ['plot-a'], 'capture must expose real selectable plots instead of a hidden seed default');
+  assert.equal(options.holes.find((hole) => hole.id === 'hole-a-014')?.plotId, 'plot-a');
+  assert.equal(options.activeCases.find((caseItem) => caseItem.id === 'case-a-014')?.holeId, 'hole-a-014');
+  assert.equal(options.defaultPerformedAt, '2026-07-16T08:30:00.000Z', 'capture must provide a date/time-safe default');
   assert.equal(options.defaultWorkerId, 'person-worker-somchai');
+
+  const quickMaterialId = await createMaterial(db, {
+    id: 'material-quick-spray',
+    name: 'สารพ่นทดลอง',
+    type: 'fungicide',
+    unit: 'cc',
+    defaultRatePerTank: '15 cc / น้ำ 20 L',
+    notes: 'เพิ่มจากหน้างาน',
+  });
+  await updateMaterial(db, quickMaterialId, {
+    name: 'สารพ่นทดลอง ปรับชื่อ',
+    type: 'fungicide',
+    unit: 'cc',
+    defaultRatePerTank: '15 cc / น้ำ 20 L',
+    notes: 'เพิ่มจากหน้างานและแก้ไขแล้ว',
+  });
+  assert.equal(
+    (await getActivityCaptureOptions(db)).materials.some((material) => material.id === quickMaterialId),
+    true,
+    'a quick-created material must be immediately selectable in the current activity draft',
+  );
+  await createActivity(db, {
+    id: 'activity-material-before-archive',
+    plotId: options.defaultPlotId,
+    categoryId: 'cat-prune',
+    performedAt: '2026-07-12T08:00:00.000Z',
+    note: 'ใช้วัสดุก่อนเก็บเข้าคลัง',
+    targetType: 'plot',
+    targetId: options.defaultPlotId,
+    materials: [{ materialId: quickMaterialId, amount: 15, unit: 'cc' }],
+    participants: [],
+  });
+  await archiveMaterial(db, quickMaterialId);
+  assert.equal((await listMaterials(db)).some((material) => material.id === quickMaterialId), false);
+  assert.equal(
+    (await getMaterialLibrary(db)).find((material) => material.id === quickMaterialId)?.usageCount,
+    1,
+    'archiving a material must retain its historical usage in the library',
+  );
+  await assert.rejects(
+    createActivity(db, {
+      id: 'activity-archived-material',
+      plotId: options.defaultPlotId,
+      categoryId: 'cat-prune',
+      performedAt: '2026-07-12T09:00:00.000Z',
+      note: 'ต้องถูกปฏิเสธ',
+      targetType: 'plot',
+      targetId: options.defaultPlotId,
+      materials: [{ materialId: quickMaterialId, amount: 1, unit: 'cc' }],
+      participants: [],
+    }),
+    /material is unavailable/,
+  );
+  await restoreMaterial(db, quickMaterialId);
+  assert.equal((await listMaterials(db)).some((material) => material.id === quickMaterialId), true);
 
   const categoryId = await createActivityCategory(db, {
     id: 'cat-irrigate',
@@ -751,6 +891,15 @@ const main = async (): Promise<void> => {
   });
 
   db.plots.push({ id: 'plot-b', gardenId: 'garden-main', name: 'แปลง B', areaRai: 1, sortOrder: 2 });
+  db.cropCycles.push({
+    id: 'crop-2026-plot-b',
+    plotId: 'plot-b',
+    label: 'Crop B 2026',
+    startsOn: '2026-07-15',
+    endsOn: null,
+    status: 'active',
+  });
+  db.holes.push({ id: 'hole-b-001', plotId: 'plot-b', marker: 'B-001', sortKey: '001', status: 'planted' });
   await pinPlotTracker(db, 'plot-b', 'cat-spray');
   assert.equal((await listPlotTrackers(db, 'plot-b')).some((tracker) => tracker.categoryId === 'cat-spray'), true);
   assert.equal((await listPlotTrackers(db, options.defaultPlotId)).some((tracker) => tracker.categoryId === 'cat-spray'), true);
@@ -758,6 +907,25 @@ const main = async (): Promise<void> => {
     (await listPlotTrackers(db, 'plot-b')).some((tracker) => tracker.categoryId === 'cat-fertilizer'),
     false,
     'a tracker pinned only on plot A must never appear on plot B',
+  );
+  const plotBActivity = await createActivity(db, {
+    id: 'activity-plot-b-backdated',
+    plotId: 'plot-b',
+    categoryId: 'cat-spray',
+    performedAt: '2026-07-16T06:30:00.000Z',
+    note: 'พ่นยาที่แปลง B ตามวันจริง',
+    targetType: 'hole',
+    targetId: 'hole-b-001',
+    materials: [],
+    participants: [],
+  });
+  assert.equal(plotBActivity.cropCycleId, 'crop-2026-plot-b', 'a backdated activity must resolve the crop cycle for its selected plot');
+  assert.equal(db.activities.find((activity) => activity.id === 'activity-plot-b-backdated')?.plot_id, 'plot-b');
+  assert.equal((await getPlotDashboard(db, 'plot-b')).trackers.find((tracker) => tracker.categoryId === 'cat-spray')?.count, 1);
+  assert.equal(
+    (await getPlotDashboard(db, options.defaultPlotId)).trackers.find((tracker) => tracker.categoryId === 'cat-spray')?.count,
+    0,
+    'selecting plot B must never write the activity or tracker evidence onto plot A',
   );
   await createActivity(db, {
     id: 'activity-prune-before-unpin',
@@ -779,11 +947,16 @@ const main = async (): Promise<void> => {
     'unpin archives the relation instead of deleting tracker history',
   );
 
+  const materialUsageCountBeforeDemo = db.activityMaterials.length;
   const created = await createDemoSprayActivity(db);
   assert.equal(created.activityId, 'activity-demo-spray');
   assert.equal(created.cropCycleId, 'crop-2026-plot-a');
   assert.deepEqual(created.laborEntryIds, ['labor-participant-activity-demo-spray-2']);
-  assert.equal(db.activityMaterials.length, 2, 'spray activity should store two material usages');
+  assert.equal(
+    db.activityMaterials.length,
+    materialUsageCountBeforeDemo + 2,
+    'spray activity should add two material usages without discarding historical material evidence',
+  );
   assert.equal(db.laborEntries.length, 2, 'self participants create no labor; each selected worker creates one entry');
 
   const reloadedToday = await getTodayDashboard(db);
@@ -803,7 +976,11 @@ const main = async (): Promise<void> => {
   const initialMenu = await getMenuDashboard(db);
   assert.equal(initialMenu.gardenName, 'สวนตาไก๊');
   assert.equal(initialMenu.activeCaseCount, 1);
-  assert.equal(initialMenu.materialCount, TAKAI_DEMO_SEED.materials.length);
+  assert.equal(
+    initialMenu.materialCount,
+    TAKAI_DEMO_SEED.materials.length + 1,
+    'the restored quick-created active material must appear in the menu catalog count',
+  );
   assert.equal(initialMenu.localStatusLabel, 'ออฟไลน์ 100%');
 
   const manual = await createActivity(db, {

@@ -9,6 +9,7 @@ import type {
   HoleDetail,
   LaborLedger,
   MenuDashboard,
+  MaterialInput,
   MaterialLibraryItem,
   PersonDirectoryItem,
   PersonInput,
@@ -25,34 +26,9 @@ type WebPreviewDb = {
   demoSprayCount: number;
   categories: Array<ActivityCategory & { archivedAt: string | null }>;
   people: PersonDirectoryItem[];
+  materials: Material[];
   trackedCategoryIds: string[];
 };
-
-const materials: Material[] = [
-  {
-    id: 'mat-fungicide-a',
-    name: 'ยา A',
-    type: 'fungicide',
-    unit: 'cc',
-    defaultRatePerTank: '20 cc / น้ำ 20 L',
-    photoUri: null,
-    notes: 'RN Web preview material',
-    createdAt: '2026-07-01T00:00:00.000Z',
-    archivedAt: null,
-  },
-  {
-    id: 'mat-clean-water',
-    name: 'น้ำสะอาด',
-    type: 'other',
-    unit: 'L',
-    defaultRatePerTank: '20 L',
-    photoUri: null,
-    notes: 'RN Web preview material',
-    createdAt: '2026-07-01T00:00:00.000Z',
-    archivedAt: null,
-  },
-];
-
 
 const buildCaseTimeline = (sprayCount: number, closed = false): CaseTimeline => ({
   id: 'case-a-014',
@@ -103,16 +79,17 @@ const buildLaborLedger = (sprayCount: number): LaborLedger => ({
   recentPaid: [],
 });
 
-const buildMaterials = (sprayCount: number): MaterialLibraryItem[] =>
-  materials.map((material) => ({
+const buildMaterials = (db: WebPreviewDb, includeArchived = true): MaterialLibraryItem[] =>
+  db.materials.filter((material) => includeArchived || !material.archivedAt).map((material) => ({
     id: material.id,
     name: material.name,
     type: material.type,
     unit: material.unit,
     defaultRatePerTank: material.defaultRatePerTank ?? null,
     photoUri: material.photoUri ?? null,
-    lastUsedAt: sprayCount > 0 && material.id === 'mat-fungicide-a' ? DEMO_NOW : null,
-    usageCount: sprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
+    lastUsedAt: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? DEMO_NOW : null,
+    usageCount: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
+    archivedAt: material.archivedAt,
   }));
 
 const buildCaseList = (sprayCount: number, closedCase: boolean, statusFilter?: CaseListItem['status']): CaseListItem[] => {
@@ -131,12 +108,12 @@ const buildCaseList = (sprayCount: number, closedCase: boolean, statusFilter?: C
   return !statusFilter || caseItem.status === statusFilter ? [caseItem] : [];
 };
 
-const buildMenuDashboard = (sprayCount: number, closedCase: boolean): MenuDashboard => ({
+const buildMenuDashboard = (sprayCount: number, closedCase: boolean, materialCount: number): MenuDashboard => ({
   gardenName: 'สวนตาไก๊',
   activeCaseCount: closedCase ? 0 : 1,
   closedCaseCount: closedCase ? 1 : 0,
   unpaidLaborTotal: sprayCount > 0 ? 600 : 0,
-  materialCount: materials.length,
+  materialCount,
   plotCount: 1,
   holeCount: 300,
   localStatusLabel: 'ออฟไลน์ 100%',
@@ -253,12 +230,16 @@ const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
 
 export const getActivityCaptureOptions = async (db: WebPreviewDb): Promise<ActivityCaptureOption> => ({
   categories: db.categories.filter((category) => !category.archivedAt),
-  materials,
+  materials: db.materials.filter((material) => !material.archivedAt),
+  plots: [{ id: 'plot-a', name: 'แปลง A' }],
+  holes: [{ id: 'hole-a-014', plotId: 'plot-a', marker: 'A-014', status: 'planted' }],
+  activeCases: [{ id: 'case-a-014', plotId: 'plot-a', holeId: 'hole-a-014', title: 'A-014 เชื้อราโคนต้น' }],
   people: db.people.filter((person) => !person.archivedAt).map(({ specialty: _specialty, phone: _phone, note: _note, archivedAt: _archivedAt, ...person }) => person),
   defaultPlotId: 'plot-a',
   defaultHoleId: 'hole-a-014',
   defaultWorkerId: db.people.find((person) => !person.isSelf && !person.archivedAt)?.id ?? null,
   defaultSelfId: db.people.find((person) => person.isSelf && !person.archivedAt)?.id ?? null,
+  defaultPerformedAt: DEMO_NOW,
 });
 
 export const listActivityCategories = async (db: WebPreviewDb, includeArchived = false): Promise<ActivityCategory[]> =>
@@ -325,6 +306,55 @@ export const restorePerson = async (db: WebPreviewDb, personId: string): Promise
   if (person) person.archivedAt = null;
 };
 
+export const listMaterials = async (db: WebPreviewDb, includeArchived = false): Promise<MaterialLibraryItem[]> =>
+  buildMaterials(db, includeArchived);
+
+export const createMaterial = async (db: WebPreviewDb, input: MaterialInput): Promise<string> => {
+  const id = input.id ?? `material-web-${db.materials.length + 1}`;
+  const name = input.name.trim();
+  const unit = input.unit.trim();
+  if (!name) throw new Error('TAKAI requires a material name');
+  if (!unit) throw new Error('TAKAI requires a material unit');
+  db.materials.push({
+    id,
+    name,
+    type: input.type,
+    unit,
+    defaultRatePerTank: input.defaultRatePerTank?.trim() || null,
+    photoUri: null,
+    notes: input.notes?.trim() || null,
+    createdAt: DEMO_NOW,
+    archivedAt: null,
+  });
+  return id;
+};
+
+export const updateMaterial = async (db: WebPreviewDb, materialId: string, input: MaterialInput): Promise<void> => {
+  const material = db.materials.find((item) => item.id === materialId);
+  if (!material) return;
+  const name = input.name.trim();
+  const unit = input.unit.trim();
+  if (!name) throw new Error('TAKAI requires a material name');
+  if (!unit) throw new Error('TAKAI requires a material unit');
+  Object.assign(material, {
+    name,
+    type: input.type,
+    unit,
+    defaultRatePerTank: input.defaultRatePerTank?.trim() || null,
+    notes: input.notes?.trim() || null,
+  });
+};
+
+export const archiveMaterial = async (db: WebPreviewDb, materialId: string): Promise<void> => {
+  const material = db.materials.find((item) => item.id === materialId);
+  if (material) material.archivedAt = DEMO_NOW;
+};
+
+export const restoreMaterial = async (db: WebPreviewDb, materialId: string): Promise<void> => {
+  const material = db.materials.find((item) => item.id === materialId);
+  if (material) material.archivedAt = null;
+};
+
 export const pinPlotTracker = async (db: WebPreviewDb, _plotId: string, categoryId: string): Promise<void> => {
   if (!db.trackedCategoryIds.includes(categoryId)) db.trackedCategoryIds.push(categoryId);
 };
@@ -364,7 +394,7 @@ export const getCaseList = async (
 ): Promise<CaseListItem[]> => buildCaseList(db.demoSprayCount, db.closedCase, statusFilter);
 
 export const getMenuDashboard = async (db: WebPreviewDb): Promise<MenuDashboard> =>
-  buildMenuDashboard(db.demoSprayCount, db.closedCase);
+  buildMenuDashboard(db.demoSprayCount, db.closedCase, db.materials.length);
 
 export const getCaseTimeline = async (db: WebPreviewDb, _caseId = 'case-a-014'): Promise<CaseTimeline> =>
   buildCaseTimeline(db.demoSprayCount, db.closedCase);
@@ -379,7 +409,7 @@ export const settleUnpaidLaborForPerson = async (db: WebPreviewDb): Promise<void
   db.demoSprayCount = 0;
 };
 
-export const getMaterialLibrary = async (db: WebPreviewDb): Promise<MaterialLibraryItem[]> => buildMaterials(db.demoSprayCount);
+export const getMaterialLibrary = async (db: WebPreviewDb): Promise<MaterialLibraryItem[]> => buildMaterials(db, true);
 
 export const getHoleDetail = async (db: WebPreviewDb): Promise<HoleDetail> => buildHoleDetail(db.demoSprayCount, db.closedCase);
 

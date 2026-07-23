@@ -13,6 +13,7 @@ import type {
   HoleDetail,
   LaborLedger,
   MenuDashboard,
+  MaterialInput,
   MaterialLibraryItem,
   PlotDashboard,
   PersonDirectoryItem,
@@ -95,6 +96,26 @@ type MaterialRow = {
   photo_uri: string | null;
   last_used_at: string | null;
   usage_count: number;
+  archived_at: string | null;
+};
+
+type CapturePlotRow = {
+  id: string;
+  name: string;
+};
+
+type CaptureHoleRow = {
+  id: string;
+  plot_id: string;
+  marker: string;
+  status: 'empty' | 'planted';
+};
+
+type CaptureCaseRow = {
+  id: string;
+  plot_id: string;
+  hole_id: string | null;
+  title: string;
 };
 
 type LaborPersonRow = {
@@ -167,6 +188,22 @@ const requireName = (displayName: string): string => {
   const normalized = displayName.trim();
   if (!normalized) {
     throw new Error('TAKAI requires a person display name');
+  }
+  return normalized;
+};
+
+const requireMaterialName = (name: string): string => {
+  const normalized = name.trim();
+  if (!normalized) {
+    throw new Error('TAKAI requires a material name');
+  }
+  return normalized;
+};
+
+const requireMaterialUnit = (unit: string): string => {
+  const normalized = unit.trim();
+  if (!normalized) {
+    throw new Error('TAKAI requires a material unit');
   }
   return normalized;
 };
@@ -313,6 +350,85 @@ export const restorePerson = async (db: SqlExecutor, personId: string): Promise<
   await db.runAsync('UPDATE people SET archived_at = NULL WHERE id = ?', [personId]);
 };
 
+export const listMaterials = async (db: SqlExecutor, includeArchived = false): Promise<MaterialLibraryItem[]> => {
+  const rows = await db.getAllAsync<MaterialRow>(
+    `SELECT
+       materials.id,
+       materials.name,
+       materials.type,
+       materials.unit,
+       materials.default_rate_per_tank,
+       materials.photo_uri,
+       materials.archived_at,
+       MAX(activities.performed_at) AS last_used_at,
+       COUNT(activity_materials.id) AS usage_count
+     FROM materials
+     LEFT JOIN activity_materials ON activity_materials.material_id = materials.id
+     LEFT JOIN activities ON activities.id = activity_materials.activity_id
+     ${includeArchived ? '' : 'WHERE materials.archived_at IS NULL'}
+     GROUP BY materials.id
+     ORDER BY materials.archived_at IS NOT NULL ASC, materials.name ASC`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    unit: row.unit,
+    defaultRatePerTank: row.default_rate_per_tank,
+    photoUri: row.photo_uri,
+    lastUsedAt: row.last_used_at,
+    usageCount: Number(row.usage_count),
+    archivedAt: row.archived_at,
+  }));
+};
+
+export const createMaterial = async (
+  db: SqlExecutor,
+  input: MaterialInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  const id = input.id ?? generatedId('material', createdAt);
+  await db.runAsync(
+    `INSERT INTO materials (id, name, type, unit, default_rate_per_tank, photo_uri, notes, created_at, archived_at)
+     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL)`,
+    [
+      id,
+      requireMaterialName(input.name),
+      input.type,
+      requireMaterialUnit(input.unit),
+      input.defaultRatePerTank?.trim() || null,
+      input.notes?.trim() || null,
+      createdAt,
+    ],
+  );
+  return id;
+};
+
+export const updateMaterial = async (db: SqlExecutor, materialId: string, input: MaterialInput): Promise<void> => {
+  await db.runAsync(
+    `UPDATE materials
+     SET name = ?, type = ?, unit = ?, default_rate_per_tank = ?, notes = ?
+     WHERE id = ?`,
+    [
+      requireMaterialName(input.name),
+      input.type,
+      requireMaterialUnit(input.unit),
+      input.defaultRatePerTank?.trim() || null,
+      input.notes?.trim() || null,
+      materialId,
+    ],
+  );
+};
+
+export const archiveMaterial = async (db: SqlExecutor, materialId: string, archivedAt = DEMO_NOW): Promise<void> => {
+  await db.runAsync('UPDATE materials SET archived_at = ? WHERE id = ?', [archivedAt, materialId]);
+};
+
+export const restoreMaterial = async (db: SqlExecutor, materialId: string): Promise<void> => {
+  await db.runAsync('UPDATE materials SET archived_at = NULL WHERE id = ?', [materialId]);
+};
+
 const assertActiveCategory = async (db: SqlExecutor, categoryId: string): Promise<void> => {
   const rows = await db.getAllAsync<{ id: string }>(
     'SELECT id FROM activity_categories WHERE id = ? AND archived_at IS NULL LIMIT 1',
@@ -394,53 +510,66 @@ export const unpinPlotTracker = async (
 };
 
 export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<ActivityCaptureOption> => {
-  const [plot] = await db.getAllAsync<{ id: string }>('SELECT id FROM plots ORDER BY sort_order ASC LIMIT 1');
-  const [caseHole] = await db.getAllAsync<{ id: string }>(
-    `SELECT holes.id
-     FROM holes
-     JOIN cases ON cases.hole_id = holes.id
-     WHERE holes.plot_id = ? AND cases.status = 'tracking'
-     ORDER BY cases.opened_at DESC
-     LIMIT 1`,
-    [plot?.id],
-  );
-  const [firstHole] = await db.getAllAsync<{ id: string }>(
-    'SELECT id FROM holes WHERE plot_id = ? ORDER BY sort_key ASC LIMIT 1',
-    [plot?.id],
-  );
-  const categories = await db.getAllAsync<ActivityCategory>(
+  const [plots, holes, activeCases, categories, materials, people] = await Promise.all([
+    db.getAllAsync<CapturePlotRow>('SELECT id, name FROM plots ORDER BY sort_order ASC, name ASC'),
+    db.getAllAsync<CaptureHoleRow>(
+      `SELECT id, plot_id, marker, status
+       FROM holes
+       WHERE status IN ('empty', 'planted')
+       ORDER BY plot_id ASC, sort_key ASC`,
+    ),
+    db.getAllAsync<CaptureCaseRow>(
+      `SELECT id, plot_id, hole_id, title
+       FROM cases
+       WHERE status = 'tracking'
+       ORDER BY opened_at DESC`,
+    ),
+    db.getAllAsync<ActivityCategory>(
     `SELECT id, name, kind, track_by_default AS trackByDefault, sort_order AS sortOrder, archived_at AS archivedAt
      FROM activity_categories
      WHERE archived_at IS NULL
      ORDER BY sort_order ASC`,
-  );
-  const materials = await db.getAllAsync<Material>(
+    ),
+    db.getAllAsync<Material>(
     `SELECT id, name, type, unit, default_rate_per_tank AS defaultRatePerTank, photo_uri AS photoUri, notes,
             created_at AS createdAt, archived_at AS archivedAt
      FROM materials
      WHERE archived_at IS NULL
      ORDER BY name ASC`,
-  );
-  const people = await db.getAllAsync<PersonRow>(
+    ),
+    db.getAllAsync<PersonRow>(
     `SELECT id, display_name, role, is_self, specialty, phone, note, archived_at
      FROM people
      WHERE archived_at IS NULL
      ORDER BY is_self DESC`,
-  );
+    ),
+  ]);
+  const defaultPlot = first(plots);
+  const defaultCase = activeCases.find((caseRecord) => caseRecord.plot_id === defaultPlot.id && caseRecord.hole_id);
+  const defaultHole = holes.find((hole) => hole.id === defaultCase?.hole_id) ?? holes.find((hole) => hole.plot_id === defaultPlot.id);
 
   return {
     categories,
     materials,
+    plots: plots.map((plot) => ({ id: plot.id, name: plot.name })),
+    holes: holes.map((hole) => ({ id: hole.id, plotId: hole.plot_id, marker: hole.marker, status: hole.status })),
+    activeCases: activeCases.map((caseRecord) => ({
+      id: caseRecord.id,
+      plotId: caseRecord.plot_id,
+      holeId: caseRecord.hole_id,
+      title: caseRecord.title,
+    })),
     people: people.map((person) => ({
       id: person.id,
       displayName: person.display_name,
       role: person.role,
       isSelf: Boolean(person.is_self),
     })),
-    defaultPlotId: first([plot]).id,
-    defaultHoleId: caseHole?.id ?? firstHole?.id ?? null,
+    defaultPlotId: defaultPlot.id,
+    defaultHoleId: defaultHole?.id ?? null,
     defaultSelfId: people.find((person) => Boolean(person.is_self))?.id ?? null,
     defaultWorkerId: people.find((person) => !person.is_self)?.id ?? null,
+    defaultPerformedAt: DEMO_NOW,
   };
 };
 
@@ -855,35 +984,7 @@ export const createFieldActivity = async (
   });
 };
 
-export const getMaterialLibrary = async (db: SqlExecutor): Promise<MaterialLibraryItem[]> => {
-  const rows = await db.getAllAsync<MaterialRow>(
-    `SELECT
-       materials.id,
-       materials.name,
-       materials.type,
-       materials.unit,
-       materials.default_rate_per_tank,
-       materials.photo_uri,
-       MAX(activities.performed_at) AS last_used_at,
-       COUNT(activity_materials.id) AS usage_count
-     FROM materials
-     LEFT JOIN activity_materials ON activity_materials.material_id = materials.id
-     LEFT JOIN activities ON activities.id = activity_materials.activity_id
-     GROUP BY materials.id
-     ORDER BY materials.name ASC`,
-  );
-
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    unit: row.unit,
-    defaultRatePerTank: row.default_rate_per_tank,
-    photoUri: row.photo_uri,
-    lastUsedAt: row.last_used_at,
-    usageCount: Number(row.usage_count),
-  }));
-};
+export const getMaterialLibrary = async (db: SqlExecutor): Promise<MaterialLibraryItem[]> => listMaterials(db, true);
 
 export const getLaborLedger = async (db: SqlExecutor): Promise<LaborLedger> => {
   const people = await db.getAllAsync<LaborPersonRow>(

@@ -1,4 +1,4 @@
-import type { ActivityCategory, EntityId, Material, PayType, PersonRole } from '../../domain';
+import type { ActivityCategory, EntityId, ISODateTime, Material, MaterialType, PayType, PersonRole } from '../../domain';
 
 export type TakaiView =
   | 'today'
@@ -66,6 +66,22 @@ export type TodayDashboard = {
 export type ActivityCaptureOption = {
   categories: ActivityCategory[];
   materials: Material[];
+  plots: Array<{
+    id: EntityId;
+    name: string;
+  }>;
+  holes: Array<{
+    id: EntityId;
+    plotId: EntityId;
+    marker: string;
+    status: 'empty' | 'planted';
+  }>;
+  activeCases: Array<{
+    id: EntityId;
+    plotId: EntityId;
+    holeId: EntityId | null;
+    title: string;
+  }>;
   people: Array<{
     id: EntityId;
     displayName: string;
@@ -76,6 +92,7 @@ export type ActivityCaptureOption = {
   defaultHoleId: EntityId | null;
   defaultWorkerId: EntityId | null;
   defaultSelfId: EntityId | null;
+  defaultPerformedAt: ISODateTime;
 };
 
 export type CategoryInput = {
@@ -106,6 +123,15 @@ export type PersonInput = {
   note?: string;
 };
 
+export type MaterialInput = {
+  id?: EntityId;
+  name: string;
+  type: MaterialType;
+  unit: string;
+  defaultRatePerTank?: string | null;
+  notes?: string | null;
+};
+
 export type ActivityMaterialInput = {
   materialId: EntityId;
   amount: number;
@@ -127,7 +153,7 @@ export type CreateActivityInput = {
   id?: EntityId;
   plotId: EntityId;
   categoryId: EntityId;
-  performedAt: string;
+  performedAt: ISODateTime;
   note: string;
   followUpOn?: string | null;
   targetType: 'plot' | 'hole' | 'case';
@@ -213,6 +239,7 @@ export type MaterialLibraryItem = {
   photoUri: string | null;
   lastUsedAt: string | null;
   usageCount: number;
+  archivedAt: string | null;
 };
 
 export type HoleDetail = {
