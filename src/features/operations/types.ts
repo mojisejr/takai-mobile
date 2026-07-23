@@ -110,6 +110,11 @@ export type ActivityMaterialInput = {
   materialId: EntityId;
   amount: number;
   unit: string;
+  waterVolume?: number | null;
+  waterUnit?: string | null;
+  dilutionText?: string | null;
+  note?: string | null;
+  sortOrder?: number;
 };
 
 export type ActivityParticipantInput = {

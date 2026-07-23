@@ -37,6 +37,8 @@ const materials: Material[] = [
     defaultRatePerTank: '20 cc / น้ำ 20 L',
     photoUri: null,
     notes: 'RN Web preview material',
+    createdAt: '2026-07-01T00:00:00.000Z',
+    archivedAt: null,
   },
   {
     id: 'mat-clean-water',
@@ -46,6 +48,8 @@ const materials: Material[] = [
     defaultRatePerTank: '20 L',
     photoUri: null,
     notes: 'RN Web preview material',
+    createdAt: '2026-07-01T00:00:00.000Z',
+    archivedAt: null,
   },
 ];
 

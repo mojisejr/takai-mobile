@@ -330,6 +330,42 @@ const assertActivePerson = async (db: SqlExecutor, personId: string): Promise<vo
   }
 };
 
+const assertActiveMaterial = async (db: SqlExecutor, materialId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM materials WHERE id = ? AND archived_at IS NULL LIMIT 1',
+    [materialId],
+  );
+  if (!rows[0]) {
+    throw new Error(`TAKAI activity material is unavailable: ${materialId}`);
+  }
+};
+
+const materialUsageValues = (material: CreateActivityInput['materials'][number], index: number) => {
+  const amount = Number(material.amount);
+  const unit = material.unit.trim();
+  const waterVolume = material.waterVolume == null ? null : Number(material.waterVolume);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error(`TAKAI activity material amount must be positive: ${material.materialId}`);
+  }
+  if (!unit) {
+    throw new Error(`TAKAI activity material unit is required: ${material.materialId}`);
+  }
+  if (waterVolume != null && (!Number.isFinite(waterVolume) || waterVolume <= 0)) {
+    throw new Error(`TAKAI activity material water volume must be positive: ${material.materialId}`);
+  }
+
+  return {
+    amount,
+    unit,
+    waterVolume,
+    waterUnit: material.waterUnit?.trim() || null,
+    dilutionText: material.dilutionText?.trim() || null,
+    note: material.note?.trim() || null,
+    sortOrder: material.sortOrder ?? index,
+  };
+};
+
 export const pinPlotTracker = async (
   db: SqlExecutor,
   plotId: string,
@@ -379,8 +415,10 @@ export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<Activi
      ORDER BY sort_order ASC`,
   );
   const materials = await db.getAllAsync<Material>(
-    `SELECT id, name, type, unit, default_rate_per_tank AS defaultRatePerTank, photo_uri AS photoUri, notes
+    `SELECT id, name, type, unit, default_rate_per_tank AS defaultRatePerTank, photo_uri AS photoUri, notes,
+            created_at AS createdAt, archived_at AS archivedAt
      FROM materials
+     WHERE archived_at IS NULL
      ORDER BY name ASC`,
   );
   const people = await db.getAllAsync<PersonRow>(
@@ -430,6 +468,10 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
   for (const participant of input.participants) {
     await assertActivePerson(db, participant.personId);
   }
+  const materialUsages = input.materials.map(materialUsageValues);
+  for (const material of input.materials) {
+    await assertActiveMaterial(db, material.materialId);
+  }
   const cropCycleId = await resolveActiveCropId(db, input.plotId, input.performedAt);
 
   await db.runAsync(
@@ -445,10 +487,23 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
   );
 
   for (const [index, material] of input.materials.entries()) {
+    const usage = materialUsages[index];
     await db.runAsync(
-      `INSERT INTO activity_materials (id, activity_id, material_id, amount, unit)
-       VALUES (?, ?, ?, ?, ?)`,
-      [`activity-material-${activityId}-${index + 1}`, activityId, material.materialId, material.amount, material.unit],
+      `INSERT INTO activity_materials (
+         id, activity_id, material_id, amount, unit, water_volume, water_unit, dilution_text, note, sort_order
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `activity-material-${activityId}-${index + 1}`,
+        activityId,
+        material.materialId,
+        usage.amount,
+        usage.unit,
+        usage.waterVolume,
+        usage.waterUnit,
+        usage.dilutionText,
+        usage.note,
+        usage.sortOrder,
+      ],
     );
   }
 

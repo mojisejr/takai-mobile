@@ -122,6 +122,8 @@ export const seedDemoGarden = async (db: SqlExecutor): Promise<void> => {
       default_rate_per_tank: material.defaultRatePerTank,
       photo_uri: material.photoUri,
       notes: material.notes,
+      created_at: material.createdAt,
+      archived_at: material.archivedAt,
     });
   }
 };

@@ -90,7 +90,9 @@ class OperationalFakeSqlite implements SqlExecutor {
     }
 
     if (sql.includes('FROM materials') && sql.includes('ORDER BY name ASC')) {
+      const activeOnly = sql.includes('WHERE archived_at IS NULL');
       return this.materials
+        .filter((material) => !activeOnly || !material.archivedAt)
         .map((material) => ({
           id: material.id,
           name: material.name,
@@ -99,6 +101,8 @@ class OperationalFakeSqlite implements SqlExecutor {
           defaultRatePerTank: material.defaultRatePerTank,
           photoUri: material.photoUri,
           notes: material.notes,
+          createdAt: material.createdAt,
+          archivedAt: material.archivedAt,
         }))
         .sort((left, right) => left.name.localeCompare(right.name)) as T[];
     }
@@ -130,6 +134,12 @@ class OperationalFakeSqlite implements SqlExecutor {
       return this.people
         .filter((person) => person.id === params[0] && !person.archivedAt)
         .map((person) => ({ id: person.id })) as T[];
+    }
+
+    if (sql.includes('SELECT id FROM materials WHERE id = ? AND archived_at IS NULL')) {
+      return this.materials
+        .filter((material) => material.id === params[0] && !material.archivedAt)
+        .map((material) => ({ id: material.id })) as T[];
     }
 
     if (sql.includes('FROM people') && sql.includes('ORDER BY is_self DESC')) {
@@ -577,8 +587,19 @@ class OperationalFakeSqlite implements SqlExecutor {
     }
 
     if (sql.includes('INSERT INTO activity_materials')) {
-      const [id, activity_id, material_id, amount, unit] = params;
-      this.activityMaterials.push({ id, activity_id, material_id, amount, unit });
+      const [id, activity_id, material_id, amount, unit, water_volume, water_unit, dilution_text, note, sort_order] = params;
+      this.activityMaterials.push({
+        id,
+        activity_id,
+        material_id,
+        amount,
+        unit,
+        water_volume,
+        water_unit,
+        dilution_text,
+        note,
+        sort_order,
+      });
       return;
     }
 

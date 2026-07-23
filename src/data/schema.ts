@@ -167,4 +167,21 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         ON plot_trackers(plot_id, archived_at)`,
     ],
   },
+  {
+    id: 3,
+    name: 'truthful_activity_materials',
+    statements: [
+      `ALTER TABLE materials ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE materials ADD COLUMN archived_at TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN water_volume REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN water_unit TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN dilution_text TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN note TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
+      `CREATE INDEX IF NOT EXISTS idx_materials_active_created
+        ON materials(archived_at, created_at, name)`,
+      `CREATE INDEX IF NOT EXISTS idx_activity_materials_activity_sort
+        ON activity_materials(activity_id, sort_order)`,
+    ],
+  },
 ];

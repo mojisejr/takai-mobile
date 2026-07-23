@@ -145,6 +145,8 @@ export interface Material {
   defaultRatePerTank?: string | null;
   photoUri?: string | null;
   notes?: string | null;
+  createdAt: ISODateTime;
+  archivedAt: ISODateTime | null;
 }
 
 export interface ActivityMaterial {
@@ -153,6 +155,11 @@ export interface ActivityMaterial {
   materialId: EntityId;
   amount: number;
   unit: string;
+  waterVolume?: number | null;
+  waterUnit?: string | null;
+  dilutionText?: string | null;
+  note?: string | null;
+  sortOrder: number;
 }
 
 export interface MediaAsset {

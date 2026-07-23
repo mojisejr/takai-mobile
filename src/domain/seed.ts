@@ -107,6 +107,8 @@ export const TAKAI_DEMO_SEED = {
       defaultRatePerTank: '20 cc / 20 L',
       photoUri: null,
       notes: 'ตัวอย่างวัสดุสำหรับทดสอบกิจกรรมพ่นยา',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      archivedAt: null,
     },
     {
       id: 'material-spreader-a',
@@ -116,6 +118,8 @@ export const TAKAI_DEMO_SEED = {
       defaultRatePerTank: '10 cc / 20 L',
       photoUri: null,
       notes: 'ตัวอย่างวัสดุเสริมสำหรับบันทึกพ่นยา',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      archivedAt: null,
     },
   ] satisfies Material[],
 };
