@@ -1,7 +1,8 @@
-import type { Material } from '../../domain';
+import type { ActivityCategory, Material } from '../../domain';
 import { DEMO_NOW, formatThaiShortDate, nextDateFrom } from './date';
 import type {
   ActivityCaptureOption,
+  CategoryInput,
   CaseListItem,
   CaseTimeline,
   CreatedActivityResult,
@@ -9,6 +10,8 @@ import type {
   LaborLedger,
   MenuDashboard,
   MaterialLibraryItem,
+  PersonDirectoryItem,
+  PersonInput,
   CreateActivityInput,
   TakaiView,
   TodayDashboard,
@@ -20,13 +23,10 @@ export type * from './types';
 type WebPreviewDb = {
   closedCase: boolean;
   demoSprayCount: number;
+  categories: Array<ActivityCategory & { archivedAt: string | null }>;
+  people: PersonDirectoryItem[];
+  trackedCategoryIds: string[];
 };
-
-const categories: ActivityCaptureOption['categories'] = [
-  { id: 'cat-spray', name: 'พ่นยา', kind: 'spray', trackByDefault: true, sortOrder: 1 },
-  { id: 'cat-fertilizer', name: 'ใส่ปุ๋ย', kind: 'fertilizer', trackByDefault: true, sortOrder: 2 },
-  { id: 'cat-prune', name: 'แต่งกิ่ง', kind: 'prune', trackByDefault: true, sortOrder: 3 },
-];
 
 const materials: Material[] = [
   {
@@ -49,10 +49,6 @@ const materials: Material[] = [
   },
 ];
 
-const people: ActivityCaptureOption['people'] = [
-  { id: 'person-self', displayName: 'เจ้าของสวน', role: 'owner', isSelf: true },
-  { id: 'person-worker', displayName: 'สมชาย', role: 'worker', isSelf: false },
-];
 
 const buildCaseTimeline = (sprayCount: number, closed = false): CaseTimeline => ({
   id: 'case-a-014',
@@ -174,9 +170,9 @@ const buildHoleDetail = (sprayCount: number, closedCase = false): HoleDetail => 
       : [],
 });
 
-const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard => ({
+const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
   gardenName: 'สวนตาไก๊',
-  unpaidLaborTotal: sprayCount > 0 ? 600 : 0,
+  unpaidLaborTotal: db.demoSprayCount > 0 ? 600 : 0,
   plot: {
     id: 'plot-a',
     name: 'แปลง A',
@@ -194,11 +190,11 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
       {
         categoryId: 'cat-spray',
         title: 'พ่นยา',
-        count: sprayCount,
-        latestPerformedAt: sprayCount > 0 ? DEMO_NOW : null,
-        elapsedDays: sprayCount > 0 ? 0 : null,
-        nextDueOn: sprayCount > 0 ? nextDateFrom(DEMO_NOW, 4) : null,
-        progress: sprayCount > 0 ? 0.2 : 0,
+        count: db.demoSprayCount,
+        latestPerformedAt: db.demoSprayCount > 0 ? DEMO_NOW : null,
+        elapsedDays: db.demoSprayCount > 0 ? 0 : null,
+        nextDueOn: db.demoSprayCount > 0 ? nextDateFrom(DEMO_NOW, 4) : null,
+        progress: db.demoSprayCount > 0 ? 0.2 : 0,
       },
       {
         categoryId: 'cat-fertilizer',
@@ -218,8 +214,8 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
         nextDueOn: '2026-07-28',
         progress: 1,
       },
-    ],
-    activeCases: closedCase
+    ].filter((tracker) => db.trackedCategoryIds.includes(tracker.categoryId)),
+    activeCases: db.closedCase
       ? []
       : [
           {
@@ -230,7 +226,7 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
           },
         ],
   },
-  recentItems: sprayCount > 0
+  recentItems: db.demoSprayCount > 0
     ? [
         {
           id: 'activity-web-preview-spray',
@@ -251,18 +247,90 @@ const buildDashboard = (sprayCount: number, closedCase = false): TodayDashboard 
       ],
 });
 
-export const getActivityCaptureOptions = async (): Promise<ActivityCaptureOption> => ({
-  categories,
+export const getActivityCaptureOptions = async (db: WebPreviewDb): Promise<ActivityCaptureOption> => ({
+  categories: db.categories.filter((category) => !category.archivedAt),
   materials,
-  people,
+  people: db.people.filter((person) => !person.archivedAt).map(({ specialty: _specialty, phone: _phone, note: _note, archivedAt: _archivedAt, ...person }) => person),
   defaultPlotId: 'plot-a',
   defaultHoleId: 'hole-a-014',
-  defaultWorkerId: 'person-worker',
-  defaultSelfId: 'person-self',
+  defaultWorkerId: db.people.find((person) => !person.isSelf && !person.archivedAt)?.id ?? null,
+  defaultSelfId: db.people.find((person) => person.isSelf && !person.archivedAt)?.id ?? null,
 });
 
+export const listActivityCategories = async (db: WebPreviewDb, includeArchived = false): Promise<ActivityCategory[]> =>
+  db.categories.filter((category) => includeArchived || !category.archivedAt);
+
+export const createActivityCategory = async (db: WebPreviewDb, input: CategoryInput): Promise<string> => {
+  const id = input.id ?? `category-web-${db.categories.length + 1}`;
+  db.categories.push({
+    id,
+    name: input.name.trim(),
+    kind: input.kind,
+    trackByDefault: false,
+    sortOrder: input.sortOrder ?? db.categories.length + 1,
+    archivedAt: null,
+  });
+  return id;
+};
+
+export const updateActivityCategory = async (db: WebPreviewDb, categoryId: string, input: CategoryInput): Promise<void> => {
+  const category = db.categories.find((item) => item.id === categoryId);
+  if (category) Object.assign(category, { name: input.name.trim(), kind: input.kind, sortOrder: input.sortOrder ?? category.sortOrder });
+};
+
+export const archiveActivityCategory = async (db: WebPreviewDb, categoryId: string): Promise<void> => {
+  const category = db.categories.find((item) => item.id === categoryId);
+  if (category) category.archivedAt = DEMO_NOW;
+};
+
+export const restoreActivityCategory = async (db: WebPreviewDb, categoryId: string): Promise<void> => {
+  const category = db.categories.find((item) => item.id === categoryId);
+  if (category) category.archivedAt = null;
+};
+
+export const listPeople = async (db: WebPreviewDb, includeArchived = false): Promise<PersonDirectoryItem[]> =>
+  db.people.filter((person) => includeArchived || !person.archivedAt);
+
+export const createPerson = async (db: WebPreviewDb, input: PersonInput): Promise<string> => {
+  const id = input.id ?? `person-web-${db.people.length + 1}`;
+  db.people.push({
+    id,
+    displayName: input.displayName.trim(),
+    role: input.role ?? 'worker',
+    isSelf: input.isSelf ?? false,
+    specialty: input.specialty?.trim() ?? '',
+    phone: input.phone?.trim() ?? '',
+    note: input.note?.trim() ?? '',
+    archivedAt: null,
+  });
+  return id;
+};
+
+export const updatePerson = async (db: WebPreviewDb, personId: string, input: PersonInput): Promise<void> => {
+  const person = db.people.find((item) => item.id === personId);
+  if (person) Object.assign(person, { ...input, displayName: input.displayName.trim(), role: input.role ?? 'worker', isSelf: input.isSelf ?? false });
+};
+
+export const archivePerson = async (db: WebPreviewDb, personId: string): Promise<void> => {
+  const person = db.people.find((item) => item.id === personId);
+  if (person) person.archivedAt = DEMO_NOW;
+};
+
+export const restorePerson = async (db: WebPreviewDb, personId: string): Promise<void> => {
+  const person = db.people.find((item) => item.id === personId);
+  if (person) person.archivedAt = null;
+};
+
+export const pinPlotTracker = async (db: WebPreviewDb, _plotId: string, categoryId: string): Promise<void> => {
+  if (!db.trackedCategoryIds.includes(categoryId)) db.trackedCategoryIds.push(categoryId);
+};
+
+export const unpinPlotTracker = async (db: WebPreviewDb, _plotId: string, categoryId: string): Promise<void> => {
+  db.trackedCategoryIds = db.trackedCategoryIds.filter((id) => id !== categoryId);
+};
+
 export const getTodayDashboard = async (db: WebPreviewDb): Promise<TodayDashboard> => {
-  return buildDashboard(db.demoSprayCount, db.closedCase);
+  return buildDashboard(db);
 };
 
 export const createDemoSprayActivity = async (db: WebPreviewDb): Promise<CreatedActivityResult> => {

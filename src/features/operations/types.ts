@@ -1,6 +1,18 @@
 import type { ActivityCategory, EntityId, Material, PayType, PersonRole } from '../../domain';
 
-export type TakaiView = 'today' | 'plot' | 'activity' | 'cases' | 'labor' | 'materials' | 'hole' | 'menu' | 'designLab';
+export type TakaiView =
+  | 'today'
+  | 'plot'
+  | 'activity'
+  | 'cases'
+  | 'labor'
+  | 'materials'
+  | 'hole'
+  | 'menu'
+  | 'categories'
+  | 'workers'
+  | 'trackerManage'
+  | 'designLab';
 
 export type TrackerSummary = {
   categoryId: EntityId;

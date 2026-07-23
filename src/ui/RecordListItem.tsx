@@ -16,17 +16,17 @@ export function RecordListItem({ meta, onPress, title, trailing, variant = 'acti
     <Pressable accessibilityRole={onPress ? 'button' : undefined} onPress={onPress} style={styles.base}>
       <View style={[styles.marker, styles[variant]]} />
       <View style={styles.content}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text style={styles.title}>
           {title}
         </Text>
         {meta ? (
-          <Text numberOfLines={1} style={styles.meta}>
+          <Text style={styles.meta}>
             {meta}
           </Text>
         ) : null}
       </View>
       {trailing ? (
-        <Text ellipsizeMode="tail" numberOfLines={1} style={styles.trailing}>
+        <Text style={styles.trailing}>
           {trailing}
         </Text>
       ) : null}
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     fontSize: tokens.typography.caption.size,
     fontWeight: '700',
     marginLeft: 8,
-    maxWidth: 78,
+    maxWidth: 96,
     textAlign: 'right',
   },
 });

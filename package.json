@@ -28,6 +28,7 @@
     "test:domain": "tsx scripts/domain-schema-check.ts",
     "test:operations": "tsx scripts/operational-slice-check.ts",
     "test:menu-case": "node scripts/menu-case-contract-check.mjs",
+    "test:workers-trackers-ui": "node scripts/workers-trackers-ui-contract-check.mjs",
     "test:phase5-review": "node scripts/phase5-review-check.mjs",
     "test:design-contract": "node scripts/design-contract-check.mjs",
     "test:expo-go-compat": "node scripts/expo-go-compat-check.mjs",

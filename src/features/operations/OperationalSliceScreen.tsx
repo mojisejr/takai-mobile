@@ -16,8 +16,10 @@ import {
 import { DesignLabScreen } from '../design-lab/DesignLabScreen';
 import {
   closeCase,
+  createActivityCategory,
   createDemoSprayActivity,
   createFieldActivity,
+  createPerson,
   formatThaiShortDate,
   getActivityCaptureOptions,
   getCaseList,
@@ -27,9 +29,20 @@ import {
   getMenuDashboard,
   getMaterialLibrary,
   getTodayDashboard,
+  archiveActivityCategory,
+  archivePerson,
+  listActivityCategories,
+  listPeople,
   nextDateFrom,
+  pinPlotTracker,
+  restoreActivityCategory,
+  restorePerson,
   settleUnpaidLaborForPerson,
+  unpinPlotTracker,
+  updateActivityCategory,
+  updatePerson,
   type ActivityCaptureOption,
+  type CategoryInput,
   type CaseListItem,
   type CaseTimeline,
   type HoleDetail,
@@ -38,6 +51,7 @@ import {
   type MaterialLibraryItem,
   type TakaiView,
   type TodayDashboard,
+  type PersonDirectoryItem,
 } from './index';
 
 type LoadState =
@@ -53,6 +67,8 @@ type LoadState =
       menuDashboard: MenuDashboard;
       materials: MaterialLibraryItem[];
       holeDetail: HoleDetail;
+      categories: Awaited<ReturnType<typeof listActivityCategories>>;
+      people: PersonDirectoryItem[];
       message: string | null;
     }
   | { status: 'error'; message: string };
@@ -66,12 +82,19 @@ export function OperationalSliceScreen() {
   const [note, setNote] = useState('พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม');
   const [materialAmount, setMaterialAmount] = useState('20');
   const [followUpDays, setFollowUpDays] = useState('4');
-  const [includeWorker, setIncludeWorker] = useState(true);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [workerAmount, setWorkerAmount] = useState('600');
   const [selectedCaseId, setSelectedCaseId] = useState('case-a-014');
+  const [showArchivedCategories, setShowArchivedCategories] = useState(false);
+  const [showArchivedPeople, setShowArchivedPeople] = useState(false);
+  const [categoryDraft, setCategoryDraft] = useState<CategoryInput>({ id: '', name: '', kind: 'other' });
+  const [personDraft, setPersonDraft] = useState({ id: '', displayName: '', specialty: '', phone: '', note: '' });
+  const [showInlineCategoryForm, setShowInlineCategoryForm] = useState(false);
+  const [showInlineWorkerForm, setShowInlineWorkerForm] = useState(false);
+  const [settlePersonId, setSettlePersonId] = useState<string | null>(null);
 
   const refresh = useCallback(async (db: TakaiDatabase, message: string | null = null, caseId = selectedCaseId) => {
-    const [dashboard, options, caseList, laborLedger, menuDashboard, materials, holeDetail] = await Promise.all([
+    const [dashboard, options, caseList, laborLedger, menuDashboard, materials, holeDetail, categories, people] = await Promise.all([
       getTodayDashboard(db),
       getActivityCaptureOptions(db),
       getCaseList(db),
@@ -79,11 +102,13 @@ export function OperationalSliceScreen() {
       getMenuDashboard(db),
       getMaterialLibrary(db),
       getHoleDetail(db),
+      listActivityCategories(db, true),
+      listPeople(db, true),
     ]);
     const resolvedCaseId = caseList.some((caseItem) => caseItem.id === caseId) ? caseId : caseList[0]?.id ?? 'case-a-014';
     const caseTimeline = await getCaseTimeline(db, resolvedCaseId);
     setSelectedCaseId(resolvedCaseId);
-    setState({ status: 'ready', db, dashboard, options, caseList, caseTimeline, laborLedger, menuDashboard, materials, holeDetail, message });
+    setState({ status: 'ready', db, dashboard, options, caseList, caseTimeline, laborLedger, menuDashboard, materials, holeDetail, categories, people, message });
   }, [selectedCaseId]);
 
   useEffect(() => {
@@ -108,6 +133,69 @@ export function OperationalSliceScreen() {
       cancelled = true;
     };
   }, []);
+
+  const saveCategory = useCallback(async (fromActivity = false) => {
+    if (state.status !== 'ready') return;
+    try {
+      const input = { name: categoryDraft.name, kind: categoryDraft.kind };
+      const categoryId = categoryDraft.id
+        ? (await updateActivityCategory(state.db, categoryDraft.id, input), categoryDraft.id)
+        : await createActivityCategory(state.db, input);
+      await refresh(state.db, categoryDraft.id ? 'แก้ไขหมวดงานแล้ว' : 'เพิ่มหมวดงานแล้ว');
+      setSelectedCategoryId(categoryId);
+      setCategoryDraft({ id: '', name: '', kind: 'other' });
+      setShowInlineCategoryForm(false);
+      if (!fromActivity) setView('categories');
+    } catch (error) {
+      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกหมวดงานไม่สำเร็จ');
+    }
+  }, [categoryDraft, refresh, state]);
+
+  const saveWorker = useCallback(async (fromActivity = false) => {
+    if (state.status !== 'ready') return;
+    try {
+      const input = {
+        displayName: personDraft.displayName,
+        role: 'worker' as const,
+        isSelf: false,
+        specialty: personDraft.specialty,
+        phone: personDraft.phone,
+        note: personDraft.note,
+      };
+      const personId = personDraft.id
+        ? (await updatePerson(state.db, personDraft.id, input), personDraft.id)
+        : await createPerson(state.db, input);
+      await refresh(state.db, personDraft.id ? 'แก้ไขข้อมูลคนงานแล้ว' : 'เพิ่มคนงานแล้ว');
+      setSelectedWorkerId(personId);
+      setPersonDraft({ id: '', displayName: '', specialty: '', phone: '', note: '' });
+      setShowInlineWorkerForm(false);
+      if (!fromActivity) setView('workers');
+    } catch (error) {
+      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกคนงานไม่สำเร็จ');
+    }
+  }, [personDraft, refresh, state]);
+
+  const toggleCategoryArchive = useCallback(async (categoryId: string, archivedAt: string | null) => {
+    if (state.status !== 'ready') return;
+    if (archivedAt) await restoreActivityCategory(state.db, categoryId);
+    else await archiveActivityCategory(state.db, categoryId);
+    await refresh(state.db, archivedAt ? 'นำหมวดงานกลับมาใช้แล้ว' : 'เก็บหมวดงานเข้าแฟ้มแล้ว');
+  }, [refresh, state]);
+
+  const togglePersonArchive = useCallback(async (personId: string, archivedAt: string | null) => {
+    if (state.status !== 'ready') return;
+    if (archivedAt) await restorePerson(state.db, personId);
+    else await archivePerson(state.db, personId);
+    await refresh(state.db, archivedAt ? 'นำคนงานกลับมาใช้แล้ว' : 'เก็บคนงานเข้าแฟ้มแล้ว');
+    if (!archivedAt && selectedWorkerId === personId) setSelectedWorkerId(null);
+  }, [refresh, selectedWorkerId, state]);
+
+  const toggleTracker = useCallback(async (categoryId: string, pinned: boolean) => {
+    if (state.status !== 'ready') return;
+    if (pinned) await unpinPlotTracker(state.db, state.dashboard.plot.id, categoryId);
+    else await pinPlotTracker(state.db, state.dashboard.plot.id, categoryId);
+    await refresh(state.db, pinned ? 'หยุดติดตามหมวดงานนี้ในแปลงแล้ว' : 'เพิ่ม Tracker ของแปลงแล้ว');
+  }, [refresh, state]);
 
   const createActivity = useCallback(async (mode: 'demo' | 'field' = 'field') => {
     if (state.status !== 'ready') return;
@@ -151,9 +239,9 @@ export function OperationalSliceScreen() {
             state.options.defaultSelfId
               ? { personId: state.options.defaultSelfId, payType: 'none' as const, amountDue: 0 }
               : null,
-            includeWorker && state.options.defaultWorkerId
+            selectedWorkerId
               ? {
-                  personId: state.options.defaultWorkerId,
+                  personId: selectedWorkerId,
                   payType: 'daily' as const,
                   amountDue: Number.isFinite(parsedWorkerAmount) ? parsedWorkerAmount : 0,
                 }
@@ -168,13 +256,13 @@ export function OperationalSliceScreen() {
     }
   }, [
     followUpDays,
-    includeWorker,
     materialAmount,
     note,
     refresh,
     selectedCategoryId,
     selectedMaterialId,
     selectedTarget,
+    selectedWorkerId,
     state,
     workerAmount,
   ]);
@@ -193,20 +281,21 @@ export function OperationalSliceScreen() {
     setView('cases');
   }, [refresh, state]);
 
-  const settleFirstWorker = useCallback(async () => {
+  const settleSelectedWorker = useCallback(async () => {
     if (state.status !== 'ready') return;
-    const person = state.laborLedger.unpaidPeople[0];
+    const person = state.laborLedger.unpaidPeople.find((item) => item.personId === settlePersonId);
     if (!person) return;
     await settleUnpaidLaborForPerson(state.db, person.personId);
     await refresh(state.db, `จ่ายค่าแรง ${person.displayName} แล้ว`);
+    setSettlePersonId(null);
     setView('labor');
-  }, [refresh, state]);
+  }, [refresh, settlePersonId, state]);
 
   const activeTab = useMemo(() => {
-    if (view === 'plot') return 'plots';
+    if (view === 'plot' || view === 'trackerManage') return 'plots';
     if (view === 'activity') return 'activity';
     if (view === 'cases') return 'cases';
-    if (view === 'labor' || view === 'materials' || view === 'hole' || view === 'menu') return 'menu';
+    if (view === 'labor' || view === 'materials' || view === 'hole' || view === 'menu' || view === 'categories' || view === 'workers') return 'menu';
     if (view === 'designLab') return 'menu';
     return 'today';
   }, [view]);
@@ -255,7 +344,13 @@ export function OperationalSliceScreen() {
                 ? `หลุม ${state.holeDetail.marker}`
                 : view === 'menu'
                   ? 'เมนู'
-                : 'วันนี้';
+                  : view === 'categories'
+                    ? 'หมวดงาน'
+                    : view === 'workers'
+                      ? 'คนงาน'
+                      : view === 'trackerManage'
+                        ? 'จัดการ Tracker'
+                  : 'วันนี้';
 
   return (
     <AppShell activeTab={activeTab} onTabPress={(tab) => {
@@ -345,7 +440,7 @@ export function OperationalSliceScreen() {
             </View>
           </FieldCard>
 
-          <SectionHeader title="Tracker ที่ติดตาม" />
+          <SectionHeader title="Tracker ที่ติดตาม" actionLabel="จัดการ" onActionPress={() => setView('trackerManage')} />
           {plot.trackers.map((tracker) => (
             <TrackerCard
               key={tracker.categoryId}
@@ -379,6 +474,33 @@ export function OperationalSliceScreen() {
         </>
       ) : null}
 
+      {view === 'trackerManage' ? (
+        <>
+          <FieldCard variant="raised">
+            <Text style={styles.eyebrow}>{plot.name}</Text>
+            <Text style={styles.cardTitle}>Tracker ของแปลงนี้</Text>
+            <Text style={styles.muted}>เลือกหมวดงานที่อยากติดตามเฉพาะแปลงนี้ การหยุดติดตามไม่ลบประวัติกิจกรรมเดิม</Text>
+          </FieldCard>
+          <SectionHeader title="หมวดงานที่ติดตามได้" />
+          <View style={styles.list}>
+            {options.categories.map((category) => {
+              const pinned = plot.trackers.some((tracker) => tracker.categoryId === category.id);
+              return (
+                <RecordListItem
+                  key={category.id}
+                  meta={pinned ? 'ติดตามในแปลงนี้อยู่' : 'ยังไม่ติดตามในแปลงนี้'}
+                  onPress={() => void toggleTracker(category.id, pinned)}
+                  title={category.name}
+                  trailing={pinned ? 'หยุดติดตาม' : 'เพิ่ม'}
+                  variant="activity"
+                />
+              );
+            })}
+          </View>
+          <PrimaryButton label="กลับแปลง" onPress={() => setView('plot')} variant="secondary" />
+        </>
+      ) : null}
+
       {view === 'activity' ? (
         <>
           <SectionHeader title="1. เลือกหมวด" />
@@ -392,6 +514,19 @@ export function OperationalSliceScreen() {
               />
             ))}
           </View>
+          <PrimaryButton
+            label={showInlineCategoryForm ? 'ซ่อนแบบฟอร์มเพิ่มหมวดงาน' : '+ เพิ่มหมวดงาน'}
+            onPress={() => setShowInlineCategoryForm((value) => !value)}
+            variant="tertiary"
+          />
+          {showInlineCategoryForm ? (
+            <FieldCard>
+              <Text style={styles.inputLabel}>ชื่อหมวดงาน</Text>
+              <TextInput onChangeText={(name) => setCategoryDraft({ id: '', name, kind: 'other' })} style={styles.input} value={categoryDraft.name} />
+              <Text style={styles.muted}>เพิ่มแล้วจะเลือกใช้ในบันทึกนี้ทันที</Text>
+              <PrimaryButton label="เพิ่มและเลือกหมวดงาน" onPress={() => void saveCategory(true)} />
+            </FieldCard>
+          ) : null}
 
           <SectionHeader title="2. เป้าหมาย" />
           <View style={styles.chipWrap}>
@@ -427,18 +562,45 @@ export function OperationalSliceScreen() {
             </View>
           </FieldCard>
 
-          <SectionHeader title="4. ค่าแรง" />
+          <SectionHeader title="4. ผู้ร่วมงานและค่าแรง" />
           <FieldCard>
-            <Pressable onPress={() => setIncludeWorker((value) => !value)} style={styles.toggleRow}>
-              <StatusChip label={includeWorker ? 'มีคนงาน' : 'ทำเอง'} variant={includeWorker ? 'unpaid' : 'paid'} />
-              <Text style={styles.muted}>{includeWorker ? 'สร้างรายการค้างจ่ายจากกิจกรรมนี้' : 'ไม่คิดค่าแรง แต่ยังเก็บประวัติงาน'}</Text>
-            </Pressable>
-            {includeWorker ? (
+            <StatusChip label="เจ้าของสวน · ไม่คิดค่าแรง" variant="paid" />
+            <Text style={styles.muted}>งานที่ทำเองจะเก็บในประวัติกิจกรรม แต่ไม่สร้างยอดค้างจ่าย</Text>
+            <Text style={styles.inputLabel}>เลือกคนงาน</Text>
+            <View style={styles.chipWrap}>
+              <SelectPill active={selectedWorkerId === null} label="ทำเอง" onPress={() => setSelectedWorkerId(null)} />
+              {options.people.filter((person) => !person.isSelf && person.role === 'worker').map((person) => (
+                <SelectPill
+                  active={selectedWorkerId === person.id}
+                  key={person.id}
+                  label={person.displayName}
+                  onPress={() => setSelectedWorkerId(person.id)}
+                />
+              ))}
+            </View>
+            <PrimaryButton
+              label={showInlineWorkerForm ? 'ซ่อนแบบฟอร์มเพิ่มคนงาน' : '+ เพิ่มคนงาน'}
+              onPress={() => setShowInlineWorkerForm((value) => !value)}
+              variant="tertiary"
+            />
+            {showInlineWorkerForm ? (
+              <View style={styles.inlineForm}>
+                <Text style={styles.inputLabel}>ชื่อคนงาน</Text>
+                <TextInput onChangeText={(displayName) => setPersonDraft((draft) => ({ ...draft, id: '', displayName }))} style={styles.input} value={personDraft.displayName} />
+                <Text style={styles.inputLabel}>งานที่ถนัด (ถ้ามี)</Text>
+                <TextInput onChangeText={(specialty) => setPersonDraft((draft) => ({ ...draft, specialty }))} style={styles.input} value={personDraft.specialty} />
+                <Text style={styles.inputLabel}>เบอร์โทร (ถ้ามี)</Text>
+                <TextInput keyboardType="phone-pad" onChangeText={(phone) => setPersonDraft((draft) => ({ ...draft, phone }))} style={styles.input} value={personDraft.phone} />
+                <PrimaryButton label="เพิ่มและเลือกคนงาน" onPress={() => void saveWorker(true)} />
+              </View>
+            ) : null}
+            {selectedWorkerId ? (
               <>
                 <Text style={styles.inputLabel}>ค่าแรง</Text>
                 <TextInput keyboardType="numeric" onChangeText={setWorkerAmount} style={styles.input} value={workerAmount} />
+                <Text style={styles.muted}>จะสร้างยอดค้างจ่ายสำหรับคนงานที่เลือกเท่านั้น</Text>
               </>
-            ) : null}
+            ) : <Text style={styles.muted}>เลือก “ทำเอง” จึงไม่มีค่าแรงค้างจ่าย</Text>}
           </FieldCard>
 
           <PrimaryButton label="บันทึกกิจกรรมลงเครื่อง" onPress={() => createActivity('field')} />
@@ -488,6 +650,20 @@ export function OperationalSliceScreen() {
               variant="material"
             />
             <RecordListItem
+              meta={`${state.categories.filter((category) => !category.archivedAt).length} หมวดใช้งาน · เก็บเข้าแฟ้มได้โดยไม่ลบประวัติ`}
+              onPress={() => setView('categories')}
+              title="หมวดงาน"
+              trailing="จัดการ"
+              variant="activity"
+            />
+            <RecordListItem
+              meta={`${state.people.filter((person) => !person.archivedAt && !person.isSelf).length} คนงาน · เพิ่มแล้วเลือกใช้ตอนบันทึกได้`}
+              onPress={() => setView('workers')}
+              title="คนงาน"
+              trailing="จัดการ"
+              variant="labor"
+            />
+            <RecordListItem
               meta={`${state.menuDashboard.plotCount} แปลง · ${state.menuDashboard.holeCount} หลุม`}
               onPress={() => setView('plot')}
               title="แปลงและหลุม"
@@ -501,6 +677,94 @@ export function OperationalSliceScreen() {
             <RecordListItem title="สำรองข้อมูล" meta="เตรียมไว้สำหรับ export/local backup ใน phase ถัดไป" trailing="เร็วๆ นี้" variant="activity" />
             <RecordListItem title="Design Lab" meta="พื้นที่ตรวจ primitive สำหรับนักพัฒนา" onPress={() => setView('designLab')} trailing="Dev" variant="activity" />
           </View>
+        </>
+      ) : null}
+
+      {view === 'categories' ? (
+        <>
+          <FieldCard variant="raised">
+            <Text style={styles.eyebrow}>สมุดหมวดงาน</Text>
+            <Text style={styles.cardTitle}>หมวดที่ใช้ตอนบันทึกกิจกรรม</Text>
+            <Text style={styles.muted}>เก็บเข้าแฟ้มจะซ่อนจากการบันทึกใหม่ แต่ประวัติกิจกรรมเดิมยังอยู่ครบ</Text>
+          </FieldCard>
+          <SectionHeader title={categoryDraft.id ? 'แก้ไขหมวดงาน' : 'เพิ่มหมวดงาน'} />
+          <FieldCard>
+            <Text style={styles.inputLabel}>ชื่อหมวดงาน</Text>
+            <TextInput onChangeText={(name) => setCategoryDraft((draft) => ({ ...draft, name }))} style={styles.input} value={categoryDraft.name} />
+            <PrimaryButton label={categoryDraft.id ? 'บันทึกการแก้ไข' : 'เพิ่มหมวดงาน'} onPress={() => void saveCategory()} />
+            {categoryDraft.id ? <PrimaryButton label="ยกเลิกการแก้ไข" onPress={() => setCategoryDraft({ id: '', name: '', kind: 'other' })} variant="tertiary" /> : null}
+          </FieldCard>
+          <SectionHeader
+            title={showArchivedCategories ? 'หมวดงานในแฟ้ม' : 'หมวดงานที่ใช้งาน'}
+            actionLabel={showArchivedCategories ? 'ดูที่ใช้งาน' : 'ดูในแฟ้ม'}
+            onActionPress={() => setShowArchivedCategories((value) => !value)}
+          />
+          <View style={styles.list}>
+            {state.categories.filter((category) => Boolean(category.archivedAt) === showArchivedCategories).map((category) => (
+              <View key={category.id} style={styles.directoryRow}>
+                <RecordListItem
+                  meta={category.archivedAt ? 'อยู่ในแฟ้ม · ประวัติเดิมยังอ่านได้' : 'ใช้เลือกตอนบันทึกกิจกรรม'}
+                  onPress={() => setCategoryDraft({ id: category.id, name: category.name, kind: category.kind })}
+                  title={category.name}
+                  trailing={category.archivedAt ? 'แก้ไข/กู้คืน' : 'แก้ไข'}
+                  variant="activity"
+                />
+                <PrimaryButton
+                  label={category.archivedAt ? 'นำกลับมาใช้' : 'เก็บเข้าแฟ้ม'}
+                  onPress={() => void toggleCategoryArchive(category.id, category.archivedAt ?? null)}
+                  variant={category.archivedAt ? 'secondary' : 'tertiary'}
+                />
+              </View>
+            ))}
+          </View>
+          <PrimaryButton label="กลับเมนู" onPress={() => setView('menu')} variant="secondary" />
+        </>
+      ) : null}
+
+      {view === 'workers' ? (
+        <>
+          <FieldCard variant="raised">
+            <Text style={styles.eyebrow}>คลังข้อมูลคนงาน</Text>
+            <Text style={styles.cardTitle}>คนงานที่เรียกใช้ซ้ำได้</Text>
+            <Text style={styles.muted}>ชื่อจำเป็น ส่วนงานที่ถนัด เบอร์โทร และโน้ตเป็นข้อมูลช่วยจำในสมุดสวน</Text>
+          </FieldCard>
+          <SectionHeader title={personDraft.id ? 'แก้ไขข้อมูลคนงาน' : 'เพิ่มคนงาน'} />
+          <FieldCard>
+            <Text style={styles.inputLabel}>ชื่อคนงาน</Text>
+            <TextInput onChangeText={(displayName) => setPersonDraft((draft) => ({ ...draft, displayName }))} style={styles.input} value={personDraft.displayName} />
+            <Text style={styles.inputLabel}>งานที่ถนัด</Text>
+            <TextInput onChangeText={(specialty) => setPersonDraft((draft) => ({ ...draft, specialty }))} style={styles.input} value={personDraft.specialty} />
+            <Text style={styles.inputLabel}>เบอร์โทร</Text>
+            <TextInput keyboardType="phone-pad" onChangeText={(phone) => setPersonDraft((draft) => ({ ...draft, phone }))} style={styles.input} value={personDraft.phone} />
+            <Text style={styles.inputLabel}>โน้ต</Text>
+            <TextInput multiline onChangeText={(note) => setPersonDraft((draft) => ({ ...draft, note }))} style={[styles.input, styles.textArea]} value={personDraft.note} />
+            <PrimaryButton label={personDraft.id ? 'บันทึกการแก้ไข' : 'เพิ่มคนงาน'} onPress={() => void saveWorker()} />
+            {personDraft.id ? <PrimaryButton label="ยกเลิกการแก้ไข" onPress={() => setPersonDraft({ id: '', displayName: '', specialty: '', phone: '', note: '' })} variant="tertiary" /> : null}
+          </FieldCard>
+          <SectionHeader
+            title={showArchivedPeople ? 'คนงานในแฟ้ม' : 'คนงานที่ใช้งาน'}
+            actionLabel={showArchivedPeople ? 'ดูที่ใช้งาน' : 'ดูในแฟ้ม'}
+            onActionPress={() => setShowArchivedPeople((value) => !value)}
+          />
+          <View style={styles.list}>
+            {state.people.filter((person) => !person.isSelf && Boolean(person.archivedAt) === showArchivedPeople).map((person) => (
+              <View key={person.id} style={styles.directoryRow}>
+                <RecordListItem
+                  meta={[person.specialty, person.phone].filter(Boolean).join(' · ') || (person.archivedAt ? 'อยู่ในแฟ้ม · ประวัติเดิมยังอ่านได้' : 'ยังไม่มีรายละเอียดเพิ่ม')}
+                  onPress={() => setPersonDraft({ id: person.id, displayName: person.displayName, specialty: person.specialty, phone: person.phone, note: person.note })}
+                  title={person.displayName}
+                  trailing={person.archivedAt ? 'แก้ไข/กู้คืน' : 'แก้ไข'}
+                  variant="labor"
+                />
+                <PrimaryButton
+                  label={person.archivedAt ? 'นำกลับมาใช้' : 'เก็บเข้าแฟ้ม'}
+                  onPress={() => void togglePersonArchive(person.id, person.archivedAt)}
+                  variant={person.archivedAt ? 'secondary' : 'tertiary'}
+                />
+              </View>
+            ))}
+          </View>
+          <PrimaryButton label="กลับเมนู" onPress={() => setView('menu')} variant="secondary" />
         </>
       ) : null}
 
@@ -570,7 +834,8 @@ export function OperationalSliceScreen() {
               state.laborLedger.unpaidPeople.map((person) => (
                 <RecordListItem
                   key={person.personId}
-                  meta={`${person.unpaidCount} รายการ · ล่าสุด ${formatThaiShortDate(person.latestWorkDate)}`}
+                  meta={`จากกิจกรรม ${person.sourceCount} รายการ · ล่าสุด ${formatThaiShortDate(person.latestWorkDate)}`}
+                  onPress={() => setSettlePersonId(person.personId)}
                   title={person.displayName}
                   trailing={`${person.unpaidTotal.toLocaleString('th-TH')} บาท`}
                   variant="labor"
@@ -580,7 +845,26 @@ export function OperationalSliceScreen() {
               <RecordListItem title="ไม่มีค่าแรงค้างจ่าย" meta="งานที่ทำเองยังเก็บประวัติ แต่ไม่สร้างยอดจ่าย" trailing="จบ" variant="labor" />
             )}
           </View>
-          <PrimaryButton disabled={!state.laborLedger.unpaidPeople.length} label="จ่ายคนแรกทั้งหมด" onPress={settleFirstWorker} />
+          {settlePersonId ? (() => {
+            const person = state.laborLedger.unpaidPeople.find((item) => item.personId === settlePersonId);
+            return person ? (
+              <FieldCard variant="alert">
+                <Text style={styles.cardTitle}>ยืนยันการจ่ายค่าแรง</Text>
+                <Text style={styles.muted}>
+                  {person.displayName} · จากกิจกรรม {person.sourceCount} รายการ · ยอด {person.unpaidTotal.toLocaleString('th-TH')} บาท
+                </Text>
+                <Text style={styles.confirmationNote}>การยืนยันจะบันทึกสถานะว่าจ่ายแล้ว ไม่ลบกิจกรรมหรือประวัติค่าแรงเดิม</Text>
+                <PrimaryButton label={`ยืนยันจ่าย ${person.unpaidTotal.toLocaleString('th-TH')} บาท`} onPress={() => void settleSelectedWorker()} />
+                <PrimaryButton label="ยังไม่จ่าย" onPress={() => setSettlePersonId(null)} variant="secondary" />
+              </FieldCard>
+            ) : null;
+          })() : <Text style={styles.muted}>แตะชื่อคนงานเพื่อดูที่มาและยืนยันก่อนจ่าย</Text>}
+          <SectionHeader title="ประวัติที่จ่ายแล้ว" />
+          <View style={styles.list}>
+            {state.laborLedger.recentPaid.length ? state.laborLedger.recentPaid.map((entry) => (
+              <RecordListItem key={entry.id} meta={`บันทึกไว้ ${formatThaiShortDate(entry.paidAt)} · ประวัติยังอ่านได้`} title={entry.displayName} trailing={`${entry.amountPaid.toLocaleString('th-TH')} บาท`} variant="labor" />
+            )) : <RecordListItem title="ยังไม่มีรายการจ่ายแล้ว" meta="เมื่อยืนยันการจ่าย ประวัติจะเก็บอยู่ตรงนี้" trailing="ประวัติ" variant="labor" />}
+          </View>
         </>
       ) : null}
 
@@ -816,5 +1100,22 @@ const styles = StyleSheet.create({
   },
   toggleRow: {
     gap: 4,
+  },
+  inlineForm: {
+    borderTopColor: tokens.color.border.soft,
+    borderTopWidth: 1,
+    marginTop: tokens.spacing.control,
+    paddingTop: tokens.spacing.control,
+  },
+  directoryRow: {
+    borderBottomColor: tokens.color.border.soft,
+    borderBottomWidth: 1,
+    paddingBottom: 4,
+  },
+  confirmationNote: {
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.metadata.size,
+    lineHeight: 21,
+    marginTop: tokens.spacing.control,
   },
 });

@@ -1,0 +1,31 @@
+{
+  "project": "takai-mobile",
+  "phase": "5-2-workers-trackers-phase-3",
+  "lane": "rn-static-eye",
+  "claimLabel": "RN Static Token Gate Closed",
+  "generatedAt": "2026-07-23T08:29:52+0700",
+  "sees": [
+    "TypeScript imports and the authored UI contract compile",
+    "DESIGN.md token and primitive export contract remains valid",
+    "category, worker, tracker, archive, picker, and settlement source semantics are present"
+  ],
+  "doesNotSee": [
+    "rendered RN Web layout or console behavior",
+    "Android keyboard, touch, safe-area, or native SQLite behavior",
+    "field usability on a physical Expo Go device"
+  ],
+  "commands": [
+    { "command": "npm run validate", "status": "passed" },
+    { "command": "npm run test:design-contract", "status": "passed" },
+    { "command": "npm run test:workers-trackers-ui", "status": "passed" },
+    { "command": "npm test", "status": "passed" }
+  ],
+  "artifacts": {
+    "uiContract": "scripts/workers-trackers-ui-contract-check.mjs",
+    "mainScreen": "src/features/operations/OperationalSliceScreen.tsx"
+  },
+  "pendingLanes": [
+    "RN Web Eye",
+    "Expo Go Device Eye"
+  ]
+}
