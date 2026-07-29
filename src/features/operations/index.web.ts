@@ -1,5 +1,5 @@
 import type { ActivityCategory, Material } from '../../domain';
-import { DEMO_NOW, formatThaiShortDate } from './date';
+import { formatThaiShortDate } from './date';
 import { followUpDueState, formatFollowUpDueLabel } from './followUp';
 import type {
   ActivityCaptureOption,
@@ -13,19 +13,28 @@ import type {
   MaterialInput,
   MaterialLibraryItem,
   PlotInput,
+  PlotDetail,
+  PlotSummary,
   HoleInput,
   PlantingInput,
+  RetirePlantingInput,
   SetupPlot,
   PersonDirectoryItem,
   PersonInput,
   CreateActivityInput,
   TakaiView,
   TodayDashboard,
+  TodayScope,
 } from './types';
 
 export * from './date';
+export * from './chemical';
 export * from './followUp';
+export * from './followUpNotifications';
+export * from './activityValidation';
 export type * from './types';
+
+const WEB_PREVIEW_NOW = '2026-07-16T08:30:00.000Z';
 
 type WebPreviewDb = {
   closedCase: boolean;
@@ -45,7 +54,7 @@ const buildCaseTimeline = (sprayCount: number, closed = false): CaseTimeline => 
   targetLabel: 'A-014 · แปลง A',
   status: closed ? 'closed' : 'tracking',
   openedAt: '2026-07-10T08:00:00.000Z',
-  closedAt: closed ? DEMO_NOW : null,
+  closedAt: closed ? WEB_PREVIEW_NOW : null,
   entries: [
     {
       id: 'case-a-014-opened',
@@ -61,7 +70,7 @@ const buildCaseTimeline = (sprayCount: number, closed = false): CaseTimeline => 
             id: 'activity-web-preview-spray',
             title: 'พ่นยา',
             meta: 'พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม',
-            performedAt: DEMO_NOW,
+            performedAt: WEB_PREVIEW_NOW,
             dayLabel: 'Day 6',
             thumbnailUri: null,
           },
@@ -81,7 +90,7 @@ const buildLaborLedger = (sprayCount: number): LaborLedger => ({
             unpaidTotal: 600,
             unpaidCount: 1,
             sourceCount: 1,
-            latestWorkDate: DEMO_NOW,
+            latestWorkDate: WEB_PREVIEW_NOW,
           },
         ]
       : [],
@@ -96,9 +105,16 @@ const buildMaterials = (db: WebPreviewDb, includeArchived = true): MaterialLibra
     unit: material.unit,
     defaultRatePerTank: material.defaultRatePerTank ?? null,
     photoUri: material.photoUri ?? null,
-    lastUsedAt: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? DEMO_NOW : null,
+    lastUsedAt: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? WEB_PREVIEW_NOW : null,
     usageCount: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
     archivedAt: material.archivedAt,
+    commonName: material.commonName ?? null,
+    brandName: material.brandName ?? null,
+    chemicalGroup: material.chemicalGroup ?? null,
+    usageLabel: material.usageLabel ?? null,
+    referenceAmount: material.referenceAmount ?? null,
+    referenceUnit: material.referenceUnit ?? null,
+    referenceWaterLitres: material.referenceWaterLitres ?? null,
   }));
 
 const buildCaseList = (sprayCount: number, closedCase: boolean, statusFilter?: CaseListItem['status']): CaseListItem[] => {
@@ -109,8 +125,8 @@ const buildCaseList = (sprayCount: number, closedCase: boolean, statusFilter?: C
     status: closedCase ? 'closed' : 'tracking',
     statusLabel: closedCase ? 'ปิดเคส' : 'ติดตามอยู่',
     openedAt: '2026-07-10T08:00:00.000Z',
-    closedAt: closedCase ? DEMO_NOW : null,
-    latestActivityAt: sprayCount > 0 ? DEMO_NOW : null,
+    closedAt: closedCase ? WEB_PREVIEW_NOW : null,
+    latestActivityAt: sprayCount > 0 ? WEB_PREVIEW_NOW : null,
     entryCount: sprayCount,
   };
 
@@ -137,6 +153,15 @@ const buildHoleDetail = (sprayCount: number, closedCase = false): HoleDetail => 
   variety: 'หมอนทอง',
   plantedOn: '2024-10-10',
   ageDays: 645,
+  lifecycle: [{
+    id: 'planting-web-hole-a-014',
+    plantName: 'ทุเรียนหมอนทอง',
+    variety: 'หมอนทอง',
+    plantedOn: '2024-10-10',
+    removedOn: null,
+    removedReason: null,
+    status: 'active',
+  }],
   activeCases: closedCase
     ? []
     : [
@@ -154,35 +179,36 @@ const buildHoleDetail = (sprayCount: number, closedCase = false): HoleDetail => 
             id: 'activity-web-preview-spray',
             title: 'พ่นยา',
             meta: 'พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม · ยา A',
-            trailing: formatThaiShortDate(DEMO_NOW),
+            trailing: formatThaiShortDate(WEB_PREVIEW_NOW),
             variant: 'activity',
           },
         ]
       : [],
 });
 
-const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
-  gardenName: 'สวนตาไก๊',
-  unpaidLaborTotal: db.demoSprayCount > 0 ? 600 : 0,
-  plot: {
-    id: 'plot-a',
-    name: 'แปลง A',
-    areaRai: 6.2,
-    activeCrop: {
-      id: 'crop-2026',
+const buildPlotDashboard = (db: WebPreviewDb, plotId: string) => {
+  const source = db.plots.find((plot) => plot.id === plotId) ?? db.plots[0];
+  const isPrimary = source.id === 'plot-a';
+  const holes = db.holes.filter((hole) => hole.plotId === source.id);
+  return {
+    id: source.id,
+    name: source.name,
+    areaRai: source.areaRai,
+    activeCrop: isPrimary ? {
+      id: 'plot-a',
       label: 'Crop 2026',
       startsOn: '2026-01-01',
       activeDays: 197,
-    },
-    totalHoles: 300,
-    plantedHoles: 278,
-    emptyHoles: 22,
-    trackers: [
+    } : null,
+    totalHoles: holes.length,
+    plantedHoles: holes.filter((hole) => hole.status === 'planted').length,
+    emptyHoles: holes.filter((hole) => hole.status === 'empty').length,
+    trackers: isPrimary ? [
       {
         categoryId: 'cat-spray',
         title: 'พ่นยา',
         count: db.demoSprayCount,
-        latestPerformedAt: db.demoSprayCount > 0 ? DEMO_NOW : null,
+        latestPerformedAt: db.demoSprayCount > 0 ? WEB_PREVIEW_NOW : null,
         elapsedDays: db.demoSprayCount > 0 ? 0 : null,
         nextDueOn: db.demoSprayCount > 0 ? db.recordedFollowUpOn : null,
         dueState: followUpDueState(db.demoSprayCount > 0 ? db.recordedFollowUpOn : null),
@@ -208,38 +234,47 @@ const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
         dueState: followUpDueState('2026-07-28'),
         progress: 1,
       },
-    ].filter((tracker) => db.trackedCategoryIds.includes(tracker.categoryId)),
-    activeCases: db.closedCase
-      ? []
-      : [
-          {
-            id: 'case-a-014',
-            title: 'เชื้อราที่โคนต้น',
-            statusLabel: 'ติดตามอยู่',
-            targetLabel: 'หลุม A-014',
-          },
-        ],
-  },
+    ].filter((tracker) => db.trackedCategoryIds.includes(tracker.categoryId)) : [],
+    activeCases: isPrimary && !db.closedCase ? [{
+      id: 'case-a-014',
+      title: 'เชื้อราที่โคนต้น',
+      statusLabel: 'ติดตามอยู่',
+      targetLabel: 'หลุม A-014',
+    }] : [],
+  };
+};
+
+const buildDashboard = (db: WebPreviewDb, scope: TodayScope = 'all'): TodayDashboard => {
+  const plots = db.plots.filter((plot) => scope === 'all' || plot.id === scope).map((plot) => buildPlotDashboard(db, plot.id));
+  const plot = plots[0] ?? buildPlotDashboard(db, db.plots[0]?.id ?? 'plot-a');
+  return {
+  gardenName: 'สวนตาไก๊',
+  scope,
+  plots,
+  unpaidLaborTotal: db.demoSprayCount > 0 ? 600 : 0,
+  plot,
+
   recentItems: db.demoSprayCount > 0
     ? [
         {
           id: 'activity-web-preview-spray',
-          title: 'พ่นยา แปลง A',
+          title: `พ่นยา ${db.plots.find((item) => item.id === 'plot-a')?.name ?? 'แปลง A'}`,
           meta: 'พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม · ยา A, น้ำสะอาด',
-          trailing: formatFollowUpDueLabel(db.recordedFollowUpOn) ?? formatThaiShortDate(DEMO_NOW),
-          variant: 'activity',
+          trailing: formatFollowUpDueLabel(db.recordedFollowUpOn) ?? formatThaiShortDate(WEB_PREVIEW_NOW),
+          variant: 'activity' as const,
         },
-      ]
+      ].filter(() => scope === 'all' || scope === 'plot-a')
     : [
         {
           id: 'empty-today',
           title: 'ยังไม่มีบันทึกวันนี้',
           meta: 'RN Web preview ใช้ข้อมูลจำลอง ไม่แตะ SQLite',
           trailing: 'เริ่ม',
-          variant: 'activity',
+          variant: 'activity' as const,
         },
       ],
-});
+};
+};
 
 export const getActivityCaptureOptions = async (db: WebPreviewDb): Promise<ActivityCaptureOption> => ({
   categories: db.categories.filter((category) => !category.archivedAt),
@@ -252,7 +287,7 @@ export const getActivityCaptureOptions = async (db: WebPreviewDb): Promise<Activ
   defaultHoleId: db.holes[0]?.id ?? null,
   defaultWorkerId: db.people.find((person) => !person.isSelf && !person.archivedAt)?.id ?? null,
   defaultSelfId: db.people.find((person) => person.isSelf && !person.archivedAt)?.id ?? null,
-  defaultPerformedAt: DEMO_NOW,
+  defaultPerformedAt: WEB_PREVIEW_NOW,
 });
 
 export const listSetupPlots = async (db: WebPreviewDb): Promise<SetupPlot[]> => db.plots.map((plot) => ({ ...plot }));
@@ -284,6 +319,16 @@ export const createPlanting = async (db: WebPreviewDb, input: PlantingInput): Pr
   return `planting-web-${input.holeId}`;
 };
 
+export const retireCurrentPlanting = async (db: WebPreviewDb, input: RetirePlantingInput): Promise<string> => {
+  const hole = db.holes.find((item) => item.id === input.holeId && item.status === 'planted');
+  if (!hole) throw new Error('TAKAI hole has no current planting to retire');
+  hole.status = 'empty';
+  hole.plantName = null;
+  hole.variety = null;
+  hole.plantedOn = null;
+  return `planting-web-${input.holeId}`;
+};
+
 export const listActivityCategories = async (db: WebPreviewDb, includeArchived = false): Promise<ActivityCategory[]> =>
   db.categories.filter((category) => includeArchived || !category.archivedAt);
 
@@ -307,7 +352,7 @@ export const updateActivityCategory = async (db: WebPreviewDb, categoryId: strin
 
 export const archiveActivityCategory = async (db: WebPreviewDb, categoryId: string): Promise<void> => {
   const category = db.categories.find((item) => item.id === categoryId);
-  if (category) category.archivedAt = DEMO_NOW;
+  if (category) category.archivedAt = WEB_PREVIEW_NOW;
 };
 
 export const restoreActivityCategory = async (db: WebPreviewDb, categoryId: string): Promise<void> => {
@@ -340,7 +385,7 @@ export const updatePerson = async (db: WebPreviewDb, personId: string, input: Pe
 
 export const archivePerson = async (db: WebPreviewDb, personId: string): Promise<void> => {
   const person = db.people.find((item) => item.id === personId);
-  if (person) person.archivedAt = DEMO_NOW;
+  if (person) person.archivedAt = WEB_PREVIEW_NOW;
 };
 
 export const restorePerson = async (db: WebPreviewDb, personId: string): Promise<void> => {
@@ -365,7 +410,7 @@ export const createMaterial = async (db: WebPreviewDb, input: MaterialInput): Pr
     defaultRatePerTank: input.defaultRatePerTank?.trim() || null,
     photoUri: null,
     notes: input.notes?.trim() || null,
-    createdAt: DEMO_NOW,
+    createdAt: WEB_PREVIEW_NOW,
     archivedAt: null,
     commonName: input.commonName?.trim() || null,
     brandName: input.brandName?.trim() || null,
@@ -403,7 +448,7 @@ export const updateMaterial = async (db: WebPreviewDb, materialId: string, input
 
 export const archiveMaterial = async (db: WebPreviewDb, materialId: string): Promise<void> => {
   const material = db.materials.find((item) => item.id === materialId);
-  if (material) material.archivedAt = DEMO_NOW;
+  if (material) material.archivedAt = WEB_PREVIEW_NOW;
 };
 
 export const restoreMaterial = async (db: WebPreviewDb, materialId: string): Promise<void> => {
@@ -419,9 +464,21 @@ export const unpinPlotTracker = async (db: WebPreviewDb, _plotId: string, catego
   db.trackedCategoryIds = db.trackedCategoryIds.filter((id) => id !== categoryId);
 };
 
-export const getTodayDashboard = async (db: WebPreviewDb): Promise<TodayDashboard> => {
-  return buildDashboard(db);
-};
+export const listPlotSummaries = async (db: WebPreviewDb): Promise<PlotSummary[]> =>
+  (await Promise.all(db.plots.map((plot) => buildPlotDashboard(db, plot.id)))).map((plot) => ({
+    id: plot.id, name: plot.name, areaRai: plot.areaRai, totalHoles: plot.totalHoles,
+    plantedHoles: plot.plantedHoles, emptyHoles: plot.emptyHoles,
+    dueTrackerCount: plot.trackers.filter((tracker) => tracker.dueState === 'overdue' || tracker.dueState === 'due_today').length,
+    activeCaseCount: plot.activeCases.length,
+  }));
+
+export const getPlotDetail = async (db: WebPreviewDb, plotId: string): Promise<PlotDetail> => ({
+  plot: buildPlotDashboard(db, plotId),
+  holes: db.holes.filter((hole) => hole.plotId === plotId).map(({ id, marker, status }) => ({ id, marker, status })),
+  recentItems: (await getTodayDashboard(db, plotId)).recentItems,
+});
+
+export const getTodayDashboard = async (db: WebPreviewDb, scope: TodayScope = 'all'): Promise<TodayDashboard> => buildDashboard(db, scope);
 
 export const createDemoSprayActivity = async (db: WebPreviewDb): Promise<CreatedActivityResult> => {
   db.demoSprayCount += 1;

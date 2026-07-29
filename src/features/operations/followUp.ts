@@ -1,4 +1,4 @@
-import { dayKey, DEMO_NOW, formatThaiShortDate, nextDateFrom } from './date';
+import { dayKey, formatThaiShortDate, localDateKey, nextDateFrom } from './date';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -45,10 +45,10 @@ export const resolveFollowUpOn = ({ baseDate, days, directDate, mode }: FollowUp
   return nextDateFrom(baseDate, offset);
 };
 
-export const followUpDaysRemaining = (followUpOn: string | null | undefined, now = DEMO_NOW): number | null =>
+export const followUpDaysRemaining = (followUpOn: string | null | undefined, now = localDateKey()): number | null =>
   followUpOn && validDateOnly(dayKey(followUpOn)) ? signedDayDifference(followUpOn, now) : null;
 
-export const followUpDueState = (followUpOn: string | null | undefined, now = DEMO_NOW): FollowUpDueState => {
+export const followUpDueState = (followUpOn: string | null | undefined, now = localDateKey()): FollowUpDueState => {
   const remaining = followUpDaysRemaining(followUpOn, now);
   if (remaining === null) return 'none';
   if (remaining < 0) return 'overdue';
@@ -56,7 +56,7 @@ export const followUpDueState = (followUpOn: string | null | undefined, now = DE
   return 'upcoming';
 };
 
-export const formatFollowUpDueLabel = (followUpOn: string | null | undefined, now = DEMO_NOW): string | null => {
+export const formatFollowUpDueLabel = (followUpOn: string | null | undefined, now = localDateKey()): string | null => {
   const remaining = followUpDaysRemaining(followUpOn, now);
   if (remaining === null || !followUpOn) return null;
   if (remaining < 0) return `เกินกำหนด ${Math.abs(remaining)} วัน`;

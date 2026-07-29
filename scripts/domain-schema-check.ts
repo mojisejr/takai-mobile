@@ -174,9 +174,9 @@ const main = async (): Promise<void> => {
   const seedDb = new SeedFakeSqlite();
   await seedDemoGarden(seedDb);
 
-  assert.deepEqual(firstRun, [1, 2, 3, 4, 5, 6, 7], 'empty database should apply every ordered migration');
+  assert.deepEqual(firstRun, [1, 2, 3, 4, 5, 6, 7, 8], 'empty database should apply every ordered migration');
   assert.deepEqual(secondRun, [], 'rerunning migrations should be idempotent');
-  assert.deepEqual(upgradeRun, [2, 3, 4, 5, 6, 7], 'a migration 1 database must upgrade without replaying its original schema');
+  assert.deepEqual(upgradeRun, [2, 3, 4, 5, 6, 7, 8], 'a migration 1 database must upgrade without replaying its original schema');
   assert.ok(seedDb.insertedTables.includes('cases'), 'demo seed must include the case timeline record');
   assert.ok(seedDb.insertedTables.includes('plot_trackers'), 'demo seed must include per-plot tracker defaults');
   assert.ok(
@@ -216,6 +216,10 @@ const main = async (): Promise<void> => {
   assert.ok(
     TAKAI_MIGRATIONS[6]?.statements.some((statement) => statement.includes('CREATE TABLE IF NOT EXISTS notification_reminders')),
     'migration 7 must retain one local reminder mapping per activity',
+  );
+  assert.ok(
+    TAKAI_MIGRATIONS[7]?.statements.some((statement) => statement.includes('ADD COLUMN planting_id')),
+    'migration 8 must bind hole activities to their planting lifecycle without rewriting history',
   );
 
   console.log('DOMAIN_SCHEMA_PASS: migrations, seed data, crop rules, and labor derivation are valid');

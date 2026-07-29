@@ -25,14 +25,16 @@ const main = async (): Promise<void> => {
 
   const screen = await readFile(resolve(process.cwd(), 'src/features/operations/OperationalSliceScreen.tsx'), 'utf8');
   for (const label of [
-    'ตั้งค่าสวนก่อนบันทึก',
-    '1. เลือกหรือเพิ่มแปลง',
-    '2. เพิ่มหลุม',
-    '3. ใส่ต้นไม้ในหลุม',
+    'ขอบเขตวันนี้',
+    'ทุกแปลง',
+    'plotList',
+    'plotCreate',
+    'plotDetail',
+    'บันทึกกิจกรรมแปลงนี้',
     'TimeModeControl',
     '+ เพิ่มคนงาน',
-    'คำนวณได้',
-    'กำหนดเอง',
+    'คำนวณอัตโนมัติ:',
+    'กำหนดปริมาณเอง (ขั้นสูง)',
     'เลือกวันโดยตรง',
     'เปิดการแจ้งเตือนวันติดตาม',
   ]) {

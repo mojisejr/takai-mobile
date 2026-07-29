@@ -26,9 +26,10 @@ const main = async (): Promise<void> => {
 
   const repository = await readFile(resolve(process.cwd(), 'src/features/operations/repository.ts'), 'utf8');
   const screen = await readFile(resolve(process.cwd(), 'src/features/operations/OperationalSliceScreen.tsx'), 'utf8');
+  const fieldForm = await readFile(resolve(process.cwd(), 'src/ui/FieldForm.tsx'), 'utf8');
   assert.ok(repository.includes('const nextDue = row.latest_follow_up_on;'), 'Tracker must not invent a due date from performed_at');
   assert.ok(repository.includes('formatFollowUpDueLabel(row.follow_up_on)'), 'Today must present due state from follow_up_on');
-  assert.ok(screen.includes('เลือกวันโดยตรง') && screen.includes('DateTimePicker') && screen.includes('resolveFollowUpOn'), 'Activity UI must offer a native calendar and N-day resolution before save');
+  assert.ok(screen.includes('เลือกวันโดยตรง') && screen.includes('DatePickerField') && fieldForm.includes('DateTimePicker') && screen.includes('resolveFollowUpOn'), 'Activity UI must offer a native calendar and N-day resolution before save');
   console.log('FOLLOW_UP_CONTRACT_PASS: canonical resolution, timezone-safe due state, Today/Tracker source, and optional null follow-up are valid');
 };
 

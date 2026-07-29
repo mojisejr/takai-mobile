@@ -244,4 +244,19 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         ON notification_reminders(follow_up_on)`,
     ],
   },
+  {
+    id: 8,
+    name: 'planting_lifecycle_and_activity_identity',
+    statements: [
+      `ALTER TABLE plantings ADD COLUMN status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'dead', 'retired'))`,
+      `ALTER TABLE plantings ADD COLUMN removed_reason TEXT`,
+      `UPDATE plantings SET status = 'retired' WHERE removed_on IS NOT NULL`,
+      `ALTER TABLE activities ADD COLUMN planting_id TEXT REFERENCES plantings(id) ON DELETE SET NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_plantings_hole_lifecycle
+        ON plantings(hole_id, status, planted_on DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_activities_planting_performed_at
+        ON activities(planting_id, performed_at DESC)`,
+    ],
+  },
 ];

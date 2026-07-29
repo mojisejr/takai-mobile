@@ -1,0 +1,65 @@
+- generic [ref=f3e5] [box=0,0,390,844]:
+  - generic [ref=f3e7] [box=0,-646,390,1408]:
+    - generic [ref=f3e8] [box=16,-630,358,52]:
+      - generic [ref=f3e9] [box=32,-619,28,30]: ☰
+      - generic [ref=f3e10] [box=72,-618,224,28]: บันทึกกิจกรรม
+      - button "ออฟไลน์" [ref=f3e11] [cursor=pointer] [box=308,-613,50,19]
+    - generic [ref=f3e103] [box=16,-562,358,117]:
+      - generic [ref=f3e104] [box=31,-547,328,18]: บันทึกภาคสนาม
+      - generic [ref=f3e105] [box=31,-529,328,23]: พ่นยา · แปลง A
+      - generic [ref=f3e106] [box=31,-502,328,42]: เลือก ค้นหา หรือเพิ่มรายการใหม่ได้ โดยแบบฟอร์มที่กำลังกรอกจะไม่หาย
+    - generic [ref=f3e107] [box=16,-429,358,366]:
+      - generic [ref=f3e108] [box=16,-429,358,36]: 1. งานและสถานที่
+      - generic [ref=f3e111] [box=16,-385,358,322]:
+        - generic [ref=f3e112] [box=31,-370,328,73]:
+          - generic [ref=f3e113] [box=31,-370,328,19]: หมวดงาน
+          - button "พ่นยา เลือก" [ref=f3e114] [cursor=pointer] [box=31,-345,328,48]:
+            - generic [ref=f3e115] [box=44,-332,261,22]: พ่นยา
+            - generic [ref=f3e116] [box=317,-330,29,19]: เลือก
+        - generic [ref=f3e117] [box=31,-297,328,73]:
+          - generic [ref=f3e118] [box=31,-297,328,19]: แปลง
+          - button "แปลง A เลือก" [ref=f3e119] [cursor=pointer] [box=31,-272,328,48]:
+            - generic [ref=f3e120] [box=44,-259,261,22]: แปลง A
+            - generic [ref=f3e121] [box=317,-257,29,19]: เลือก
+        - generic [ref=f3e122] [box=31,-224,328,73]:
+          - generic [ref=f3e123] [box=31,-224,328,19]: เป้าหมายในแปลง
+          - button "เลือกทั้งแปลง หลุม หรือเคส เลือก" [ref=f3e124] [cursor=pointer] [box=31,-199,328,48]:
+            - generic [ref=f3e125] [box=44,-186,261,22]: เลือกทั้งแปลง หลุม หรือเคส
+            - generic [ref=f3e126] [box=317,-184,29,19]: เลือก
+        - generic [ref=f3e127] [box=31,-151,328,73]:
+          - generic [ref=f3e128] [box=31,-151,328,19]: วันที่ทำงาน
+          - textbox "YYYY-MM-DD" [ref=f3e129] [box=31,-126,328,48]: 2026-07-29
+    - button "เวลา เพิ่มถ้าจำเป็น" [ref=f3e130] [cursor=pointer] [box=16,-47,358,44]:
+      - generic [ref=f3e131] [box=16,-36,33,23]: เวลา
+      - generic [ref=f3e132] [box=299,-34,75,19]: เพิ่มถ้าจำเป็น
+    - generic [ref=f3e133] [box=16,13,358,200]:
+      - generic [ref=f3e134] [box=16,13,358,36]: 2. บันทึก
+      - generic [ref=f3e137] [box=16,57,358,156]:
+        - generic [ref=f3e138] [box=31,82,328,18]: บันทึก
+        - textbox [ref=f3e139] [box=31,106,328,92]: พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม
+    - button "วัสดุครั้งนี้ ซ่อน" [ref=f3e154] [cursor=pointer] [box=16,229,358,44]:
+      - generic [ref=f3e141] [box=16,240,68,23]: วัสดุครั้งนี้
+      - generic [ref=f3e142] [box=348,242,26,19]: ซ่อน
+    - generic [ref=f3e155] [box=16,289,358,188]:
+      - generic [ref=f3e156] [box=16,289,358,36]: 3. วัสดุครั้งนี้
+      - generic [ref=f3e159] [box=16,333,358,144]:
+        - generic [ref=f3e163] [box=31,348,328,68]:
+          - button "แมนโคเซบ · ยา A 5 cc · อัตโนมัติ · ถัง 50 L" [ref=f3e237] [cursor=pointer] [box=31,348,267,67]:
+            - generic [ref=f3e165] [box=31,356,267,23]: แมนโคเซบ · ยา A
+            - generic [ref=f3e166] [box=31,386,267,21]: 5 cc · อัตโนมัติ · ถัง 50 L
+          - button "นำออก" [ref=f3e167] [cursor=pointer] [box=298,365,61,34]
+        - button "+ เลือกวัสดุ" [ref=f3e161] [cursor=pointer] [box=31,416,328,46]
+    - button "คนงานและค่าแรง เพิ่มถ้าจำเป็น" [ref=f3e143] [cursor=pointer] [box=16,493,358,44]:
+      - generic [ref=f3e144] [box=16,504,123,23]: คนงานและค่าแรง
+      - generic [ref=f3e145] [box=299,506,75,19]: เพิ่มถ้าจำเป็น
+    - button "ติดตามต่อ เพิ่มถ้าจำเป็น" [ref=f3e146] [cursor=pointer] [box=16,553,358,44]:
+      - generic [ref=f3e147] [box=16,564,72,23]: ติดตามต่อ
+      - generic [ref=f3e148] [box=299,566,75,19]: เพิ่มถ้าจำเป็น
+    - button "บันทึกกิจกรรมลงเครื่อง" [active] [ref=f3e150] [cursor=pointer] [box=16,630,358,46]
+    - button "กลับวันนี้" [ref=f3e152] [cursor=pointer] [box=16,708,358,46]
+  - generic [ref=f3e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f3e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f3e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f3e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f3e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f3e101] [cursor=pointer] [box=298,777,69,44]

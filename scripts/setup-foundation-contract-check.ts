@@ -66,7 +66,7 @@ class SetupContractDb implements SqlExecutor {
 
 const main = async (): Promise<void> => {
   const db = new SetupContractDb();
-  assert.deepEqual(await runMigrations(db), [4, 5, 6, 7], 'a migrations 1–3 database must receive only later forward migrations');
+  assert.deepEqual(await runMigrations(db), [4, 5, 6, 7, 8], 'a migrations 1–3 database must receive only later forward migrations');
   assert.ok(db.migrationStatements.some((sql) => sql.includes('ADD COLUMN variety')), 'migration 4 must add planting variety');
   assert.ok(db.migrationStatements.some((sql) => sql.includes('ADD COLUMN activity_date')), 'migration 5 must preserve legacy activity history while adding truthful date fields');
   assert.equal(db.migrationStatements.some((sql) => /DROP TABLE|DELETE FROM/i.test(sql)), false, 'migration 4 must preserve legacy data');
@@ -86,11 +86,12 @@ const main = async (): Promise<void> => {
   assert.equal(capture.holes.some((hole) => hole.id === holeId && hole.plotId === plotId && hole.status === 'planted'), true, 'new planting target must be available to Activity');
   await assert.rejects(createPlanting(db, { holeId, plantName: 'ซ้ำ', plantedOn: '2026-07-28' }), /unavailable for planting/);
   await assert.rejects(createHole(db, { plotId, marker: '   ' }), /hole marker/);
-  await assert.rejects(createPlanting(db, { holeId: 'missing', plantName: 'ทุเรียน', plantedOn: '2026-99-99' }), /unavailable for planting/);
+  await assert.rejects(createPlanting(db, { holeId: 'missing', plantName: 'ทุเรียน', plantedOn: '2026-99-99' }), /valid planting date/);
 
   const screen = await readFile(resolve(process.cwd(), 'src/features/operations/OperationalSliceScreen.tsx'), 'utf8');
-  assert.ok(screen.includes('ตั้งค่าสวนก่อนบันทึก'), 'plot view must expose the setup-first entry point');
-  assert.ok(screen.includes('1. เลือกหรือเพิ่มแปลง') && screen.includes('2. เพิ่มหลุม') && screen.includes('3. ใส่ต้นไม้ในหลุม'), 'setup UI must preserve plot → hole → planting order');
+  assert.ok(screen.includes("view === 'plotList'") && screen.includes("view === 'plotCreate'") && screen.includes("view === 'plotDetail'"), 'plot navigation must split list, create, and detail surfaces');
+  assert.ok(screen.includes('ขอบเขตวันนี้') && screen.includes('ทุกแปลง'), 'Today must expose an aggregate scope separate from Activity');
+  assert.ok(screen.includes('บันทึกกิจกรรมแปลงนี้') && screen.includes('startPlotActivity(plot.id)'), 'plot quick record must intentionally preselect its plot');
   assert.equal((screen.match(/<TopBar title=\{plot\.name\}/g) ?? []).length, 0, 'plot view must not render a second top bar inside AppShell');
 
   console.log('SETUP_FOUNDATION_CONTRACT_PASS: plot, hole, planting, migration preservation, and Activity selection are valid');

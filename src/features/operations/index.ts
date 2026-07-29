@@ -4,4 +4,5 @@ export * from './temporal';
 export * from './chemical';
 export * from './followUp';
 export * from './followUpNotifications';
+export * from './activityValidation';
 export * from './types';

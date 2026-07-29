@@ -12,7 +12,16 @@ const requiredScreenTokens = [
   'ไม่มีวัสดุในครั้งนี้',
   '+ เลือกวัสดุ',
   'เพิ่มและเลือกวัสดุ',
-  'น้ำ/อัตราผสม/โน้ต (ถ้ามี)',
+  'MaterialSummary',
+  'รายละเอียดวัสดุ',
+  'น้ำในถังครั้งนี้ (L)',
+  'คำนวณอัตโนมัติ:',
+  'กำหนดปริมาณเอง (ขั้นสูง)',
+  'กลับไปใช้ค่าคำนวณอัตโนมัติ',
+  'ChemicalCatalogFields',
+  'ชื่อสามัญ / ชื่อเรียก',
+  'ชื่อยี่ห้อ (ถ้ามี)',
+  'น้ำอ้างอิง (L)',
   'คลังวัสดุ',
   'เก็บวัสดุเข้าแฟ้ม',
   'นำกลับมาใช้',
@@ -29,7 +38,7 @@ for (const forbiddenToken of ['options.materials.slice(0, 4)', 'parsedAmount > 0
   if (screen.includes(forbiddenToken)) throw new Error(`activity/material UI regression found: ${forbiddenToken}`);
 }
 
-for (const token of ['materials: materialUsages.map', 'waterVolume: usage.waterVolume', 'dilutionText: usage.dilutionText', 'sortOrder: index']) {
+for (const token of ['materials: materialUsages.map', 'waterVolume: usage.actualTankLitres', 'dilutionText: usage.dilutionText', 'sortOrder: index', 'manualOverride && Number(usage.manualAmount) > 0']) {
   if (!screen.includes(token)) throw new Error(`field payload contract missing: ${token}`);
 }
 

@@ -2,7 +2,7 @@ export { AppShell } from './AppShell';
 export { BottomTabBar } from './BottomTabBar';
 export { EvidenceTimeline } from './EvidenceTimeline';
 export { FieldCard } from './FieldCard';
-export { FormSection, PickerField, SearchPickerSheet, StickySaveBar } from './FieldForm';
+export { DatePickerField, FormSection, PickerField, SearchPickerSheet, StickySaveBar } from './FieldForm';
 export { PrimaryButton } from './PrimaryButton';
 export { RecordListItem } from './RecordListItem';
 export { SectionHeader } from './SectionHeader';

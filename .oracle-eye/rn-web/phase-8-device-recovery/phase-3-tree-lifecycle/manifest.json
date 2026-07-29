@@ -1,0 +1,21 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-3-tree-lifecycle",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "targetUrl": "http://localhost:8081/",
+  "viewport": "390x844",
+  "screensChecked": ["Today scope", "Plot list", "Plot detail", "Hole lifecycle detail"],
+  "artifacts": [
+    "browser/today-390x844.png",
+    "browser/plots-390x844.png",
+    "browser/plot-detail-390x844.png",
+    "browser/hole-lifecycle-390x844.png",
+    "browser/hole-lifecycle-accessibility.md",
+    "browser/console.json",
+    "browser/network.json"
+  ],
+  "console": { "errors": 0, "knownWarnings": ["React DevTools development hint", "shadow style deprecation", "expo-notifications web listener limitation"] },
+  "network": { "failedRequests": 0, "notes": "No non-static failures reported by Playwright." },
+  "boundary": "Rendered RN Web only; destructive confirmation, Expo Go touch/date behavior, and Native Eye remain pending."
+}

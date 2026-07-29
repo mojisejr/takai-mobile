@@ -1,0 +1,47 @@
+- generic [ref=f2e5] [box=0,0,390,844]:
+  - generic [ref=f2e7] [box=0,0,390,837]:
+    - generic [ref=f2e8] [box=16,16,358,52]:
+      - generic [ref=f2e9] [box=32,27,28,30]: ☰
+      - generic [ref=f2e10] [box=72,28,224,28]: หลุม A-014
+      - button "ออฟไลน์" [ref=f2e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=f2e186] [box=16,84,358,113]:
+      - generic [ref=f2e187] [box=31,99,328,18]: แปลง A
+      - generic [ref=f2e188] [box=31,119,328,38]: หลุม A-014
+      - generic [ref=f2e189] [box=31,161,328,21]: ทุเรียนหมอนทอง · อายุ 645 วัน
+    - generic [ref=f2e190] [box=16,213,358,36]: วงจรต้นไม้
+    - generic [ref=f2e193] [cursor=pointer] [box=17,266,356,59]:
+      - generic [ref=f2e195] [box=47,274,267,42]:
+        - generic [ref=f2e196] [box=47,274,267,22]: ทุเรียนหมอนทอง · หมอนทอง
+        - generic [ref=f2e197] [box=47,298,267,18]: ปลูก 10 ตค. · กำลังปลูก
+      - generic [ref=f2e198] [box=322,286,39,18]: ปัจจุบัน
+    - generic [ref=f2e199] [box=16,342,358,231]:
+      - generic [ref=f2e200] [box=16,342,358,36]: จบวงจรต้นนี้
+      - generic [ref=f2e202] [box=16,386,358,187]:
+        - generic [ref=f2e203] [box=16,386,358,73]:
+          - generic [ref=f2e204] [box=16,386,358,19]: วันที่ตาย/นำออก
+          - textbox "YYYY-MM-DD" [ref=f2e205] [box=16,411,358,48]: 2026-07-29
+        - textbox "เหตุผลที่ต้นตายหรือนำออก" [ref=f2e206] [box=16,471,358,44]:
+          - /placeholder: เหตุผล (ถ้ามี)
+        - generic [ref=f2e207] [box=16,527,358,46]:
+          - button "บันทึกว่าตาย" [ref=f2e208] [cursor=pointer] [box=16,527,116,46]
+          - button "นำต้นออก" [ref=f2e210] [cursor=pointer] [box=140,527,100,46]
+    - generic [ref=f2e212] [box=16,589,358,36]: เคสในหลุม
+    - generic [ref=f2e215] [cursor=pointer] [box=17,642,356,57]:
+      - generic [ref=f2e217] [box=47,650,251,40]:
+        - generic [ref=f2e218] [box=47,650,251,22]: A-014 เชื้อราโคนต้น
+        - generic [ref=f2e219] [box=47,674,251,16]: A-014
+      - generic [ref=f2e220] [box=306,661,55,18]: ติดตามอยู่
+    - generic [ref=f2e221] [box=16,716,358,36]:
+      - generic [ref=f2e222] [box=16,720,92,28]: ประวัติหลุม
+      - button "เพิ่ม" [ref=f2e223] [cursor=pointer] [box=351,725,23,19]
+    - generic [ref=f2e226] [cursor=pointer] [box=17,769,356,59]:
+      - generic [ref=f2e228] [box=47,777,287,42]:
+        - generic [ref=f2e229] [box=47,777,287,22]: ยังไม่มีประวัติกิจกรรมในหลุมนี้
+        - generic [ref=f2e230] [box=47,801,287,18]: บันทึกกิจกรรมแล้วจะมาอยู่ตรงนี้
+      - generic [ref=f2e231] [box=342,789,19,18]: เริ่ม
+  - generic [ref=f2e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f2e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f2e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f2e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f2e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f2e101] [cursor=pointer] [box=298,777,69,44]

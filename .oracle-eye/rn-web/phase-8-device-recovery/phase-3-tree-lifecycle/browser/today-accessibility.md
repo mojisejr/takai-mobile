@@ -1,0 +1,73 @@
+- generic [ref=f2e5] [box=0,0,390,844]:
+  - generic [ref=f2e7] [box=0,0,390,1198]:
+    - generic [ref=f2e8] [box=16,16,358,52]:
+      - generic [ref=f2e9] [box=32,27,28,30]: ☰
+      - generic [ref=f2e10] [box=72,28,224,28]: วันนี้
+      - button "ออฟไลน์" [ref=f2e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=f2e13] [box=16,84,358,36]:
+      - generic [ref=f2e14] [box=16,88,79,28]: สวนตาไก๊
+      - button "บันทึก" [ref=f2e15] [cursor=pointer] [box=339,93,35,19]
+    - generic [ref=f2e17] [box=16,136,358,132]:
+      - generic [ref=f2e18] [box=31,151,328,18]: ขอบเขตวันนี้
+      - generic [ref=f2e19] [box=31,169,328,38]:
+        - generic [ref=f2e20] [cursor=pointer] [box=31,169,76,38]: ทุกแปลง
+        - generic [ref=f2e22] [cursor=pointer] [box=115,169,72,38]: แปลง A
+        - generic [ref=f2e24] [cursor=pointer] [box=195,169,107,38]: แปลงหลังบ้าน
+      - generic [ref=f2e26] [box=31,211,328,42]: เลือกเพื่อดูภาพรวมเท่านั้น — แปลงในแบบบันทึกยังเป็นรายการที่เลือกไว้เอง
+    - generic [ref=f2e27] [box=16,284,358,185]:
+      - generic [ref=f2e28] [box=31,299,328,83]:
+        - generic [ref=f2e29] [box=31,299,262,83]:
+          - generic [ref=f2e30] [box=31,299,262,18]: ภาพรวมวันนี้
+          - generic [ref=f2e31] [box=31,319,262,38]: ทุกแปลง
+          - generic [ref=f2e32] [box=31,361,262,21]: 2 แปลงในสวน
+        - generic [ref=f2e33] [box=305,299,54,26]: Local
+      - generic [ref=f2e35] [box=31,396,328,58]:
+        - generic [ref=f2e36] [box=31,411,104,43]:
+          - generic [ref=f2e37] [box=31,411,104,23]: 7.7 ไร่
+          - generic [ref=f2e38] [box=31,436,104,18]: พื้นที่
+        - generic [ref=f2e39] [box=143,411,104,43]:
+          - generic [ref=f2e40] [box=143,411,104,20]: 1/2
+          - generic [ref=f2e41] [box=143,433,104,18]: หลุมปลูก
+        - generic [ref=f2e42] [box=255,411,104,43]:
+          - generic [ref=f2e43] [box=255,411,104,23]: 0 บาท
+          - generic [ref=f2e44] [box=255,436,104,18]: ค้างจ่าย
+    - button "+ บันทึกกิจกรรม" [ref=f2e45] [cursor=pointer] [box=16,485,358,46]
+    - generic [ref=f2e47] [box=16,547,358,36]: รายการล่าสุด
+    - generic [ref=f2e50] [cursor=pointer] [box=17,600,356,59]:
+      - generic [ref=f2e52] [box=47,608,287,42]:
+        - generic [ref=f2e53] [box=47,608,287,22]: ยังไม่มีบันทึกวันนี้
+        - generic [ref=f2e54] [box=47,632,287,18]: RN Web preview ใช้ข้อมูลจำลอง ไม่แตะ SQLite
+      - generic [ref=f2e55] [box=342,620,19,18]: เริ่ม
+    - generic [ref=f2e56] [box=16,676,358,36]:
+      - generic [ref=f2e57] [box=16,680,127,28]: Tracker สำคัญ
+      - button "แปลง" [ref=f2e58] [cursor=pointer] [box=342,685,32,19]
+    - generic [ref=f2e60] [box=16,728,358,96]:
+      - generic [ref=f2e61] [box=31,743,328,23]: พ่นยา · แปลง A
+      - generic [ref=f2e63] [box=31,772,328,19]: ครั้งที่ 0 ยังไม่เคยบันทึก
+    - generic [ref=f2e65] [box=16,840,358,96]:
+      - generic [ref=f2e66] [box=31,855,328,23]:
+        - generic [ref=f2e67] [box=31,855,108,23]: ใส่ปุ๋ย · แปลง A
+        - generic [ref=f2e68] [box=263,857,96,19]: เกินกำหนด 4 วัน
+      - generic [ref=f2e69] [box=31,884,328,19]: ครั้งที่ 3 ผ่านมา 6 วัน
+    - generic [ref=f2e72] [box=16,952,358,96]:
+      - generic [ref=f2e73] [box=31,967,328,23]:
+        - generic [ref=f2e74] [box=31,967,116,23]: แต่งกิ่ง · แปลง A
+        - generic [ref=f2e75] [box=265,969,94,19]: เกินกำหนด 1 วัน
+      - generic [ref=f2e76] [box=31,996,328,19]: ครั้งที่ 2 ผ่านมา 13 วัน
+    - generic [ref=f2e79] [box=16,1064,358,36]: สมุดที่ต้องดู
+    - generic [ref=f2e81] [box=16,1116,358,74]:
+      - generic [ref=f2e82] [cursor=pointer] [box=16,1116,114,74]:
+        - generic [ref=f2e83] [box=25,1132,96,23]: 1 ติดตาม
+        - generic [ref=f2e84] [box=25,1157,96,18]: เคส
+      - generic [ref=f2e85] [cursor=pointer] [box=138,1116,114,74]:
+        - generic [ref=f2e86] [box=147,1132,96,23]: 0 บาท
+        - generic [ref=f2e87] [box=147,1157,96,18]: ค่าแรง
+      - generic [ref=f2e88] [cursor=pointer] [box=260,1116,114,74]:
+        - generic [ref=f2e89] [box=269,1132,96,23]: 2 รายการ
+        - generic [ref=f2e90] [box=269,1157,96,18]: วัสดุ
+  - generic [ref=f2e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f2e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f2e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f2e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f2e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f2e101] [cursor=pointer] [box=298,777,69,44]

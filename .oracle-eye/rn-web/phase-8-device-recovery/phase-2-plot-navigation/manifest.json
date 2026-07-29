@@ -1,0 +1,20 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-2-plot-navigation",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "targetUrl": "http://localhost:8081/",
+  "viewport": "390x844",
+  "screensChecked": ["Today all plots", "Today single plot"],
+  "artifacts": [
+    "browser/today-all-390x844.png",
+    "browser/today-all-accessibility.md",
+    "browser/today-plot-a-390x844.png",
+    "browser/today-plot-a-accessibility.md",
+    "browser/console.json",
+    "browser/network.json"
+  ],
+  "console": { "errors": 0, "knownWarnings": ["React DevTools development hint", "shadow style deprecation", "expo-notifications web listener limitation"] },
+  "network": { "failedRequests": 0, "notes": "No non-static failures reported by Playwright." },
+  "boundary": "Rendered RN Web only; Expo Go device and Native Eye remain pending."
+}

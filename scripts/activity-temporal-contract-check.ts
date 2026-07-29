@@ -43,7 +43,7 @@ const main = async (): Promise<void> => {
     ],
   });
   const activityWrite = db.writes.find((write) => write.sql.includes('INSERT INTO activities'));
-  assert.deepEqual(activityWrite?.params.slice(4, 10), ['2026-07-28T12:00:00.000Z', '2026-07-28', 'duration_only', null, null, 90]);
+  assert.deepEqual(activityWrite?.params.slice(5, 11), ['2026-07-28T12:00:00.000Z', '2026-07-28', 'duration_only', null, null, 90]);
   const participantWrites = db.writes.filter((write) => write.sql.includes('INSERT INTO activity_participants'));
   assert.equal(participantWrites.length, 2, 'several workers must save as independent participant rows');
   assert.deepEqual(participantWrites.map((write) => write.params.slice(2, 5)), [['worker-a', 'hourly', 240], ['worker-b', 'piece', 350]], 'duration must not alter independently recorded pay values');

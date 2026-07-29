@@ -1,4 +1,5 @@
 import type { SqlExecutor } from '../../data';
+import { localDateKey } from '../../date';
 import { dayKey, formatThaiShortDate } from './date';
 import { followUpDaysRemaining } from './followUp';
 
@@ -24,13 +25,6 @@ export type FollowUpReminderSyncResult =
   | { status: 'scheduled'; notificationId: string }
   | { status: 'skipped'; reason: 'no_follow_up' | 'past_due' | 'permission_undetermined' | 'permission_denied' | 'unavailable' }
   | { status: 'failed'; error: string };
-
-const dateKeyFromLocalDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 export const notificationTriggerAt = (followUpOn: string): Date => {
   const [year, month, day] = dayKey(followUpOn).split('-').map(Number);
@@ -72,7 +66,7 @@ export const syncFollowUpReminder = async (
   gateway: FollowUpNotificationGateway,
   now = new Date(),
 ): Promise<FollowUpReminderSyncResult> => {
-  const today = dateKeyFromLocalDate(now);
+  const today = localDateKey(now);
   const followUpOn = input.followUpOn ? dayKey(input.followUpOn) : null;
 
   try {

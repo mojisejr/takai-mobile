@@ -3,6 +3,9 @@ import type { FollowUpDueState } from './followUp';
 
 export type TakaiView =
   | 'today'
+  | 'plotList'
+  | 'plotCreate'
+  | 'plotDetail'
   | 'plot'
   | 'activity'
   | 'cases'
@@ -58,6 +61,29 @@ export type PlotDashboard = {
   activeCases: ActiveCaseSummary[];
 };
 
+export type TodayScope = 'all' | EntityId;
+
+export type PlotSummary = {
+  id: EntityId;
+  name: string;
+  areaRai: number;
+  totalHoles: number;
+  plantedHoles: number;
+  emptyHoles: number;
+  dueTrackerCount: number;
+  activeCaseCount: number;
+};
+
+export type PlotDetail = {
+  plot: PlotDashboard;
+  holes: Array<{
+    id: EntityId;
+    marker: string;
+    status: 'empty' | 'planted';
+  }>;
+  recentItems: TodayActivityItem[];
+};
+
 export type SetupPlot = {
   id: EntityId;
   gardenId: EntityId;
@@ -86,8 +112,27 @@ export type PlantingInput = {
   plantedOn: string;
 };
 
+export type RetirePlantingInput = {
+  holeId: EntityId;
+  status: 'dead' | 'retired';
+  removedOn: string;
+  removedReason?: string | null;
+};
+
+export type PlantingLifecycle = {
+  id: EntityId;
+  plantName: string;
+  variety: string | null;
+  plantedOn: string;
+  removedOn: string | null;
+  removedReason: string | null;
+  status: 'active' | 'dead' | 'retired';
+};
+
 export type TodayDashboard = {
   gardenName: string;
+  scope: TodayScope;
+  plots: PlotDashboard[];
   plot: PlotDashboard;
   recentItems: TodayActivityItem[];
   unpaidLaborTotal: number;
@@ -296,6 +341,13 @@ export type MaterialLibraryItem = {
   lastUsedAt: string | null;
   usageCount: number;
   archivedAt: string | null;
+  commonName: string | null;
+  brandName: string | null;
+  chemicalGroup: string | null;
+  usageLabel: string | null;
+  referenceAmount: number | null;
+  referenceUnit: string | null;
+  referenceWaterLitres: number | null;
 };
 
 export type HoleDetail = {
@@ -307,6 +359,7 @@ export type HoleDetail = {
   variety: string | null;
   plantedOn: string | null;
   ageDays: number | null;
+  lifecycle: PlantingLifecycle[];
   activities: TodayActivityItem[];
   activeCases: ActiveCaseSummary[];
 };

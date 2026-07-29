@@ -75,6 +75,12 @@ export const initializeTakaiDatabase = async (): Promise<TakaiDatabase> => ({
     },
   ],
   trackedCategoryIds: ['cat-spray', 'cat-fertilizer', 'cat-prune'],
-  plots: [{ id: 'plot-a', gardenId: 'garden-web', name: 'แปลง A', areaRai: 6.2, sortOrder: 0 }],
-  holes: [{ id: 'hole-a-014', plotId: 'plot-a', marker: 'A-014', status: 'planted', plantName: 'ทุเรียน', variety: 'หมอนทอง', plantedOn: '2024-10-10' }],
+  plots: [
+    { id: 'plot-a', gardenId: 'garden-web', name: 'แปลง A', areaRai: 6.2, sortOrder: 0 },
+    { id: 'plot-b', gardenId: 'garden-web', name: 'แปลงหลังบ้าน', areaRai: 1.5, sortOrder: 1 },
+  ],
+  holes: [
+    { id: 'hole-a-014', plotId: 'plot-a', marker: 'A-014', status: 'planted', plantName: 'ทุเรียน', variety: 'หมอนทอง', plantedOn: '2024-10-10' },
+    { id: 'hole-b-001', plotId: 'plot-b', marker: 'B-001', status: 'empty', plantName: null, variety: null, plantedOn: null },
+  ],
 });

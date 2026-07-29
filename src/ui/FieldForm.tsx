@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { tokens } from '../theme/tokens';
+import { localDateKey } from '../date';
 import { PrimaryButton } from './PrimaryButton';
 import { filterPickerOptions, recentPickerOptions, type PickerOption } from './pickerOptions';
 import { SectionHeader } from './SectionHeader';
@@ -20,6 +22,21 @@ export function PickerField({ label, onPress, placeholder, value }: {
         <Text numberOfLines={1} style={[styles.pickerValue, !value && styles.placeholder]}>{value || placeholder}</Text>
         <Text style={styles.chevron}>เลือก</Text>
       </Pressable>
+    </View>
+  );
+}
+
+export function DatePickerField({ label, onChange, value }: { label: string; value: string; onChange: (value: string) => void }) {
+  const [visible, setVisible] = useState(false);
+  const selectDate = (_event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS !== 'ios') setVisible(false);
+    if (date) onChange(localDateKey(date));
+  };
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.label}>{label}</Text>
+      {Platform.OS === 'web' ? <TextInput keyboardType="numbers-and-punctuation" onChangeText={onChange} placeholder="YYYY-MM-DD" style={styles.dateInput} value={value} /> : <Pressable accessibilityRole="button" onPress={() => setVisible(true)} style={({ pressed }) => [styles.pickerField, pressed && styles.pressed]}><Text style={styles.pickerValue}>{formatThaiDate(value)}</Text><Text style={styles.chevron}>ปฏิทิน</Text></Pressable>}
+      {visible ? <DateTimePicker display={Platform.OS === 'ios' ? 'inline' : 'default'} mode="date" onChange={selectDate} value={dateFromDayKey(value)} /> : null}
     </View>
   );
 }
@@ -99,8 +116,8 @@ function PickerGroup({ emptyLabel, label, onPick, options }: { label: string; op
   );
 }
 
-export function StickySaveBar({ label, onPress }: { label: string; onPress: PressHandler }) {
-  return <View style={styles.sticky}><PrimaryButton label={label} onPress={onPress} /></View>;
+export function StickySaveBar({ disabled, label, onPress }: { label: string; onPress: PressHandler; disabled?: boolean }) {
+  return <View style={styles.sticky}><PrimaryButton disabled={disabled} label={label} onPress={onPress} /></View>;
 }
 
 export type { PickerOption } from './pickerOptions';
@@ -110,6 +127,7 @@ const styles = StyleSheet.create({
   label: { color: tokens.color.text.primary, fontSize: tokens.typography.metadata.size, fontWeight: '700' },
   pickerField: { alignItems: 'center', backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.button, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: 12 },
   pickerValue: { color: tokens.color.text.primary, flex: 1, fontSize: tokens.typography.body.size },
+  dateInput: { backgroundColor: tokens.color.surface.muted, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.button, borderWidth: 1, color: tokens.color.text.primary, fontSize: tokens.typography.body.size, minHeight: 48, paddingHorizontal: 12 },
   placeholder: { color: tokens.color.text.muted },
   chevron: { color: tokens.color.primary.green, fontSize: tokens.typography.metadata.size, fontWeight: '700', marginLeft: 12 },
   section: { gap: 8 },
@@ -133,3 +151,14 @@ const styles = StyleSheet.create({
   sticky: { backgroundColor: tokens.color.surface.sand, borderTopColor: tokens.color.border.soft, borderTopWidth: 1, marginHorizontal: -tokens.spacing.page, padding: tokens.spacing.page },
   pressed: { opacity: 0.7 },
 });
+
+function dateFromDayKey(value: string): Date {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return year && month && day ? new Date(year, month - 1, day, 12) : new Date();
+}
+
+function formatThaiDate(value: string): string {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return 'เลือกวัน';
+  return new Date(year, month - 1, day, 12).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+}

@@ -1,0 +1,64 @@
+- generic [ref=f2e5] [box=0,0,390,844]:
+  - generic [ref=f2e7] [box=0,0,390,1076]:
+    - generic [ref=f2e8] [box=16,16,358,52]:
+      - generic [ref=f2e9] [box=32,27,28,30]: ☰
+      - generic [ref=f2e10] [box=72,28,224,28]: แปลง A
+      - button "ออฟไลน์" [ref=f2e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=f2e118] [box=16,84,358,155]:
+      - generic [ref=f2e119] [box=31,99,328,56]:
+        - generic [ref=f2e120] [box=31,99,77,56]:
+          - generic [ref=f2e121] [box=31,99,77,16]: Crop 2026
+          - generic [ref=f2e122] [box=31,117,77,38]: 6.2 ไร่
+        - generic [ref=f2e123] [box=299,99,60,26]: Active
+      - generic [ref=f2e125] [box=31,169,328,55]:
+        - generic [ref=f2e126] [box=31,184,104,40]:
+          - generic [ref=f2e127] [box=31,184,104,20]: "1"
+          - generic [ref=f2e128] [box=31,206,104,18]: หลุมทั้งหมด
+        - generic [ref=f2e129] [box=143,184,104,40]:
+          - generic [ref=f2e130] [box=143,184,104,20]: "1"
+          - generic [ref=f2e131] [box=143,206,104,18]: มีต้น
+        - generic [ref=f2e132] [box=255,184,104,40]:
+          - generic [ref=f2e133] [box=255,184,104,20]: "0"
+          - generic [ref=f2e134] [box=255,206,104,18]: หลุมว่าง
+    - button "บันทึกกิจกรรมแปลงนี้" [ref=f2e135] [cursor=pointer] [box=16,255,358,46]
+    - generic [ref=f2e137] [box=16,317,358,36]: ต้นไม้และหลุม
+    - button "หลุม A-014 มีต้นปลูกแล้ว ต้นไม้" [ref=f2e140] [cursor=pointer] [box=17,370,356,59]:
+      - generic [ref=f2e142] [box=47,378,275,42]:
+        - generic [ref=f2e143] [box=47,378,275,22]: หลุม A-014
+        - generic [ref=f2e144] [box=47,402,275,18]: มีต้นปลูกแล้ว
+      - generic [ref=f2e145] [box=330,390,31,18]: ต้นไม้
+    - generic [ref=f2e146] [box=16,446,358,36]:
+      - generic [ref=f2e147] [box=16,450,149,28]: Tracker ที่ติดตาม
+      - button "จัดการ" [ref=f2e148] [cursor=pointer] [box=335,455,39,19]
+    - generic [ref=f2e150] [box=16,498,358,96]:
+      - generic [ref=f2e151] [box=31,513,328,23]: พ่นยา
+      - generic [ref=f2e153] [box=31,542,328,19]: ครั้งที่ 0 ยังไม่เริ่ม
+    - generic [ref=f2e155] [box=16,610,358,96]:
+      - generic [ref=f2e156] [box=31,625,328,23]:
+        - generic [ref=f2e157] [box=31,625,40,23]: ใส่ปุ๋ย
+        - generic [ref=f2e158] [box=263,627,96,19]: เกินกำหนด 4 วัน
+      - generic [ref=f2e159] [box=31,654,328,19]: ครั้งที่ 3 ผ่านมา 6 วัน
+    - generic [ref=f2e162] [box=16,722,358,96]:
+      - generic [ref=f2e163] [box=31,737,328,23]:
+        - generic [ref=f2e164] [box=31,737,48,23]: แต่งกิ่ง
+        - generic [ref=f2e165] [box=265,739,94,19]: เกินกำหนด 1 วัน
+      - generic [ref=f2e166] [box=31,766,328,19]: ครั้งที่ 2 ผ่านมา 13 วัน
+    - generic [ref=f2e169] [box=16,834,358,36]: เคสและประวัติ
+    - generic [ref=f2e171] [box=16,886,358,120]:
+      - button "เชื้อราที่โคนต้น หลุม A-014 ติดตามอยู่" [ref=f2e172] [cursor=pointer] [box=17,887,356,59]:
+        - generic [ref=f2e174] [box=47,895,251,42]:
+          - generic [ref=f2e175] [box=47,895,251,22]: เชื้อราที่โคนต้น
+          - generic [ref=f2e176] [box=47,919,251,18]: หลุม A-014
+        - generic [ref=f2e177] [box=306,907,55,18]: ติดตามอยู่
+      - generic [ref=f2e178] [cursor=pointer] [box=17,946,356,59]:
+        - generic [ref=f2e180] [box=47,954,287,42]:
+          - generic [ref=f2e181] [box=47,954,287,22]: ยังไม่มีบันทึกวันนี้
+          - generic [ref=f2e182] [box=47,978,287,18]: RN Web preview ใช้ข้อมูลจำลอง ไม่แตะ SQLite
+        - generic [ref=f2e183] [box=342,966,19,18]: เริ่ม
+    - button "กลับรายชื่อแปลง" [ref=f2e184] [cursor=pointer] [box=16,1022,358,46]
+  - generic [ref=f2e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f2e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f2e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f2e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f2e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f2e101] [cursor=pointer] [box=298,777,69,44]
