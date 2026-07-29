@@ -31,6 +31,10 @@ import {
   createFieldActivity,
   createMaterial,
   calculateChemicalDose,
+  emptyMaterialDraft,
+  filterMaterialLibraryItems,
+  materialDraftFromLibrary,
+  validateMaterialCatalogDraft,
   validateActivityDraft,
   createPerson,
   formatThaiShortDate,
@@ -77,6 +81,9 @@ import {
   type MenuDashboard,
   type MaterialLibraryItem,
   type MaterialInput,
+  type ActivityMaterialReturnIntent,
+  type MaterialCatalogMode,
+  type MaterialLibraryTypeFilter,
   type TakaiView,
   type TodayDashboard,
   type TodayScope,
@@ -113,7 +120,6 @@ type LoadState =
 type ActivityPicker = 'category' | 'plot' | 'target' | 'material' | 'worker' | 'payType';
 type WorkerDraft = { key: string; personId: string; payType: 'none' | 'daily' | 'hourly' | 'piece' | 'contract'; amount: string };
 type MaterialUsageDraft = { key: string; materialId: string; amount: string; unit: string; waterVolume: string; waterUnit: string; dilutionText: string; note: string; actualTankLitres: string; manualAmount: string; manualOverride: boolean };
-const emptyMaterialDraft = (): MaterialInput => ({ id: '', name: '', type: 'fungicide', unit: 'cc', referenceUnit: 'cc', referenceWaterLitres: 200 });
 
 export function OperationalSliceScreen() {
   const [view, setView] = useState<TakaiView>('today');
@@ -149,6 +155,15 @@ export function OperationalSliceScreen() {
   const [materialUsages, setMaterialUsages] = useState<MaterialUsageDraft[]>([]);
   const [showArchivedMaterials, setShowArchivedMaterials] = useState(false);
   const [materialDraft, setMaterialDraft] = useState<MaterialInput>(emptyMaterialDraft);
+  const [materialCatalogMode, setMaterialCatalogMode] = useState<MaterialCatalogMode>('library');
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [materialTypeFilter, setMaterialTypeFilter] = useState<MaterialLibraryTypeFilter>('all');
+  const [archiveConfirmationMaterialId, setArchiveConfirmationMaterialId] = useState<string | null>(null);
+  const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const [materialReturnIntent, setMaterialReturnIntent] = useState<ActivityMaterialReturnIntent | null>(null);
+  const [materialFormError, setMaterialFormError] = useState<string | null>(null);
+  const [materialSaving, setMaterialSaving] = useState(false);
   const [materialDetailKey, setMaterialDetailKey] = useState<string | null>(null);
   const [settlePersonId, setSettlePersonId] = useState<string | null>(null);
   const [plotDraft, setPlotDraft] = useState<PlotInput>({ name: '', areaRai: 0 });
@@ -183,6 +198,39 @@ export function OperationalSliceScreen() {
     setActivityPicker({ kind, materialKey });
   }, []);
 
+  const beginMaterialCreate = useCallback((returnIntent: ActivityMaterialReturnIntent | null = null) => {
+    setMaterialCatalogMode('materialCreate');
+    setEditingMaterialId(null);
+    setMaterialDraft(emptyMaterialDraft());
+    setMaterialReturnIntent(returnIntent);
+    setMaterialFormError(null);
+    setMaterialSaving(false);
+  }, []);
+
+  const beginMaterialEdit = useCallback((material: MaterialLibraryItem) => {
+    setMaterialCatalogMode('materialEdit');
+    setEditingMaterialId(material.id);
+    setMaterialDraft(materialDraftFromLibrary(material));
+    setMaterialReturnIntent(null);
+    setMaterialFormError(null);
+    setMaterialSaving(false);
+  }, []);
+
+  const beginMaterialDetail = useCallback((materialId: string) => {
+    setSelectedMaterialId(materialId);
+    setMaterialCatalogMode('materialDetail');
+    setArchiveConfirmationMaterialId(null);
+    setMaterialFormError(null);
+  }, []);
+
+  const openMaterialsLibrary = useCallback(() => {
+    setMaterialCatalogMode('library');
+    setSelectedMaterialId(null);
+    setArchiveConfirmationMaterialId(null);
+    setMaterialFormError(null);
+    setView('materials');
+  }, []);
+
   const rememberPicker = useCallback((kind: ActivityPicker, id: string) => {
     setRecentPickerIds((current) => ({
       ...current,
@@ -207,6 +255,13 @@ export function OperationalSliceScreen() {
     }]);
     openActivityPicker('material', key);
   }, [materialUsages.length, openActivityPicker]);
+
+  const beginActivityMaterialCreate = useCallback(() => {
+    if (activityPicker?.kind !== 'material' || !activityPicker.materialKey) return;
+    const usageKey = activityPicker.materialKey;
+    setActivityPicker(null);
+    beginMaterialCreate({ source: 'activity', usageKey });
+  }, [activityPicker, beginMaterialCreate]);
 
   const beginWorker = useCallback(() => {
     const key = `worker-${Date.now()}-${activityWorkers.length}`;
@@ -433,19 +488,15 @@ export function OperationalSliceScreen() {
         rememberPicker('worker', personId);
         setPersonDraft({ id: '', displayName: '', specialty: '', phone: '', note: '' });
       }
-      if (activityPicker.kind === 'material') {
-        const materialId = await createMaterial(state.db, materialInputForSave(materialDraft));
-        await refresh(state.db, 'เพิ่มวัสดุแล้ว');
-        setMaterialUsages((rows) => rows.map((row) => row.key === activityPicker.materialKey ? { ...row, materialId, unit: materialDraft.referenceUnit?.trim() || materialDraft.unit.trim() } : row));
-        setMaterialDetailKey(activityPicker.materialKey ?? null);
-        rememberPicker('material', materialId);
-        setMaterialDraft(emptyMaterialDraft());
-      }
       setActivityPicker(null);
     } catch (error) {
+      if (activityPicker.kind === 'material') {
+        setMaterialFormError(error instanceof Error ? error.message : 'เพิ่มวัสดุไม่สำเร็จ');
+        return;
+      }
       await refresh(state.db, error instanceof Error ? error.message : 'เพิ่มรายการไม่สำเร็จ');
     }
-  }, [activityPicker, categoryDraft, materialDraft, personDraft, plotDraft, refresh, rememberPicker, selectedCaseId, state]);
+  }, [activityPicker, categoryDraft, personDraft, plotDraft, refresh, rememberPicker, selectedCaseId, state]);
 
   const selectActivityPicker = useCallback((id: string) => {
     if (!activityPicker || state.status !== 'ready') return;
@@ -464,8 +515,18 @@ export function OperationalSliceScreen() {
     }
     if (activityPicker.kind === 'material') {
       const material = state.options.materials.find((item) => item.id === id);
-      setMaterialUsages((rows) => rows.map((row) => row.key === activityPicker.materialKey ? { ...row, materialId: id, unit: material?.unit ?? row.unit } : row));
+      setMaterialUsages((rows) => rows.map((row) => row.key === activityPicker.materialKey ? {
+        ...row,
+        materialId: id,
+        amount: '',
+        actualTankLitres: '',
+        manualAmount: '',
+        manualOverride: false,
+        unit: material?.unit ?? row.unit,
+      } : row));
       setMaterialDetailKey(activityPicker.materialKey ?? null);
+      setMaterialReturnIntent(null);
+      setMaterialFormError(null);
     }
     if (activityPicker.kind === 'worker') setSelectedWorkerId(id === 'self' ? null : id);
     if (activityPicker.kind === 'worker') setActivityWorkers((rows) => rows.map((row) => row.key === activityPicker.materialKey ? { ...row, personId: id } : row));
@@ -474,35 +535,67 @@ export function OperationalSliceScreen() {
     setActivityPicker(null);
   }, [activityPicker, refresh, rememberPicker, selectedCaseId, state]);
 
-  const saveMaterial = useCallback(async (fromActivity = false) => {
+  const saveMaterial = useCallback(async () => {
     if (state.status !== 'ready') return;
+    if (materialSaving) return;
+    const validationError = validateMaterialCatalogDraft(materialDraft);
+    if (validationError) {
+      setMaterialFormError(validationError);
+      return;
+    }
+    setMaterialSaving(true);
     try {
       const input = materialInputForSave(materialDraft);
-      const materialId = materialDraft.id
-        ? (await updateMaterial(state.db, materialDraft.id, input), materialDraft.id)
+      const isEditing = materialCatalogMode === 'materialEdit' && Boolean(editingMaterialId);
+      const materialId = isEditing
+        ? (await updateMaterial(state.db, editingMaterialId!, input), editingMaterialId!)
         : await createMaterial(state.db, input);
-      await refresh(state.db, materialDraft.id ? 'แก้ไขวัสดุแล้ว' : 'เพิ่มวัสดุแล้ว');
-      if (fromActivity) {
-        setMaterialUsages((rows) => [...rows, {
-          key: `${materialId}-${Date.now()}-${rows.length}`,
-          materialId,
-          amount: '',
-          unit: materialDraft.unit.trim(),
-          waterVolume: '',
-          waterUnit: 'ลิตร',
-          dilutionText: '',
-          note: '',
-          actualTankLitres: '',
-          manualAmount: '',
-          manualOverride: false,
-        }]);
+      await refresh(state.db, isEditing ? 'แก้ไขวัสดุแล้ว' : 'เพิ่มวัสดุแล้ว');
+      if (!isEditing && materialReturnIntent?.source === 'activity') {
+        setMaterialUsages((rows) => rows.map((row) => row.key === materialReturnIntent.usageKey
+          ? { ...row, materialId, unit: input.referenceUnit?.trim() || input.unit.trim() }
+          : row));
+        setMaterialDetailKey(materialReturnIntent.usageKey);
+        rememberPicker('material', materialId);
+        setActivityPicker(null);
+        setMaterialReturnIntent(null);
+        setMaterialDraft(emptyMaterialDraft());
+        setMaterialCatalogMode('library');
+        setMaterialFormError(null);
+        setMaterialSaving(false);
+        setView('activity');
+        return;
       }
       setMaterialDraft(emptyMaterialDraft());
-      if (!fromActivity) setView('materials');
+      setEditingMaterialId(null);
+      setMaterialCatalogMode(isEditing ? 'materialDetail' : 'library');
+      setMaterialFormError(null);
+      setMaterialSaving(false);
+      setView('materials');
     } catch (error) {
-      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกวัสดุไม่สำเร็จ');
+      setMaterialFormError(error instanceof Error ? error.message : 'บันทึกวัสดุไม่สำเร็จ');
+      setMaterialSaving(false);
     }
-  }, [materialDraft, refresh, state]);
+  }, [editingMaterialId, materialCatalogMode, materialDraft, materialReturnIntent, materialSaving, refresh, rememberPicker, state]);
+
+  const cancelMaterialForm = useCallback(() => {
+    if (materialReturnIntent?.source === 'activity') {
+      const usageKey = materialReturnIntent.usageKey;
+      setMaterialCatalogMode('library');
+      setMaterialDraft(emptyMaterialDraft());
+      setMaterialFormError(null);
+      setMaterialSaving(false);
+      setMaterialReturnIntent(null);
+      setActivityPicker({ kind: 'material', materialKey: usageKey });
+      return;
+    }
+    const returnToDetail = materialCatalogMode === 'materialEdit' && Boolean(selectedMaterialId);
+    setMaterialCatalogMode(returnToDetail ? 'materialDetail' : 'library');
+    setEditingMaterialId(null);
+    setMaterialDraft(emptyMaterialDraft());
+    setMaterialFormError(null);
+    setMaterialSaving(false);
+  }, [materialCatalogMode, materialReturnIntent, selectedMaterialId]);
 
   const toggleCategoryArchive = useCallback(async (categoryId: string, archivedAt: string | null) => {
     if (state.status !== 'ready') return;
@@ -524,6 +617,7 @@ export function OperationalSliceScreen() {
     if (archivedAt) await restoreMaterial(state.db, materialId);
     else await archiveMaterial(state.db, materialId);
     await refresh(state.db, archivedAt ? 'นำวัสดุกลับมาใช้แล้ว' : 'เก็บวัสดุเข้าแฟ้มแล้ว');
+    setArchiveConfirmationMaterialId(null);
     if (!archivedAt) setMaterialUsages((rows) => rows.filter((row) => row.materialId !== materialId));
   }, [refresh, state]);
 
@@ -550,7 +644,7 @@ export function OperationalSliceScreen() {
   const createActivity = useCallback(async (mode: 'demo' | 'field' = 'field') => {
     if (state.status !== 'ready') return;
     if (activitySaveState.status === 'saving') return;
-    const validationErrors = mode === 'field' ? validateActivityDraft({
+    const baseValidationErrors = mode === 'field' ? validateActivityDraft({
       activityDate: activityDateDraft,
       timeMode,
       startedAt: startedAtDraft,
@@ -559,6 +653,13 @@ export function OperationalSliceScreen() {
       materials: materialUsages,
       workers: activityWorkers,
     }) : [];
+    const materialUsageErrors = mode === 'field'
+      ? materialUsages.flatMap((usage, index) => {
+        const error = materialUsageValidationError(usage, state.options.materials.find((material) => material.id === usage.materialId));
+        return error ? [`วัสดุ ${index + 1}: ${error}`] : [];
+      })
+      : [];
+    const validationErrors = [...baseValidationErrors, ...materialUsageErrors];
     if (validationErrors.length) {
       setActivitySaveState({ status: 'error', message: 'ยังบันทึกไม่ได้ กรุณาตรวจรายการที่แจ้ง', errors: validationErrors });
       return;
@@ -747,6 +848,14 @@ export function OperationalSliceScreen() {
   const todayHoles = todayPlots.reduce((total, item) => total + item.totalHoles, 0);
   const todayPlantedHoles = todayPlots.reduce((total, item) => total + item.plantedHoles, 0);
   const todayTrackers = todayPlots.flatMap((item) => item.trackers.map((tracker) => ({ ...tracker, plotName: item.name })));
+  const visibleCatalogMaterials = filterMaterialLibraryItems(state.materials, {
+    archived: showArchivedMaterials,
+    query: materialSearch,
+    type: materialTypeFilter,
+  });
+  const selectedCatalogMaterial = selectedMaterialId
+    ? state.materials.find((material) => material.id === selectedMaterialId) ?? null
+    : null;
   const screenTitle =
     view === 'plot' || view === 'plotList'
       ? 'แปลง'
@@ -814,9 +923,8 @@ export function OperationalSliceScreen() {
     </>
   ) : activityPicker?.kind === 'material' ? (
     <>
-      <Text style={styles.sheetCaption}>+ เพิ่มวัสดุใหม่</Text>
-      <ChemicalCatalogFields draft={materialDraft} onChange={setMaterialDraft} />
-      <PrimaryButton label="เพิ่มและเลือกวัสดุ" onPress={() => void quickAddActivityPicker()} />
+      <Text style={styles.sheetCaption}>หาและเลือกวัสดุจากคลังได้ทันที หรือเพิ่มรายการใหม่ในหน้าถัดไป</Text>
+      <PrimaryButton label="+ เพิ่มวัสดุใหม่" onPress={beginActivityMaterialCreate} />
     </>
   ) : undefined;
 
@@ -825,6 +933,7 @@ export function OperationalSliceScreen() {
   const materialDetailCalculatedDose = materialDetailItem?.referenceAmount == null || !materialDetail?.actualTankLitres
     ? null
     : calculateChemicalDose(materialDetailItem.referenceAmount, Number(materialDetail.actualTankLitres), materialDetailItem.referenceWaterLitres ?? 200);
+  const materialDetailError = materialDetail ? materialUsageValidationError(materialDetail, materialDetailItem) : null;
   const patchMaterialUsage = (key: string, patch: Partial<MaterialUsageDraft>) => {
     setMaterialUsages((rows) => rows.map((row) => row.key === key ? { ...row, ...patch } : row));
   };
@@ -900,7 +1009,7 @@ export function OperationalSliceScreen() {
           <View style={styles.quickGrid}>
             <QuickAction label="เคส" value={`${todayPlots.reduce((count, item) => count + item.activeCases.length, 0)} ติดตาม`} onPress={() => setView('cases')} />
             <QuickAction label="ค่าแรง" value={`${dashboard.unpaidLaborTotal.toLocaleString('th-TH')} บาท`} onPress={() => setView('labor')} />
-            <QuickAction label="วัสดุ" value={`${state.materials.length} รายการ`} onPress={() => setView('materials')} />
+            <QuickAction label="วัสดุ" value={`${state.materials.length} รายการ`} onPress={openMaterialsLibrary} />
           </View>
         </>
       ) : null}
@@ -999,6 +1108,7 @@ export function OperationalSliceScreen() {
             {materialUsages.length === 0 ? <Text style={styles.noMaterial}>ไม่มีวัสดุในครั้งนี้</Text> : null}
             {materialUsages.map((usage, index) => {
               const selected = options.materials.find((item) => item.id === usage.materialId);
+              const usageError = materialUsageValidationError(usage, selected);
               const calculated = selected?.referenceAmount == null || !usage.actualTankLitres
                 ? null
                 : calculateChemicalDose(selected.referenceAmount, Number(usage.actualTankLitres), selected.referenceWaterLitres ?? 200);
@@ -1016,6 +1126,7 @@ export function OperationalSliceScreen() {
                   meta={selected ? `${amountLabel}${usage.actualTankLitres ? ` · ถัง ${usage.actualTankLitres} L` : ''}` : 'ยังไม่ได้เลือกวัสดุ'}
                   onOpen={() => selected ? setMaterialDetailKey(usage.key) : openActivityPicker('material', usage.key)}
                   onRemove={() => setMaterialUsages((rows) => rows.filter((row) => row.key !== usage.key))}
+                  error={usageError}
                 />
               );
             })}
@@ -1097,7 +1208,7 @@ export function OperationalSliceScreen() {
             />
             <RecordListItem
               meta={`${state.materials.length} รายการ · ใช้เลือกตอนบันทึกกิจกรรม`}
-              onPress={() => setView('materials')}
+              onPress={openMaterialsLibrary}
               title="วัสดุ"
               trailing="เปิด"
               variant="material"
@@ -1323,46 +1434,63 @@ export function OperationalSliceScreen() {
 
       {view === 'materials' ? (
         <>
-          <FieldCard variant="raised">
-            <Text style={styles.eyebrow}>คลังวัสดุ</Text>
-            <Text style={styles.cardTitle}>ยา ปุ๋ย และวัสดุที่เลือกใช้ซ้ำได้</Text>
-            <Text style={styles.muted}>เก็บเข้าแฟ้มจะซ่อนจากบันทึกใหม่ แต่ประวัติการใช้เดิมยังอ่านได้ครบ</Text>
-          </FieldCard>
-          <SectionHeader title={materialDraft.id ? 'แก้ไขวัสดุ' : 'เพิ่มวัสดุ'} />
-          <FieldCard>
-            <ChemicalCatalogFields draft={materialDraft} onChange={setMaterialDraft} />
-            <PrimaryButton label={materialDraft.id ? 'บันทึกการแก้ไข' : 'เพิ่มวัสดุ'} onPress={() => void saveMaterial()} />
-            {materialDraft.id ? <PrimaryButton label="ยกเลิกการแก้ไข" onPress={() => setMaterialDraft(emptyMaterialDraft())} variant="tertiary" /> : null}
-          </FieldCard>
-          <SectionHeader title={showArchivedMaterials ? 'วัสดุในแฟ้ม' : 'วัสดุที่ใช้งาน'} actionLabel={showArchivedMaterials ? 'ดูที่ใช้งาน' : 'ดูในแฟ้ม'} onActionPress={() => setShowArchivedMaterials((value) => !value)} />
-          <View style={styles.list}>
-            {state.materials.filter((material) => Boolean(material.archivedAt) === showArchivedMaterials).map((material) => (
-              <View key={material.id} style={styles.directoryRow}>
+          {materialCatalogMode === 'materialDetail' && selectedCatalogMaterial ? <>
+            <FieldCard variant="raised">
+              <Text style={styles.eyebrow}>{selectedCatalogMaterial.archivedAt ? 'อยู่ในคลัง' : 'ใช้เลือกในกิจกรรมใหม่ได้'}</Text>
+              <Text style={styles.title}>{selectedCatalogMaterial.commonName || selectedCatalogMaterial.name}</Text>
+              {selectedCatalogMaterial.brandName ? <Text style={styles.muted}>ยี่ห้อ {selectedCatalogMaterial.brandName}</Text> : null}
+              <Text style={styles.muted}>{materialTypeLabel(selectedCatalogMaterial.type as MaterialInput['type'])} · {selectedCatalogMaterial.unit}</Text>
+            </FieldCard>
+            <SectionHeader title="ข้อมูลการใช้" />
+            <View style={styles.list}>
+              <RecordListItem title="อัตราเริ่มต้น" meta={selectedCatalogMaterial.referenceAmount != null ? `${selectedCatalogMaterial.referenceAmount} ${selectedCatalogMaterial.referenceUnit ?? selectedCatalogMaterial.unit} / น้ำ ${selectedCatalogMaterial.referenceWaterLitres ?? 200} L` : 'ยังไม่ได้ตั้งอัตรา ใช้ระบุปริมาณจริงตอนบันทึกกิจกรรม'} trailing="ค่าเริ่มต้น" variant="material" />
+              <RecordListItem title="ประวัติการใช้" meta={selectedCatalogMaterial.lastUsedAt ? `ใช้ล่าสุด ${formatThaiShortDate(selectedCatalogMaterial.lastUsedAt)}` : 'ยังไม่เคยถูกบันทึกในกิจกรรม'} trailing={`${selectedCatalogMaterial.usageCount} ครั้ง`} variant="activity" />
+              {selectedCatalogMaterial.notes ? <RecordListItem title="รายละเอียด" meta={selectedCatalogMaterial.notes} trailing="โน้ต" variant="material" /> : null}
+            </View>
+            <PrimaryButton label="แก้ไขวัสดุ" onPress={() => beginMaterialEdit(selectedCatalogMaterial)} />
+            {selectedCatalogMaterial.archivedAt ? <>
+              <Text style={styles.muted}>นำกลับมาใช้แล้ว วัสดุนี้จะกลับไปให้เลือกในกิจกรรมใหม่ ประวัติก่อนหน้ายังอยู่ครบ</Text>
+              <PrimaryButton label="นำกลับมาใช้" onPress={() => void toggleMaterialArchive(selectedCatalogMaterial.id, selectedCatalogMaterial.archivedAt)} variant="secondary" />
+            </> : archiveConfirmationMaterialId === selectedCatalogMaterial.id ? <FieldCard variant="alert">
+              <Text style={styles.cardTitle}>เก็บวัสดุเข้าคลัง?</Text>
+              <Text style={styles.muted}>วัสดุนี้จะหายจากตัวเลือกของกิจกรรมใหม่เท่านั้น ประวัติการใช้และ snapshot เดิมจะไม่ถูกลบ</Text>
+              <PrimaryButton label="ยืนยันเก็บเข้าคลัง" onPress={() => void toggleMaterialArchive(selectedCatalogMaterial.id, null)} variant="tertiary" />
+              <PrimaryButton label="ยังไม่เก็บ" onPress={() => setArchiveConfirmationMaterialId(null)} variant="secondary" />
+            </FieldCard> : <PrimaryButton label="เก็บเข้าคลัง" onPress={() => setArchiveConfirmationMaterialId(selectedCatalogMaterial.id)} variant="tertiary" />}
+            <PrimaryButton label="กลับคลังวัสดุ" onPress={() => { setMaterialCatalogMode('library'); setSelectedMaterialId(null); }} variant="secondary" />
+          </> : <>
+            <FieldCard variant="raised">
+              <Text style={styles.eyebrow}>คลังวัสดุ</Text>
+              <Text style={styles.cardTitle}>ยา ปุ๋ย และวัสดุที่เลือกใช้ซ้ำได้</Text>
+              <Text style={styles.muted}>แตะรายการเพื่อดูรายละเอียด · เก็บเข้าคลังจะซ่อนจากบันทึกใหม่ แต่ประวัติยังอ่านได้ครบ</Text>
+            </FieldCard>
+            {materialCatalogMode !== 'materialCreate' && materialCatalogMode !== 'materialEdit' ? <PrimaryButton label="+ เพิ่มวัสดุ" onPress={() => beginMaterialCreate()} /> : null}
+            <SectionHeader title={showArchivedMaterials ? 'วัสดุในคลัง' : 'วัสดุที่ใช้งาน'} />
+            <View style={styles.catalogControls}>
+              <TextInput onChangeText={setMaterialSearch} placeholder="ค้นหาชื่อ ชื่อสามัญ หรือโน้ต" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={materialSearch} />
+              <View style={styles.chipWrap}>
+                <SelectPill active={!showArchivedMaterials} label="กำลังใช้" onPress={() => setShowArchivedMaterials(false)} />
+                <SelectPill active={showArchivedMaterials} label="ในคลัง" onPress={() => setShowArchivedMaterials(true)} />
+              </View>
+              <View style={styles.chipWrap}>
+                {([['all', 'ทั้งหมด'], ['chemical', 'สารเคมี'], ['fertilizer', 'ปุ๋ย'], ['other', 'อื่น ๆ']] as const).map(([filter, label]) => <SelectPill active={materialTypeFilter === filter} key={filter} label={label} onPress={() => setMaterialTypeFilter(filter)} />)}
+              </View>
+            </View>
+            <View style={styles.list}>
+              {visibleCatalogMaterials.map((material) => (
                 <RecordListItem
-                  meta={`${materialTypeLabel(material.type as MaterialInput['type'])} · ${material.defaultRatePerTank ?? material.unit} · ใช้แล้ว ${material.usageCount} ครั้ง${material.archivedAt ? ' · อยู่ในแฟ้ม ประวัติยังอ่านได้' : ''}`}
-                  onPress={() => setMaterialDraft({
-                    id: material.id,
-                    name: material.name,
-                    type: material.type as MaterialInput['type'],
-                    unit: material.unit,
-                    defaultRatePerTank: material.defaultRatePerTank,
-                    commonName: material.commonName,
-                    brandName: material.brandName,
-                    chemicalGroup: material.chemicalGroup,
-                    usageLabel: material.usageLabel,
-                    referenceAmount: material.referenceAmount,
-                    referenceUnit: material.referenceUnit,
-                    referenceWaterLitres: material.referenceWaterLitres ?? 200,
-                  })}
-                  title={material.name}
-                  trailing={material.lastUsedAt ? formatThaiShortDate(material.lastUsedAt) : material.unit}
+                  key={material.id}
+                  meta={`${materialTypeLabel(material.type as MaterialInput['type'])} · ${material.defaultRatePerTank ?? material.unit} · ใช้แล้ว ${material.usageCount} ครั้ง`}
+                  onPress={() => beginMaterialDetail(material.id)}
+                  title={material.commonName || material.name}
+                  trailing="ดู"
                   variant="material"
                 />
-                <PrimaryButton label={material.archivedAt ? 'นำกลับมาใช้' : 'เก็บเข้าแฟ้ม'} onPress={() => void toggleMaterialArchive(material.id, material.archivedAt)} variant={material.archivedAt ? 'secondary' : 'tertiary'} />
-              </View>
-            ))}
-          </View>
-          <PrimaryButton label="บันทึกกิจกรรม" onPress={() => setView('activity')} variant="secondary" />
+              ))}
+              {visibleCatalogMaterials.length === 0 ? <RecordListItem title={materialSearch ? 'ไม่พบวัสดุที่ค้นหา' : showArchivedMaterials ? 'ยังไม่มีวัสดุในคลัง' : 'ยังไม่มีวัสดุที่ใช้งาน'} meta={materialSearch ? 'ลองค้นหาด้วยชื่อสามัญ ยี่ห้อ หรือโน้ต' : 'กด + เพิ่มวัสดุ เพื่อเริ่มสร้างคลัง'} trailing="" variant="material" /> : null}
+            </View>
+            <PrimaryButton label="บันทึกกิจกรรม" onPress={() => setView('activity')} variant="secondary" />
+          </>}
         </>
       ) : null}
 
@@ -1427,29 +1555,41 @@ export function OperationalSliceScreen() {
           </View>
         </>
       ) : null}
+      <Modal animationType="slide" onRequestClose={cancelMaterialForm} presentationStyle="pageSheet" transparent visible={(view === 'materials' || materialReturnIntent?.source === 'activity') && (materialCatalogMode === 'materialCreate' || materialCatalogMode === 'materialEdit')}>
+        <View style={styles.materialSheetBackdrop}>
+          <View style={styles.materialSheet}>
+            <View style={styles.sheetHeader}>
+              <View><Text style={styles.sheetTitle}>{materialCatalogMode === 'materialEdit' ? 'แก้ไขวัสดุ' : 'เพิ่มวัสดุ'}</Text><Text style={styles.muted}>{materialCatalogMode === 'materialEdit' ? 'แก้เฉพาะข้อมูลในคลัง ประวัติใช้เดิมไม่เปลี่ยน' : materialReturnIntent?.source === 'activity' ? 'เพิ่มแล้วจะกลับไปกำหนดปริมาณในกิจกรรมนี้' : 'เริ่มจากข้อมูลที่จำเป็นก่อน'}</Text></View>
+              <Pressable accessibilityRole="button" onPress={cancelMaterialForm}><Text style={styles.close}>ยกเลิก</Text></Pressable>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <MaterialCatalogFormFields draft={materialDraft} onChange={setMaterialDraft} />
+              {materialFormError ? <Text style={styles.danger}>{materialFormError}</Text> : null}
+            </ScrollView>
+            <StickySaveBar disabled={materialSaving} label={materialSaving ? 'กำลังบันทึก…' : materialCatalogMode === 'materialEdit' ? 'บันทึกการแก้ไข' : materialReturnIntent?.source === 'activity' ? 'เพิ่มและใช้กับกิจกรรมนี้' : 'เพิ่มวัสดุ'} onPress={() => void saveMaterial()} />
+          </View>
+        </View>
+      </Modal>
       <Modal animationType="slide" onRequestClose={() => setMaterialDetailKey(null)} presentationStyle="pageSheet" transparent visible={Boolean(materialDetail && materialDetailItem)}>
         <View style={styles.materialSheetBackdrop}>
           <View style={styles.materialSheet}>
-            <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>รายละเอียดวัสดุ</Text><Pressable accessibilityRole="button" onPress={() => setMaterialDetailKey(null)}><Text style={styles.close}>ปิด</Text></Pressable></View>
+            <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>กำหนดปริมาณวัสดุ</Text><Pressable accessibilityRole="button" onPress={() => setMaterialDetailKey(null)}><Text style={styles.close}>ปิด</Text></Pressable></View>
             {materialDetail && materialDetailItem ? <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.chemicalTitle}>{[materialDetailItem.commonName, materialDetailItem.brandName].filter(Boolean).join(' · ') || materialDetailItem.name}</Text>
               <Text style={styles.muted}>อ้างอิง {materialDetailItem.referenceAmount ?? '—'} {materialDetailItem.referenceUnit ?? materialDetailItem.unit} / น้ำ {materialDetailItem.referenceWaterLitres ?? 200} L</Text>
               {materialDetailItem.referenceAmount != null ? <>
                 <Text style={styles.inputLabel}>น้ำในถังครั้งนี้ (L)</Text>
                 <TextInput keyboardType="decimal-pad" onChangeText={(actualTankLitres) => patchMaterialUsage(materialDetail.key, { actualTankLitres })} placeholder="เช่น 50" style={styles.input} value={materialDetail.actualTankLitres} />
-                {materialDetailCalculatedDose != null ? <Text style={styles.calculatedDose}>คำนวณอัตโนมัติ: {materialDetailCalculatedDose} {materialDetailItem.referenceUnit ?? materialDetailItem.unit}</Text> : <Text style={styles.muted}>ใส่ปริมาณน้ำเพื่อคำนวณอัตราให้</Text>}
-                {!materialDetail.manualOverride ? <PrimaryButton label="กำหนดปริมาณเอง (ขั้นสูง)" onPress={() => patchMaterialUsage(materialDetail.key, { manualOverride: true })} variant="tertiary" /> : <>
-                  <Text style={styles.inputLabel}>ปริมาณที่กำหนดเอง</Text>
-                  <TextInput keyboardType="decimal-pad" onChangeText={(manualAmount) => patchMaterialUsage(materialDetail.key, { manualAmount })} placeholder="เช่น 5" style={styles.input} value={materialDetail.manualAmount} />
-                  <PrimaryButton label="กลับไปใช้ค่าคำนวณอัตโนมัติ" onPress={() => patchMaterialUsage(materialDetail.key, { manualAmount: '', manualOverride: false })} variant="tertiary" />
-                </>}
+                {materialDetailCalculatedDose != null && Number(materialDetail.actualTankLitres) > 0 ? <View style={styles.lockedDose}><Text style={styles.calculatedDose}>ปริมาณที่ต้องใช้: {materialDetailCalculatedDose} {materialDetailItem.referenceUnit ?? materialDetailItem.unit}</Text><Text style={styles.muted}>คำนวณจากอัตราอ้างอิงแล้ว · ปริมาณนี้ล็อกไว้</Text></View> : <Text style={styles.muted}>ต้องระบุน้ำในถังให้มากกว่า 0 L ก่อน ระบบจึงคำนวณปริมาณให้</Text>}
               </> : <>
-                <Text style={styles.inputLabel}>ปริมาณจริง</Text>
+                <Text style={styles.inputLabel}>ปริมาณที่ใช้ *</Text>
                 <View style={styles.formRow}><TextInput keyboardType="decimal-pad" onChangeText={(amount) => patchMaterialUsage(materialDetail.key, { amount })} placeholder="เช่น 20" style={[styles.input, styles.formCell]} value={materialDetail.amount} /><TextInput onChangeText={(unit) => patchMaterialUsage(materialDetail.key, { unit })} placeholder={materialDetailItem.unit} style={[styles.input, styles.formCell]} value={materialDetail.unit} /></View>
               </>}
               <Text style={styles.inputLabel}>รายละเอียดเพิ่มเติม (ถ้ามี)</Text>
               <TextInput multiline onChangeText={(note) => patchMaterialUsage(materialDetail.key, { note })} placeholder="เช่น จุดที่ใช้ หรือข้อสังเกต" style={[styles.input, styles.textAreaSmall]} value={materialDetail.note} />
+              {materialDetailError ? <Text style={styles.danger}>{materialDetailError}</Text> : null}
             </ScrollView> : null}
+            <StickySaveBar disabled={Boolean(materialDetailError)} label={materialDetailError ? 'กรอกปริมาณให้ครบก่อน' : 'ยืนยันปริมาณ'} onPress={() => setMaterialDetailKey(null)} />
           </View>
         </View>
       </Modal>
@@ -1469,30 +1609,39 @@ export function OperationalSliceScreen() {
   );
 }
 
-function ChemicalCatalogFields({ draft, onChange }: { draft: MaterialInput; onChange: (next: MaterialInput | ((current: MaterialInput) => MaterialInput)) => void }) {
+function MaterialCatalogFormFields({ draft, onChange }: { draft: MaterialInput; onChange: (next: MaterialInput | ((current: MaterialInput) => MaterialInput)) => void }) {
+  const [showRate, setShowRate] = useState(draft.referenceAmount != null);
+  const [showDetail, setShowDetail] = useState(Boolean(draft.notes));
   const selectUnit = (unit: string) => onChange((current) => ({ ...current, unit, referenceUnit: unit }));
   return <>
-    <Text style={styles.inputLabel}>ชื่อสามัญ / ชื่อเรียก</Text>
-    <TextInput onChangeText={(name) => onChange((current) => ({ ...current, name }))} placeholder="เช่น แมนโคเซบ" style={styles.input} value={draft.name} />
+    <Text style={styles.inputLabel}>ชื่อสามัญ / ชื่อเรียก *</Text>
+    <TextInput autoFocus onChangeText={(name) => onChange((current) => ({ ...current, name }))} placeholder="เช่น แมนโคเซบ" style={styles.input} value={draft.name} />
     <Text style={styles.inputLabel}>ชื่อยี่ห้อ (ถ้ามี)</Text>
     <TextInput onChangeText={(brandName) => onChange((current) => ({ ...current, brandName }))} placeholder="เช่น ไดเทน" style={styles.input} value={draft.brandName ?? ''} />
-    <Text style={styles.inputLabel}>หน่วยอัตรา</Text>
+    <Text style={styles.inputLabel}>ชนิด</Text>
+    <View style={styles.unitChoiceRow}>{([['fungicide', 'สารป้องกัน'], ['fertilizer', 'ปุ๋ย'], ['other', 'อื่น ๆ']] as const).map(([type, label]) => <SelectPill active={draft.type === type} key={type} label={label} onPress={() => onChange((current) => ({ ...current, type }))} />)}</View>
+    <Text style={styles.inputLabel}>หน่วย *</Text>
     <View style={styles.unitChoiceRow}>{['cc', 'ml', 'กรัม'].map((unit) => <SelectPill active={(draft.referenceUnit ?? draft.unit) === unit} key={unit} label={unit} onPress={() => selectUnit(unit)} />)}</View>
-    <TextInput onChangeText={(unit) => selectUnit(unit)} placeholder="หรือพิมพ์หน่วยเอง เช่น g" style={styles.input} value={draft.referenceUnit ?? draft.unit} />
-    <Text style={styles.inputLabel}>อัตราอ้างอิง</Text>
-    <TextInput keyboardType="decimal-pad" onChangeText={(value) => onChange((current) => ({ ...current, referenceAmount: positiveNumberOrNull(value), referenceWaterLitres: current.referenceWaterLitres ?? 200 }))} placeholder="เช่น 20" style={styles.input} value={draft.referenceAmount == null ? '' : String(draft.referenceAmount)} />
-    <Text style={styles.inputLabel}>น้ำอ้างอิง (L)</Text>
-    <TextInput keyboardType="decimal-pad" onChangeText={(value) => onChange((current) => ({ ...current, referenceWaterLitres: positiveNumberOrNull(value) ?? 200 }))} placeholder="200" style={styles.input} value={String(draft.referenceWaterLitres ?? 200)} />
-    <Text style={styles.inputLabel}>รายละเอียด (ถ้ามี)</Text>
-    <TextInput multiline onChangeText={(notes) => onChange((current) => ({ ...current, notes }))} placeholder="เช่น ใช้พ่นป้องกันเชื้อรา" style={[styles.input, styles.textAreaSmall]} value={draft.notes ?? ''} />
+    <TextInput onChangeText={selectUnit} placeholder="หรือพิมพ์หน่วยเอง เช่น g" style={styles.input} value={draft.referenceUnit ?? draft.unit} />
+    <Pressable accessibilityRole="button" onPress={() => setShowRate((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>อัตราอ้างอิง (ถ้ามี)</Text><Text style={styles.disclosureAction}>{showRate ? 'ซ่อน' : 'เพิ่มอัตรา'}</Text></Pressable>
+    {showRate ? <View style={styles.inlineForm}>
+      <Text style={styles.inputLabel}>อัตราอ้างอิง</Text>
+      <TextInput keyboardType="decimal-pad" onChangeText={(value) => onChange((current) => ({ ...current, referenceAmount: positiveNumberOrNull(value), referenceWaterLitres: current.referenceWaterLitres ?? 200 }))} placeholder="เช่น 20" style={styles.input} value={draft.referenceAmount == null ? '' : String(draft.referenceAmount)} />
+      <Text style={styles.inputLabel}>น้ำอ้างอิง (L)</Text>
+      <TextInput keyboardType="decimal-pad" onChangeText={(value) => onChange((current) => ({ ...current, referenceWaterLitres: positiveNumberOrNull(value) ?? 200 }))} placeholder="200" style={styles.input} value={String(draft.referenceWaterLitres ?? 200)} />
+      <Text style={styles.muted}>หากใส่อัตรา ระบบจะใช้ 200 L เป็นค่าเริ่มต้นและคำนวณจากน้ำในถังตอนบันทึกกิจกรรม</Text>
+    </View> : null}
+    <Pressable accessibilityRole="button" onPress={() => setShowDetail((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>รายละเอียด (ถ้ามี)</Text><Text style={styles.disclosureAction}>{showDetail ? 'ซ่อน' : 'เพิ่มโน้ต'}</Text></Pressable>
+    {showDetail ? <TextInput multiline onChangeText={(notes) => onChange((current) => ({ ...current, notes }))} placeholder="เช่น ใช้พ่นป้องกันเชื้อรา" style={[styles.input, styles.textAreaSmall]} value={draft.notes ?? ''} /> : null}
   </>;
 }
 
-function MaterialSummary({ label, meta, onOpen, onRemove }: { label: string; meta: string; onOpen: () => void; onRemove: () => void }) {
+function MaterialSummary({ error, label, meta, onOpen, onRemove }: { error?: string | null; label: string; meta: string; onOpen: () => void; onRemove: () => void }) {
   return <View style={styles.materialSummary}>
     <Pressable accessibilityRole="button" onPress={onOpen} style={styles.materialSummaryMain}>
       <Text numberOfLines={1} style={styles.cardTitle}>{label}</Text>
       <Text numberOfLines={1} style={styles.muted}>{meta}</Text>
+      {error ? <Text style={styles.danger}>{error}</Text> : null}
     </Pressable>
     <Pressable accessibilityRole="button" onPress={onRemove} style={styles.materialSummaryRemove}><Text style={styles.removeText}>นำออก</Text></Pressable>
   </View>;
@@ -1501,6 +1650,16 @@ function MaterialSummary({ label, meta, onOpen, onRemove }: { label: string; met
 function positiveNumberOrNull(value: string): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function materialUsageValidationError(usage: MaterialUsageDraft, material: { referenceAmount?: number | null; unit: string } | null | undefined): string | null {
+  if (!material) return 'กรุณาเลือกวัสดุหรือกดนำออก';
+  if (material.referenceAmount != null) {
+    return Number(usage.actualTankLitres) > 0 ? null : 'กรุณาระบุน้ำในถังให้มากกว่า 0 L';
+  }
+  if (!(Number(usage.amount) > 0)) return 'กรุณาระบุปริมาณที่ใช้ให้มากกว่า 0';
+  if (!usage.unit.trim()) return 'กรุณาระบุหน่วยของปริมาณที่ใช้';
+  return null;
 }
 
 function materialInputForSave(draft: MaterialInput): MaterialInput {
@@ -1670,6 +1829,9 @@ const styles = StyleSheet.create({
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: tokens.spacing.control,
+  },
+  catalogControls: {
     gap: tokens.spacing.control,
   },
   quickGrid: {
@@ -1877,6 +2039,14 @@ const styles = StyleSheet.create({
     fontSize: tokens.typography.body.size,
     fontWeight: '700',
     marginTop: tokens.spacing.control,
+  },
+  lockedDose: {
+    backgroundColor: '#F2F8ED',
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.button,
+    borderWidth: 1,
+    marginTop: tokens.spacing.control,
+    padding: tokens.spacing.control,
   },
   followUpSummary: {
     backgroundColor: '#F2F8ED',

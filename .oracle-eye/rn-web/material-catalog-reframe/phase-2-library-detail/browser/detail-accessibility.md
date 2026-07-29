@@ -1,0 +1,37 @@
+- generic [ref=f8e5] [box=0,0,390,844]:
+  - generic [ref=f8e7] [box=0,0,390,661]:
+    - generic [ref=f8e8] [box=16,16,358,52]:
+      - generic [ref=f8e9] [box=32,27,28,30]: ☰
+      - generic [ref=f8e10] [box=72,28,224,28]: วัสดุ
+      - button "ออฟไลน์" [ref=f8e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=f8e103] [box=16,84,358,138]:
+      - generic [ref=f8e104] [box=31,99,328,18]: ใช้เลือกในกิจกรรมใหม่ได้
+      - generic [ref=f8e105] [box=31,119,328,38]: แมนโคเซบ
+      - generic [ref=f8e106] [box=31,161,328,21]: ยี่ห้อ ยา A
+      - generic [ref=f8e142] [box=31,186,328,21]: ยาป้องกันเชื้อรา · cc
+    - generic [ref=f8e143] [box=16,238,358,36]: ข้อมูลการใช้
+    - generic [ref=f8e145] [box=16,290,358,177]:
+      - generic [ref=f8e146] [cursor=pointer] [box=17,291,356,59]:
+        - generic [ref=f8e148] [box=47,299,256,42]:
+          - generic [ref=f8e149] [box=47,299,256,22]: อัตราเริ่มต้น
+          - generic [ref=f8e150] [box=47,323,256,18]: 20 cc / น้ำ 200 L
+        - generic [ref=f8e151] [box=311,311,50,18]: ค่าเริ่มต้น
+      - generic [ref=f8e152] [cursor=pointer] [box=17,350,356,59]:
+        - generic [ref=f8e154] [box=47,358,273,42]:
+          - generic [ref=f8e155] [box=47,358,273,22]: ประวัติการใช้
+          - generic [ref=f8e156] [box=47,382,273,18]: ยังไม่เคยถูกบันทึกในกิจกรรม
+        - generic [ref=f8e157] [box=328,370,33,18]: 0 ครั้ง
+      - generic [ref=f8e158] [cursor=pointer] [box=17,409,356,57]:
+        - generic [ref=f8e160] [box=47,417,284,40]:
+          - generic [ref=f8e161] [box=47,417,284,22]: รายละเอียด
+          - generic [ref=f8e162] [box=47,441,284,16]: RN Web preview material
+        - generic [ref=f8e163] [box=339,428,23,18]: โน้ต
+    - button "แก้ไขวัสดุ" [ref=f8e164] [cursor=pointer] [box=16,483,358,46]
+    - button "เก็บเข้าคลัง" [ref=f8e166] [cursor=pointer] [box=16,545,358,46]
+    - button "กลับคลังวัสดุ" [ref=f8e168] [cursor=pointer] [box=16,607,358,46]
+  - generic [ref=f8e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f8e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f8e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f8e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f8e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f8e101] [cursor=pointer] [box=298,777,69,44]

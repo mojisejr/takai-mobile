@@ -1,0 +1,25 @@
+{
+  "project": "takai-mobile",
+  "phase": "material-catalog-reframe/phase-3-add-edit",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-07-29T08:44:39+07:00",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/export/index.html",
+    "addScreenshot": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/browser/add-material-390x844.png",
+    "editScreenshot": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/browser/edit-material-390x844.png",
+    "addAccessibility": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/browser/add-accessibility.md",
+    "editAccessibility": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/browser/edit-accessibility.md",
+    "console": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/browser/console-final.json",
+    "network": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/browser/network-final.json",
+    "manifest": ".oracle-eye/rn-web/material-catalog-reframe/phase-3-add-edit/manifest.json"
+  },
+  "notes": [
+    "390x844 RN Web capture exercised Library -> Add, inline required-name validation, successful add, Detail -> Edit.",
+    "Final browser console captured 0 errors; two known warnings are React Native Web shadow deprecation and Expo Notifications web listener availability.",
+    "No non-static network failures were captured.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

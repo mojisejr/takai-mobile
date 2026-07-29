@@ -1,0 +1,64 @@
+- generic [ref=e5]:
+  - generic [ref=e7]:
+    - generic [ref=e15]:
+      - generic [ref=e16]: ☰
+      - generic [ref=e17]: วันนี้
+      - button "ออฟไลน์" [ref=e18] [cursor=pointer]
+    - generic [ref=e20]:
+      - generic [ref=e21]: สวนตาไก๊
+      - button "บันทึก" [ref=e22] [cursor=pointer]
+    - generic [ref=e24]:
+      - generic [ref=e25]: ขอบเขตวันนี้
+      - generic [ref=e26]:
+        - generic [ref=e27] [cursor=pointer]: ทุกแปลง
+        - generic [ref=e29] [cursor=pointer]: แปลง A
+        - generic [ref=e31] [cursor=pointer]: แปลงหลังบ้าน
+      - generic [ref=e33]: เลือกเพื่อดูภาพรวมเท่านั้น — แปลงในแบบบันทึกยังเป็นรายการที่เลือกไว้เอง
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]
+        - generic [ref=e40]: Local
+      - generic [ref=e42]:
+        - generic [ref=e43]
+        - generic [ref=e46]
+        - generic [ref=e49]
+    - button "+ บันทึกกิจกรรม" [ref=e52] [cursor=pointer]
+    - generic [ref=e54]: รายการล่าสุด
+    - generic [ref=e57] [cursor=pointer]:
+      - generic [ref=e59]:
+        - generic [ref=e60]: ยังไม่มีบันทึกวันนี้
+        - generic [ref=e61]: RN Web preview ใช้ข้อมูลจำลอง ไม่แตะ SQLite
+      - generic [ref=e62]: เริ่ม
+    - generic [ref=e63]:
+      - generic [ref=e64]: Tracker สำคัญ
+      - button "แปลง" [ref=e65] [cursor=pointer]
+    - generic [ref=e67]:
+      - generic [ref=e68]: พ่นยา · แปลง A
+      - generic [ref=e70]: ครั้งที่ 0 ยังไม่เคยบันทึก
+    - generic [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e74]: ใส่ปุ๋ย · แปลง A
+        - generic [ref=e75]: เกินกำหนด 4 วัน
+      - generic [ref=e76]: ครั้งที่ 3 ผ่านมา 6 วัน
+    - generic [ref=e79]:
+      - generic [ref=e80]:
+        - generic [ref=e81]: แต่งกิ่ง · แปลง A
+        - generic [ref=e82]: เกินกำหนด 1 วัน
+      - generic [ref=e83]: ครั้งที่ 2 ผ่านมา 13 วัน
+    - generic [ref=e86]: สมุดที่ต้องดู
+    - generic [ref=e88]:
+      - generic [ref=e89] [cursor=pointer]:
+        - generic [ref=e90]: 1 ติดตาม
+        - generic [ref=e91]: เคส
+      - generic [ref=e92] [cursor=pointer]:
+        - generic [ref=e93]: 0 บาท
+        - generic [ref=e94]: ค่าแรง
+      - generic [ref=e95] [cursor=pointer]:
+        - generic [ref=e96]: 2 รายการ
+        - generic [ref=e97]: วัสดุ
+  - generic [ref=e99]:
+    - tab "วันนี้" [ref=e100] [cursor=pointer]
+    - tab "แปลง" [ref=e102] [cursor=pointer]
+    - tab "บันทึก" [ref=e104] [cursor=pointer]
+    - tab "เคส" [ref=e106] [cursor=pointer]
+    - tab "เมนู" [ref=e108] [cursor=pointer]

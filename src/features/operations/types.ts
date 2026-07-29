@@ -341,6 +341,7 @@ export type MaterialLibraryItem = {
   lastUsedAt: string | null;
   usageCount: number;
   archivedAt: string | null;
+  notes: string | null;
   commonName: string | null;
   brandName: string | null;
   chemicalGroup: string | null;

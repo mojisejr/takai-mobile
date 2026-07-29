@@ -11,14 +11,17 @@ const requiredScreenTokens = [
   '5. ติดตามต่อ (ถ้ามี)',
   'ไม่มีวัสดุในครั้งนี้',
   '+ เลือกวัสดุ',
-  'เพิ่มและเลือกวัสดุ',
+  '+ เพิ่มวัสดุใหม่',
+  'เพิ่มและใช้กับกิจกรรมนี้',
+  'beginActivityMaterialCreate',
+  'materialReturnIntent?.source === \'activity\'',
   'MaterialSummary',
-  'รายละเอียดวัสดุ',
+  'กำหนดปริมาณวัสดุ',
   'น้ำในถังครั้งนี้ (L)',
-  'คำนวณอัตโนมัติ:',
-  'กำหนดปริมาณเอง (ขั้นสูง)',
-  'กลับไปใช้ค่าคำนวณอัตโนมัติ',
-  'ChemicalCatalogFields',
+  'ปริมาณที่ต้องใช้:',
+  'ปริมาณนี้ล็อกไว้',
+  'กรอกปริมาณให้ครบก่อน',
+  'materialUsageValidationError',
   'ชื่อสามัญ / ชื่อเรียก',
   'ชื่อยี่ห้อ (ถ้ามี)',
   'น้ำอ้างอิง (L)',
@@ -34,7 +37,7 @@ for (const token of requiredScreenTokens) {
   if (!screen.includes(token)) throw new Error(`activity/material UI contract missing: ${token}`);
 }
 
-for (const forbiddenToken of ['options.materials.slice(0, 4)', 'parsedAmount > 0 ? parsedAmount : 1']) {
+for (const forbiddenToken of ['options.materials.slice(0, 4)', 'parsedAmount > 0 ? parsedAmount : 1', 'ChemicalCatalogFields', 'เพิ่มและเลือกวัสดุ', 'กำหนดปริมาณเอง (ขั้นสูง)']) {
   if (screen.includes(forbiddenToken)) throw new Error(`activity/material UI regression found: ${forbiddenToken}`);
 }
 

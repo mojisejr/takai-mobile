@@ -33,14 +33,14 @@ const main = async (): Promise<void> => {
     'บันทึกกิจกรรมแปลงนี้',
     'TimeModeControl',
     '+ เพิ่มคนงาน',
-    'คำนวณอัตโนมัติ:',
-    'กำหนดปริมาณเอง (ขั้นสูง)',
+    'ปริมาณที่ต้องใช้:',
+    'ปริมาณนี้ล็อกไว้',
     'เลือกวันโดยตรง',
     'เปิดการแจ้งเตือนวันติดตาม',
   ]) {
     assert.ok(screen.includes(label), `field acceptance surface must retain ${label}`);
   }
-  console.log('FIELD_ACCEPTANCE_CONTRACT_PASS: setup, truthful time, independent workers, chemical override, canonical follow-up, and explicit reminder opt-in are ready for operator proof');
+  console.log('FIELD_ACCEPTANCE_CONTRACT_PASS: setup, truthful time, independent workers, locked chemical dose, canonical follow-up, and explicit reminder opt-in are ready for operator proof');
 };
 
 main().catch((error: unknown) => {

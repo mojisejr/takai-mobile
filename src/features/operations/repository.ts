@@ -106,6 +106,7 @@ type MaterialRow = {
   unit: string;
   default_rate_per_tank: string | null;
   photo_uri: string | null;
+  notes: string | null;
   last_used_at: string | null;
   usage_count: number;
   archived_at: string | null;
@@ -404,6 +405,7 @@ export const listMaterials = async (db: SqlExecutor, includeArchived = false): P
        materials.unit,
        materials.default_rate_per_tank,
        materials.photo_uri,
+       materials.notes,
        materials.archived_at,
        materials.common_name,
        materials.brand_name,
@@ -429,6 +431,7 @@ export const listMaterials = async (db: SqlExecutor, includeArchived = false): P
     unit: row.unit,
     defaultRatePerTank: row.default_rate_per_tank,
     photoUri: row.photo_uri,
+    notes: row.notes,
     lastUsedAt: row.last_used_at,
     usageCount: Number(row.usage_count),
     archivedAt: row.archived_at,

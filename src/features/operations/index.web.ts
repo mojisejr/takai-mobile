@@ -32,7 +32,13 @@ export * from './chemical';
 export * from './followUp';
 export * from './followUpNotifications';
 export * from './activityValidation';
+export * from './materialCatalogFlow';
 export type * from './types';
+
+// React Native Web resolves this barrel at runtime; keep shared-screen helpers explicit here.
+export { calculateChemicalDose } from './chemical';
+export { validateActivityDraft } from './activityValidation';
+export { filterMaterialLibraryItems } from './materialCatalogFlow';
 
 const WEB_PREVIEW_NOW = '2026-07-16T08:30:00.000Z';
 
@@ -105,6 +111,7 @@ const buildMaterials = (db: WebPreviewDb, includeArchived = true): MaterialLibra
     unit: material.unit,
     defaultRatePerTank: material.defaultRatePerTank ?? null,
     photoUri: material.photoUri ?? null,
+    notes: material.notes ?? null,
     lastUsedAt: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? WEB_PREVIEW_NOW : null,
     usageCount: db.demoSprayCount > 0 && material.id === 'mat-fungicide-a' ? 1 : 0,
     archivedAt: material.archivedAt,

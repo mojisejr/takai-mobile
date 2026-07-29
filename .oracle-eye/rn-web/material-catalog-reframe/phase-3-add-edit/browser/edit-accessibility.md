@@ -1,0 +1,83 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: ☰
+        - generic [ref=e17]: วัสดุ
+        - button "ออฟไลน์" [ref=e18] [cursor=pointer]
+      - generic [ref=e193]: เพิ่มวัสดุแล้ว
+      - generic [ref=e110]:
+        - generic [ref=e111]: คลังวัสดุ
+        - generic [ref=e112]: ยา ปุ๋ย และวัสดุที่เลือกใช้ซ้ำได้
+        - generic [ref=e113]: แตะรายการเพื่อดูรายละเอียด · เก็บเข้าคลังจะซ่อนจากบันทึกใหม่ แต่ประวัติยังอ่านได้ครบ
+      - generic [ref=e230]: วัสดุที่ใช้งาน
+      - generic [ref=e232]:
+        - textbox "ค้นหาชื่อ ชื่อสามัญ หรือโน้ต" [ref=e233]
+        - generic [ref=e234]:
+          - generic [ref=e235] [cursor=pointer]: กำลังใช้
+          - generic [ref=e237] [cursor=pointer]: ในคลัง
+        - generic [ref=e239]:
+          - generic [ref=e240] [cursor=pointer]: ทั้งหมด
+          - generic [ref=e242] [cursor=pointer]: สารเคมี
+          - generic [ref=e244] [cursor=pointer]: ปุ๋ย
+          - generic [ref=e246] [cursor=pointer]: อื่น ๆ
+      - generic [ref=e248]:
+        - button "แมนโคเซบ ยาป้องกันเชื้อรา · 20 cc / น้ำ 20 L · ใช้แล้ว 0 ครั้ง ดู" [ref=e249] [cursor=pointer]:
+          - generic [ref=e251]:
+            - generic [ref=e252]: แมนโคเซบ
+            - generic [ref=e253]: ยาป้องกันเชื้อรา · 20 cc / น้ำ 20 L · ใช้แล้ว 0 ครั้ง
+          - generic [ref=e254]: ดู
+        - button "น้ำสะอาด อื่น ๆ · 20 L · ใช้แล้ว 0 ครั้ง ดู" [ref=e255] [cursor=pointer]:
+          - generic [ref=e257]:
+            - generic [ref=e258]: น้ำสะอาด
+            - generic [ref=e259]: อื่น ๆ · 20 L · ใช้แล้ว 0 ครั้ง
+          - generic [ref=e260]: ดู
+        - button "คอปเปอร์ทดสอบ ยาป้องกันเชื้อรา · cc · ใช้แล้ว 0 ครั้ง ดู" [ref=e261] [cursor=pointer]:
+          - generic [ref=e263]:
+            - generic [ref=e264]: คอปเปอร์ทดสอบ
+            - generic [ref=e265]: ยาป้องกันเชื้อรา · cc · ใช้แล้ว 0 ครั้ง
+          - generic [ref=e266]: ดู
+      - button "บันทึกกิจกรรม" [ref=e267] [cursor=pointer]
+    - generic [ref=e99]:
+      - tab "วันนี้" [ref=e100] [cursor=pointer]
+      - tab "แปลง" [ref=e102] [cursor=pointer]
+      - tab "บันทึก" [ref=e104] [cursor=pointer]
+      - tab "เคส" [ref=e106] [cursor=pointer]
+      - tab "เมนู" [ref=e108] [cursor=pointer]
+  - dialog [ref=e269]:
+    - generic [ref=e272]:
+      - generic [ref=e273]:
+        - generic [ref=e274]:
+          - generic [ref=e275]: แก้ไขวัสดุ
+          - generic [ref=e276]: แก้เฉพาะข้อมูลในคลัง ประวัติใช้เดิมไม่เปลี่ยน
+        - button "ยกเลิก" [ref=e277] [cursor=pointer]
+      - generic [ref=e280]:
+        - generic [ref=e281]: ชื่อสามัญ / ชื่อเรียก *
+        - textbox "เช่น แมนโคเซบ" [active] [ref=e282]: ยา A
+        - generic [ref=e283]: ชื่อยี่ห้อ (ถ้ามี)
+        - textbox "เช่น ไดเทน" [ref=e284]: ยา A
+        - generic [ref=e285]: ชนิด
+        - generic [ref=e286]:
+          - generic [ref=e287] [cursor=pointer]: สารป้องกัน
+          - generic [ref=e289] [cursor=pointer]: ปุ๋ย
+          - generic [ref=e291] [cursor=pointer]: อื่น ๆ
+        - generic [ref=e293]: หน่วย *
+        - generic [ref=e294]:
+          - generic [ref=e295] [cursor=pointer]: cc
+          - generic [ref=e297] [cursor=pointer]: ml
+          - generic [ref=e299] [cursor=pointer]: กรัม
+        - textbox "หรือพิมพ์หน่วยเอง เช่น g" [ref=e301]: cc
+        - button "อัตราอ้างอิง (ถ้ามี) ซ่อน" [ref=e302] [cursor=pointer]:
+          - generic [ref=e303]: อัตราอ้างอิง (ถ้ามี)
+          - generic [ref=e304]: ซ่อน
+        - generic [ref=e305]:
+          - generic [ref=e306]: อัตราอ้างอิง
+          - textbox "เช่น 20" [ref=e307]: "20"
+          - generic [ref=e308]: น้ำอ้างอิง (L)
+          - textbox "200" [ref=e309]
+          - generic [ref=e310]: หากใส่อัตรา ระบบจะใช้ 200 L เป็นค่าเริ่มต้นและคำนวณจากน้ำในถังตอนบันทึกกิจกรรม
+        - button "รายละเอียด (ถ้ามี) ซ่อน" [ref=e311] [cursor=pointer]:
+          - generic [ref=e312]: รายละเอียด (ถ้ามี)
+          - generic [ref=e313]: ซ่อน
+        - textbox "เช่น ใช้พ่นป้องกันเชื้อรา" [ref=e314]: RN Web preview material
+      - button "บันทึกการแก้ไข" [ref=e316] [cursor=pointer]

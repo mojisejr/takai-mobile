@@ -1,0 +1,40 @@
+- generic [ref=f8e5] [box=0,0,390,844]:
+  - generic [ref=f8e7] [box=0,0,390,673]:
+    - generic [ref=f8e8] [box=16,16,358,52]:
+      - generic [ref=f8e9] [box=32,27,28,30]: ☰
+      - generic [ref=f8e10] [box=72,28,224,28]: วัสดุ
+      - button "ออฟไลน์" [ref=f8e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=f8e103] [box=16,84,358,117]:
+      - generic [ref=f8e104] [box=31,99,328,18]: คลังวัสดุ
+      - generic [ref=f8e105] [box=31,117,328,23]: ยา ปุ๋ย และวัสดุที่เลือกใช้ซ้ำได้
+      - generic [ref=f8e106] [box=31,144,328,42]: แตะรายการเพื่อดูรายละเอียด · เก็บเข้าคลังจะซ่อนจากบันทึกใหม่ แต่ประวัติยังอ่านได้ครบ
+    - button "+ เพิ่มวัสดุ" [ref=f8e107] [cursor=pointer] [box=16,217,358,46]
+    - generic [ref=f8e109] [box=16,279,358,36]: วัสดุที่ใช้งาน
+    - generic [ref=f8e111] [box=16,331,358,136]:
+      - textbox "ค้นหาชื่อ ชื่อสามัญ หรือโน้ต" [ref=f8e112] [box=16,331,358,44]
+      - generic [ref=f8e113] [box=16,383,358,38]:
+        - generic [ref=f8e114] [cursor=pointer] [box=16,383,72,38]: กำลังใช้
+        - generic [ref=f8e116] [cursor=pointer] [box=96,383,65,38]: ในคลัง
+      - generic [ref=f8e118] [box=16,429,358,38]:
+        - generic [ref=f8e119] [cursor=pointer] [box=16,429,68,38]: ทั้งหมด
+        - generic [ref=f8e121] [cursor=pointer] [box=92,429,71,38]: สารเคมี
+        - generic [ref=f8e123] [cursor=pointer] [box=171,429,44,38]: ปุ๋ย
+        - generic [ref=f8e125] [cursor=pointer] [box=222,429,54,38]: อื่น ๆ
+    - generic [ref=f8e127] [box=16,483,358,120]:
+      - button "แมนโคเซบ ยาป้องกันเชื้อรา · 20 cc / น้ำ 20 L · ใช้แล้ว 0 ครั้ง ดู" [ref=f8e128] [cursor=pointer] [box=17,484,356,59]:
+        - generic [ref=f8e130] [box=47,492,298,42]:
+          - generic [ref=f8e131] [box=47,492,298,22]: แมนโคเซบ
+          - generic [ref=f8e132] [box=47,516,298,18]: ยาป้องกันเชื้อรา · 20 cc / น้ำ 20 L · ใช้แล้ว 0 ครั้ง
+        - generic [ref=f8e133] [box=353,504,8,18]: ดู
+      - button "น้ำสะอาด อื่น ๆ · 20 L · ใช้แล้ว 0 ครั้ง ดู" [ref=f8e134] [cursor=pointer] [box=17,543,356,59]:
+        - generic [ref=f8e136] [box=47,551,298,42]:
+          - generic [ref=f8e137] [box=47,551,298,22]: น้ำสะอาด
+          - generic [ref=f8e138] [box=47,575,298,18]: อื่น ๆ · 20 L · ใช้แล้ว 0 ครั้ง
+        - generic [ref=f8e139] [box=353,563,8,18]: ดู
+    - button "บันทึกกิจกรรม" [ref=f8e140] [cursor=pointer] [box=16,619,358,46]
+  - generic [ref=f8e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f8e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f8e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f8e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f8e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f8e101] [cursor=pointer] [box=298,777,69,44]

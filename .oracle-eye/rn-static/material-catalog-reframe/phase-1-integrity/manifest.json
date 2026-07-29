@@ -1,0 +1,26 @@
+{
+  "project": "takai-mobile",
+  "phase": "material-catalog-reframe/phase-1-integrity",
+  "lane": "rn-static-eye",
+  "claim": "RN Static Token Gate Closed",
+  "createdAt": "2026-07-29T15:25:47+0700",
+  "truth": "Static source and deterministic SQLite contract evidence only; it does not prove rendered layout, Android touch, keyboard, safe area, or native persistence.",
+  "commands": [
+    "npm run validate",
+    "npm run test:material-catalog-integrity",
+    "npm run test:activity-materials-ui",
+    "npm run test:design-contract",
+    "npm test"
+  ],
+  "coverage": [
+    "fresh create draft cannot retain an edit ID",
+    "library to edit hydration preserves notes",
+    "activity-origin creation has a typed usage return intent",
+    "material errors remain in the active form or picker sheet"
+  ],
+  "pendingLanes": [
+    "RN Web Eye",
+    "Expo Go Device Eye",
+    "Native Eye"
+  ]
+}
