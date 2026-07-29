@@ -19,8 +19,10 @@ const recordListItem = read('src/ui/RecordListItem.tsx');
 [
   "setSelectedCategoryId(categoryId)",
   "setSelectedWorkerId(personId)",
-  "label={showInlineCategoryForm ? 'ซ่อนแบบฟอร์มเพิ่มหมวดงาน' : '+ เพิ่มหมวดงาน'}",
-  "label={showInlineWorkerForm ? 'ซ่อนแบบฟอร์มเพิ่มคนงาน' : '+ เพิ่มคนงาน'}",
+  "openActivityPicker('category')",
+  "openActivityPicker('worker', worker.key)",
+  'เพิ่มและเลือกหมวดงาน',
+  'เพิ่มและเลือกคนงาน',
   "view === 'categories'",
   "view === 'workers'",
   "view === 'trackerManage'",

@@ -4,21 +4,20 @@ const screen = readFileSync(new URL('../src/features/operations/OperationalSlice
 const repository = readFileSync(new URL('../src/features/operations/repository.ts', import.meta.url), 'utf8');
 
 const requiredScreenTokens = [
-  '1. งาน · เป้าหมาย · วันเวลา',
+  '1. งานและสถานที่',
   '2. บันทึก',
   '3. วัสดุครั้งนี้',
   '4. ผู้ร่วมงานและค่าแรง',
   '5. ติดตามต่อ (ถ้ามี)',
-  '6. บันทึกลงสมุด',
   'ไม่มีวัสดุในครั้งนี้',
-  '+ เพิ่มวัสดุ',
+  '+ เลือกวัสดุ',
   'เพิ่มและเลือกวัสดุ',
   'น้ำ/อัตราผสม/โน้ต (ถ้ามี)',
   'คลังวัสดุ',
   'เก็บวัสดุเข้าแฟ้ม',
   'นำกลับมาใช้',
   'selectedPlotId',
-  'performedAtDraft',
+  'activityDateDraft',
   'materialUsages.map',
 ];
 

@@ -1,4 +1,5 @@
 import type { ActivityCategory, EntityId, ISODateTime, Material, MaterialType, PayType, PersonRole } from '../../domain';
+import type { FollowUpDueState } from './followUp';
 
 export type TakaiView =
   | 'today'
@@ -21,6 +22,7 @@ export type TrackerSummary = {
   latestPerformedAt: string | null;
   elapsedDays: number | null;
   nextDueOn: string | null;
+  dueState: FollowUpDueState;
   progress: number;
 };
 
@@ -54,6 +56,34 @@ export type PlotDashboard = {
   emptyHoles: number;
   trackers: TrackerSummary[];
   activeCases: ActiveCaseSummary[];
+};
+
+export type SetupPlot = {
+  id: EntityId;
+  gardenId: EntityId;
+  name: string;
+  areaRai: number;
+  sortOrder: number;
+};
+
+export type PlotInput = {
+  gardenId?: EntityId;
+  name: string;
+  areaRai?: number;
+  sortOrder?: number;
+};
+
+export type HoleInput = {
+  plotId: EntityId;
+  marker: string;
+  sortKey?: string;
+};
+
+export type PlantingInput = {
+  holeId: EntityId;
+  plantName: string;
+  variety?: string | null;
+  plantedOn: string;
 };
 
 export type TodayDashboard = {
@@ -130,6 +160,13 @@ export type MaterialInput = {
   unit: string;
   defaultRatePerTank?: string | null;
   notes?: string | null;
+  commonName?: string | null;
+  brandName?: string | null;
+  chemicalGroup?: string | null;
+  usageLabel?: string | null;
+  referenceAmount?: number | null;
+  referenceUnit?: string | null;
+  referenceWaterLitres?: number | null;
 };
 
 export type ActivityMaterialInput = {
@@ -141,6 +178,15 @@ export type ActivityMaterialInput = {
   dilutionText?: string | null;
   note?: string | null;
   sortOrder?: number;
+  materialNameSnapshot?: string | null;
+  commonNameSnapshot?: string | null;
+  brandNameSnapshot?: string | null;
+  referenceAmountSnapshot?: number | null;
+  referenceUnitSnapshot?: string | null;
+  referenceWaterLitresSnapshot?: number | null;
+  actualTankLitres?: number | null;
+  calculatedAmount?: number | null;
+  manualAmount?: number | null;
 };
 
 export type ActivityParticipantInput = {
@@ -149,7 +195,17 @@ export type ActivityParticipantInput = {
   amountDue: number;
 };
 
-export type CreateActivityInput = {
+export type ActivityTimeMode = 'all_day' | 'time_range' | 'duration_only';
+
+export type ActivityTemporalInput = {
+  timeMode?: ActivityTimeMode;
+  activityDate?: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  durationMinutes?: number | null;
+};
+
+export type CreateActivityInput = ActivityTemporalInput & {
   id?: EntityId;
   plotId: EntityId;
   categoryId: EntityId;
@@ -248,6 +304,7 @@ export type HoleDetail = {
   status: string;
   plotName: string;
   plantName: string | null;
+  variety: string | null;
   plantedOn: string | null;
   ageDays: number | null;
   activities: TodayActivityItem[];

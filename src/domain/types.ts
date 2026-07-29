@@ -49,6 +49,7 @@ export interface Planting {
   holeId: EntityId;
   cropCycleId?: EntityId | null;
   plantName: string;
+  variety?: string | null;
   plantedOn: ISODate;
   removedOn?: ISODate | null;
 }
@@ -147,6 +148,13 @@ export interface Material {
   notes?: string | null;
   createdAt: ISODateTime;
   archivedAt: ISODateTime | null;
+  commonName?: string | null;
+  brandName?: string | null;
+  chemicalGroup?: string | null;
+  usageLabel?: string | null;
+  referenceAmount?: number | null;
+  referenceUnit?: string | null;
+  referenceWaterLitres?: number | null;
 }
 
 export interface ActivityMaterial {

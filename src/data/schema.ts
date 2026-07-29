@@ -184,4 +184,64 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         ON activity_materials(activity_id, sort_order)`,
     ],
   },
+  {
+    id: 4,
+    name: 'planting_identity_variety',
+    statements: [
+      `ALTER TABLE plantings ADD COLUMN variety TEXT`,
+      `CREATE INDEX IF NOT EXISTS idx_holes_plot_sort_active
+        ON holes(plot_id, sort_key, status)`,
+      `CREATE INDEX IF NOT EXISTS idx_plantings_hole_current
+        ON plantings(hole_id, removed_on)`,
+    ],
+  },
+  {
+    id: 5,
+    name: 'truthful_activity_time',
+    statements: [
+      `ALTER TABLE activities ADD COLUMN activity_date TEXT`,
+      `ALTER TABLE activities ADD COLUMN time_mode TEXT CHECK (time_mode IN ('all_day', 'time_range', 'duration_only'))`,
+      `ALTER TABLE activities ADD COLUMN started_at TEXT`,
+      `ALTER TABLE activities ADD COLUMN ended_at TEXT`,
+      `ALTER TABLE activities ADD COLUMN duration_minutes INTEGER`,
+      `CREATE INDEX IF NOT EXISTS idx_activities_plot_date
+        ON activities(plot_id, activity_date)`,
+    ],
+  },
+  {
+    id: 6,
+    name: 'chemical_catalog_and_use_snapshots',
+    statements: [
+      `ALTER TABLE materials ADD COLUMN common_name TEXT`,
+      `ALTER TABLE materials ADD COLUMN brand_name TEXT`,
+      `ALTER TABLE materials ADD COLUMN chemical_group TEXT`,
+      `ALTER TABLE materials ADD COLUMN usage_label TEXT`,
+      `ALTER TABLE materials ADD COLUMN reference_amount REAL`,
+      `ALTER TABLE materials ADD COLUMN reference_unit TEXT`,
+      `ALTER TABLE materials ADD COLUMN reference_water_litres REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN material_name_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN common_name_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN brand_name_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN reference_amount_snapshot REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN reference_unit_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN reference_water_litres_snapshot REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN actual_tank_litres REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN calculated_amount REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN manual_amount REAL`,
+    ],
+  },
+  {
+    id: 7,
+    name: 'follow_up_notification_reminders',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS notification_reminders (
+        activity_id TEXT PRIMARY KEY REFERENCES activities(id) ON DELETE CASCADE,
+        notification_id TEXT NOT NULL,
+        follow_up_on TEXT NOT NULL,
+        scheduled_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_notification_reminders_follow_up
+        ON notification_reminders(follow_up_on)`,
+    ],
+  },
 ];

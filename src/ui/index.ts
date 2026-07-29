@@ -2,6 +2,7 @@ export { AppShell } from './AppShell';
 export { BottomTabBar } from './BottomTabBar';
 export { EvidenceTimeline } from './EvidenceTimeline';
 export { FieldCard } from './FieldCard';
+export { FormSection, PickerField, SearchPickerSheet, StickySaveBar } from './FieldForm';
 export { PrimaryButton } from './PrimaryButton';
 export { RecordListItem } from './RecordListItem';
 export { SectionHeader } from './SectionHeader';
@@ -11,4 +12,5 @@ export { TrackerCard } from './TrackerCard';
 
 export type { BottomTabKey } from './BottomTabBar';
 export type { EvidenceTimelineItem } from './EvidenceTimeline';
+export type { PickerOption } from './pickerOptions';
 export type { StatusChipVariant } from './StatusChip';

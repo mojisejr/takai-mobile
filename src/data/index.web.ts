@@ -4,6 +4,7 @@ export type TakaiDatabase = {
   __platform: 'web-preview';
   closedCase: boolean;
   demoSprayCount: number;
+  recordedFollowUpOn: string | null;
   categories: Array<{
     id: string;
     name: string;
@@ -24,12 +25,15 @@ export type TakaiDatabase = {
   }>;
   materials: Material[];
   trackedCategoryIds: string[];
+  plots: Array<{ id: string; gardenId: string; name: string; areaRai: number; sortOrder: number }>;
+  holes: Array<{ id: string; plotId: string; marker: string; status: 'empty' | 'planted'; plantName: string | null; variety: string | null; plantedOn: string | null }>;
 };
 
 export const initializeTakaiDatabase = async (): Promise<TakaiDatabase> => ({
   __platform: 'web-preview',
   closedCase: false,
   demoSprayCount: 0,
+  recordedFollowUpOn: null,
   categories: [
     { id: 'cat-spray', name: 'พ่นยา', kind: 'spray', trackByDefault: true, sortOrder: 1, archivedAt: null },
     { id: 'cat-fertilizer', name: 'ใส่ปุ๋ย', kind: 'fertilizer', trackByDefault: true, sortOrder: 2, archivedAt: null },
@@ -50,6 +54,13 @@ export const initializeTakaiDatabase = async (): Promise<TakaiDatabase> => ({
       notes: 'RN Web preview material',
       createdAt: '2026-07-01T00:00:00.000Z',
       archivedAt: null,
+      commonName: 'แมนโคเซบ',
+      brandName: 'ยา A',
+      chemicalGroup: null,
+      usageLabel: 'พ่นป้องกันเชื้อรา',
+      referenceAmount: 20,
+      referenceUnit: 'cc',
+      referenceWaterLitres: 200,
     },
     {
       id: 'mat-clean-water',
@@ -64,4 +75,6 @@ export const initializeTakaiDatabase = async (): Promise<TakaiDatabase> => ({
     },
   ],
   trackedCategoryIds: ['cat-spray', 'cat-fertilizer', 'cat-prune'],
+  plots: [{ id: 'plot-a', gardenId: 'garden-web', name: 'แปลง A', areaRai: 6.2, sortOrder: 0 }],
+  holes: [{ id: 'hole-a-014', plotId: 'plot-a', marker: 'A-014', status: 'planted', plantName: 'ทุเรียน', variety: 'หมอนทอง', plantedOn: '2024-10-10' }],
 });

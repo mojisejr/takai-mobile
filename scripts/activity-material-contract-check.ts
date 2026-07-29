@@ -116,7 +116,7 @@ const createInput = (id: string) => ({
 
 const main = async (): Promise<void> => {
   const migrationDb = new MigrationContractDb();
-  assert.deepEqual(await runMigrations(migrationDb), [3], 'an existing migration 2 database must receive only migration 3');
+  assert.deepEqual(await runMigrations(migrationDb), [3, 4, 5, 6, 7], 'an existing migration 2 database must receive only later additive migrations');
   assert.deepEqual(migrationDb.legacyMaterial, { id: 'legacy-material', unit: 'cc' }, 'migration must not rewrite existing material data');
   assert.deepEqual(migrationDb.legacyUsage, { id: 'legacy-usage', material_id: 'legacy-material', amount: 20, unit: 'cc' }, 'migration must not lose historical usage data');
   assert.equal(migrationDb.statements.some((statement) => /DROP TABLE|DELETE FROM/i.test(statement)), false, 'migration 3 must be additive');
@@ -156,8 +156,8 @@ const main = async (): Promise<void> => {
   });
   const usages = db.writes.filter((write) => write.sql.includes('INSERT INTO activity_materials'));
   assert.equal(usages.length, 2, 'two selected materials must create two historical usage rows');
-  assert.deepEqual(usages[0]?.params.slice(2), ['material-fungicide', 20, 'cc', 20, 'L', '20 cc / 20 L', 'พ่นโคนต้น', 2]);
-  assert.deepEqual(usages[1]?.params.slice(2), ['material-spreader', 10, 'cc', 20, 'L', '10 cc / 20 L', 'ผสมพร้อมกัน', 3]);
+  assert.deepEqual(usages[0]?.params.slice(2, 10), ['material-fungicide', 20, 'cc', 20, 'L', '20 cc / 20 L', 'พ่นโคนต้น', 2]);
+  assert.deepEqual(usages[1]?.params.slice(2, 10), ['material-spreader', 10, 'cc', 20, 'L', '10 cc / 20 L', 'ผสมพร้อมกัน', 3]);
 
   db.materials = db.materials.map((material) =>
     material.id === 'material-fungicide' ? { ...material, unit: 'ml', archivedAt: '2026-07-23T07:00:00.000Z' } : material,

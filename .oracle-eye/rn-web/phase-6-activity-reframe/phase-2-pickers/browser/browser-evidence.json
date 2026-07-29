@@ -1,0 +1,23 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-6-activity-reframe/phase-2-pickers",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "targetUrl": "http://localhost:8081/",
+  "viewport": "390x844",
+  "screensChecked": ["Activity form", "Category search picker", "Material quick-add and restored form"],
+  "flowObserved": "Opened the category picker, searched ปุ๋ย, selected ใส่ปุ๋ย, opened material picker, quick-added ปุ๋ยทดสอบ Eye with unit กรัม, and verified the selected values returned to the Activity form. A first capture found a material row overflow; the responsive repair was rechecked and the amount/unit rows fit inside the viewport.",
+  "artifacts": {
+    "searchPicker": "picker-search-390x844.png",
+    "restoredBeforeRepair": "picker-restored-390x844.png",
+    "restoredAfterRepair": "picker-restored-fixed-390x844.png",
+    "restoredSnapshot": "picker-restored.yml",
+    "console": "console.json",
+    "network": "network-requests.json"
+  },
+  "consoleErrorCount": 0,
+  "failedNetworkRequestCount": 0,
+  "knownWarnings": ["Existing React Native Web shadow style deprecation warning."],
+  "observedAt": "2026-07-28T14:32:43+07:00",
+  "limitations": ["Does not prove device keyboard/touch, native SQLite, safe areas, or native packaging."]
+}

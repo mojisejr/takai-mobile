@@ -2,6 +2,8 @@ import type { ActivityCategory, Material } from '../../domain';
 import { laborEntriesForParticipants } from '../../domain';
 import type { SqlExecutor } from '../../data';
 import { DEMO_NOW, diffDays, formatThaiShortDate, nextDateFrom } from './date';
+import { followUpDueState, formatFollowUpDueLabel } from './followUp';
+import { normalizeActivityTemporal } from './temporal';
 import type {
   ActivityCaptureOption,
   CaseTimeline,
@@ -16,6 +18,10 @@ import type {
   MaterialInput,
   MaterialLibraryItem,
   PlotDashboard,
+  PlotInput,
+  HoleInput,
+  PlantingInput,
+  SetupPlot,
   PersonDirectoryItem,
   PersonInput,
   TodayActivityItem,
@@ -97,6 +103,13 @@ type MaterialRow = {
   last_used_at: string | null;
   usage_count: number;
   archived_at: string | null;
+  common_name: string | null;
+  brand_name: string | null;
+  chemical_group: string | null;
+  usage_label: string | null;
+  reference_amount: number | null;
+  reference_unit: string | null;
+  reference_water_litres: number | null;
 };
 
 type CapturePlotRow = {
@@ -157,6 +170,7 @@ type HoleDetailRow = {
   status: string;
   plot_name: string;
   plant_name: string | null;
+  variety: string | null;
   planted_on: string | null;
 };
 
@@ -204,6 +218,20 @@ const requireMaterialUnit = (unit: string): string => {
   const normalized = unit.trim();
   if (!normalized) {
     throw new Error('TAKAI requires a material unit');
+  }
+  return normalized;
+};
+
+const requireSetupName = (value: string, label: string): string => {
+  const normalized = value.trim();
+  if (!normalized) throw new Error(`TAKAI requires a ${label}`);
+  return normalized;
+};
+
+const requireDateOnly = (value: string, label: string): string => {
+  const normalized = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized) || Number.isNaN(Date.parse(`${normalized}T12:00:00Z`))) {
+    throw new Error(`TAKAI requires a valid ${label}`);
   }
   return normalized;
 };
@@ -360,6 +388,13 @@ export const listMaterials = async (db: SqlExecutor, includeArchived = false): P
        materials.default_rate_per_tank,
        materials.photo_uri,
        materials.archived_at,
+       materials.common_name,
+       materials.brand_name,
+       materials.chemical_group,
+       materials.usage_label,
+       materials.reference_amount,
+       materials.reference_unit,
+       materials.reference_water_litres,
        MAX(activities.performed_at) AS last_used_at,
        COUNT(activity_materials.id) AS usage_count
      FROM materials
@@ -380,6 +415,13 @@ export const listMaterials = async (db: SqlExecutor, includeArchived = false): P
     lastUsedAt: row.last_used_at,
     usageCount: Number(row.usage_count),
     archivedAt: row.archived_at,
+    commonName: row.common_name,
+    brandName: row.brand_name,
+    chemicalGroup: row.chemical_group,
+    usageLabel: row.usage_label,
+    referenceAmount: row.reference_amount == null ? null : Number(row.reference_amount),
+    referenceUnit: row.reference_unit,
+    referenceWaterLitres: row.reference_water_litres == null ? null : Number(row.reference_water_litres),
   }));
 };
 
@@ -390,8 +432,8 @@ export const createMaterial = async (
 ): Promise<string> => {
   const id = input.id ?? generatedId('material', createdAt);
   await db.runAsync(
-    `INSERT INTO materials (id, name, type, unit, default_rate_per_tank, photo_uri, notes, created_at, archived_at)
-     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL)`,
+    `INSERT INTO materials (id, name, type, unit, default_rate_per_tank, photo_uri, notes, created_at, archived_at, common_name, brand_name, chemical_group, usage_label, reference_amount, reference_unit, reference_water_litres)
+     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       requireMaterialName(input.name),
@@ -400,6 +442,13 @@ export const createMaterial = async (
       input.defaultRatePerTank?.trim() || null,
       input.notes?.trim() || null,
       createdAt,
+      input.commonName?.trim() || null,
+      input.brandName?.trim() || null,
+      input.chemicalGroup?.trim() || null,
+      input.usageLabel?.trim() || null,
+      input.referenceAmount ?? null,
+      input.referenceUnit?.trim() || null,
+      input.referenceWaterLitres ?? null,
     ],
   );
   return id;
@@ -408,7 +457,7 @@ export const createMaterial = async (
 export const updateMaterial = async (db: SqlExecutor, materialId: string, input: MaterialInput): Promise<void> => {
   await db.runAsync(
     `UPDATE materials
-     SET name = ?, type = ?, unit = ?, default_rate_per_tank = ?, notes = ?
+     SET name = ?, type = ?, unit = ?, default_rate_per_tank = ?, notes = ?, common_name = ?, brand_name = ?, chemical_group = ?, usage_label = ?, reference_amount = ?, reference_unit = ?, reference_water_litres = ?
      WHERE id = ?`,
     [
       requireMaterialName(input.name),
@@ -416,6 +465,13 @@ export const updateMaterial = async (db: SqlExecutor, materialId: string, input:
       requireMaterialUnit(input.unit),
       input.defaultRatePerTank?.trim() || null,
       input.notes?.trim() || null,
+      input.commonName?.trim() || null,
+      input.brandName?.trim() || null,
+      input.chemicalGroup?.trim() || null,
+      input.usageLabel?.trim() || null,
+      input.referenceAmount ?? null,
+      input.referenceUnit?.trim() || null,
+      input.referenceWaterLitres ?? null,
       materialId,
     ],
   );
@@ -509,6 +565,96 @@ export const unpinPlotTracker = async (
   );
 };
 
+const currentGardenId = async (db: SqlExecutor): Promise<string> => {
+  const rows = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM gardens WHERE archived_at IS NULL ORDER BY created_at ASC LIMIT 1',
+  );
+  if (!rows[0]?.id) throw new Error('TAKAI requires an active garden before adding a plot');
+  return rows[0].id;
+};
+
+const assertPlotExists = async (db: SqlExecutor, plotId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>('SELECT id FROM plots WHERE id = ? LIMIT 1', [plotId]);
+  if (!rows[0]) throw new Error(`TAKAI plot is unavailable: ${plotId}`);
+};
+
+const assertEmptyHole = async (db: SqlExecutor, holeId: string): Promise<void> => {
+  const rows = await db.getAllAsync<{ id: string }>(
+    "SELECT id FROM holes WHERE id = ? AND status = 'empty' LIMIT 1",
+    [holeId],
+  );
+  if (!rows[0]) throw new Error(`TAKAI hole is unavailable for planting: ${holeId}`);
+};
+
+export const listSetupPlots = async (db: SqlExecutor): Promise<SetupPlot[]> => {
+  const rows = await db.getAllAsync<{
+    id: string;
+    garden_id: string;
+    name: string;
+    area_rai: number;
+    sort_order: number;
+  }>(
+    'SELECT id, garden_id, name, area_rai, sort_order FROM plots ORDER BY sort_order ASC, name ASC',
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    gardenId: row.garden_id,
+    name: row.name,
+    areaRai: Number(row.area_rai),
+    sortOrder: Number(row.sort_order),
+  }));
+};
+
+export const createPlot = async (
+  db: SqlExecutor,
+  input: PlotInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  const gardenId = input.gardenId ?? await currentGardenId(db);
+  const name = requireSetupName(input.name, 'plot name');
+  const areaRai = Number(input.areaRai ?? 0);
+  if (!Number.isFinite(areaRai) || areaRai < 0) throw new Error('TAKAI plot area must be zero or greater');
+  const id = `plot-${createdAt.replace(/[^0-9]/g, '').slice(0, 14)}`;
+  const sortOrder = input.sortOrder ?? (await listSetupPlots(db)).length;
+  await db.runAsync(
+    'INSERT INTO plots (id, garden_id, name, area_rai, sort_order) VALUES (?, ?, ?, ?, ?)',
+    [id, gardenId, name, areaRai, sortOrder],
+  );
+  return id;
+};
+
+export const createHole = async (
+  db: SqlExecutor,
+  input: HoleInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  await assertPlotExists(db, input.plotId);
+  const marker = requireSetupName(input.marker, 'hole marker');
+  const id = `hole-${createdAt.replace(/[^0-9]/g, '').slice(0, 14)}`;
+  await db.runAsync(
+    "INSERT INTO holes (id, plot_id, marker, sort_key, status) VALUES (?, ?, ?, ?, 'empty')",
+    [id, input.plotId, marker, input.sortKey?.trim() || marker],
+  );
+  return id;
+};
+
+export const createPlanting = async (
+  db: SqlExecutor,
+  input: PlantingInput,
+  createdAt = new Date().toISOString(),
+): Promise<string> => {
+  await assertEmptyHole(db, input.holeId);
+  const plantName = requireSetupName(input.plantName, 'plant name');
+  const plantedOn = requireDateOnly(input.plantedOn, 'planting date');
+  const id = `planting-${createdAt.replace(/[^0-9]/g, '').slice(0, 14)}`;
+  await db.runAsync(
+    'INSERT INTO plantings (id, hole_id, crop_cycle_id, plant_name, variety, planted_on, removed_on) VALUES (?, ?, NULL, ?, ?, ?, NULL)',
+    [id, input.holeId, plantName, input.variety?.trim() || null, plantedOn],
+  );
+  await db.runAsync("UPDATE holes SET status = 'planted' WHERE id = ? AND status = 'empty'", [input.holeId]);
+  return id;
+};
+
 export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<ActivityCaptureOption> => {
   const [plots, holes, activeCases, categories, materials, people] = await Promise.all([
     db.getAllAsync<CapturePlotRow>('SELECT id, name FROM plots ORDER BY sort_order ASC, name ASC'),
@@ -532,7 +678,9 @@ export const getActivityCaptureOptions = async (db: SqlExecutor): Promise<Activi
     ),
     db.getAllAsync<Material>(
     `SELECT id, name, type, unit, default_rate_per_tank AS defaultRatePerTank, photo_uri AS photoUri, notes,
-            created_at AS createdAt, archived_at AS archivedAt
+            created_at AS createdAt, archived_at AS archivedAt,
+            common_name AS commonName, brand_name AS brandName, chemical_group AS chemicalGroup, usage_label AS usageLabel,
+            reference_amount AS referenceAmount, reference_unit AS referenceUnit, reference_water_litres AS referenceWaterLitres
      FROM materials
      WHERE archived_at IS NULL
      ORDER BY name ASC`,
@@ -592,7 +740,8 @@ export const resolveActiveCropId = async (
 };
 
 export const createActivity = async (db: SqlExecutor, input: CreateActivityInput): Promise<CreatedActivityResult> => {
-  const activityId = input.id ?? generatedId('activity', input.performedAt);
+  const temporal = normalizeActivityTemporal(input);
+  const activityId = input.id ?? generatedId('activity', temporal.performedAt);
   await assertActiveCategory(db, input.categoryId);
   for (const participant of input.participants) {
     await assertActivePerson(db, participant.personId);
@@ -601,12 +750,13 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
   for (const material of input.materials) {
     await assertActiveMaterial(db, material.materialId);
   }
-  const cropCycleId = await resolveActiveCropId(db, input.plotId, input.performedAt);
+  const cropCycleId = await resolveActiveCropId(db, input.plotId, temporal.performedAt);
 
   await db.runAsync(
-    `INSERT INTO activities (id, plot_id, crop_cycle_id, category_id, performed_at, note, follow_up_on, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'done')`,
-    [activityId, input.plotId, cropCycleId, input.categoryId, input.performedAt, input.note, input.followUpOn ?? null],
+    `INSERT INTO activities (
+       id, plot_id, crop_cycle_id, category_id, performed_at, activity_date, time_mode, started_at, ended_at, duration_minutes, note, follow_up_on, status
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'done')`,
+    [activityId, input.plotId, cropCycleId, input.categoryId, temporal.performedAt, temporal.activityDate, temporal.timeMode, temporal.startedAt, temporal.endedAt, temporal.durationMinutes, input.note, input.followUpOn ?? null],
   );
 
   await db.runAsync(
@@ -619,8 +769,10 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
     const usage = materialUsages[index];
     await db.runAsync(
       `INSERT INTO activity_materials (
-         id, activity_id, material_id, amount, unit, water_volume, water_unit, dilution_text, note, sort_order
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         id, activity_id, material_id, amount, unit, water_volume, water_unit, dilution_text, note, sort_order,
+         material_name_snapshot, common_name_snapshot, brand_name_snapshot, reference_amount_snapshot, reference_unit_snapshot, reference_water_litres_snapshot,
+         actual_tank_litres, calculated_amount, manual_amount
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         `activity-material-${activityId}-${index + 1}`,
         activityId,
@@ -632,6 +784,15 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
         usage.dilutionText,
         usage.note,
         usage.sortOrder,
+        material.materialNameSnapshot ?? null,
+        material.commonNameSnapshot ?? null,
+        material.brandNameSnapshot ?? null,
+        material.referenceAmountSnapshot ?? null,
+        material.referenceUnitSnapshot ?? null,
+        material.referenceWaterLitresSnapshot ?? null,
+        material.actualTankLitres ?? null,
+        material.calculatedAmount ?? null,
+        material.manualAmount ?? null,
       ],
     );
   }
@@ -658,7 +819,7 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
   }
 
   const laborEntries = laborEntriesForParticipants(
-    { performedAt: input.performedAt },
+    { performedAt: temporal.performedAt },
     participantsForLabor.map((participant) => ({
       id: participant.id,
       activityId: participant.activityId,
@@ -699,7 +860,7 @@ export const createActivity = async (db: SqlExecutor, input: CreateActivityInput
 
 const buildTracker = (row: TrackerRow): TrackerSummary => {
   const elapsed = row.latest_performed_at ? diffDays(row.latest_performed_at) : null;
-  const nextDue = row.latest_follow_up_on ?? (row.latest_performed_at ? nextDateFrom(row.latest_performed_at, 7) : null);
+  const nextDue = row.latest_follow_up_on;
 
   return {
     categoryId: row.category_id,
@@ -708,6 +869,7 @@ const buildTracker = (row: TrackerRow): TrackerSummary => {
     latestPerformedAt: row.latest_performed_at,
     elapsedDays: elapsed,
     nextDueOn: nextDue,
+    dueState: followUpDueState(nextDue),
     progress: elapsed === null ? 0 : Math.min(1, elapsed / 7),
   };
 };
@@ -812,8 +974,8 @@ export const getPlotDashboard = async (db: SqlExecutor, plotId = 'plot-a'): Prom
   };
 };
 
-export const getTodayDashboard = async (db: SqlExecutor): Promise<TodayDashboard> => {
-  const plot = await getPlotDashboard(db);
+export const getTodayDashboard = async (db: SqlExecutor, plotId?: string): Promise<TodayDashboard> => {
+  const plot = await getPlotDashboard(db, plotId);
   const [garden] = await db.getAllAsync<{ name: string }>('SELECT name FROM gardens ORDER BY created_at ASC LIMIT 1');
   const activityRows = await db.getAllAsync<ActivityItemRow>(
     `SELECT
@@ -839,13 +1001,20 @@ export const getTodayDashboard = async (db: SqlExecutor): Promise<TodayDashboard
      WHERE status = 'unpaid'`,
   );
 
-  const recentItems: TodayActivityItem[] = activityRows.map((row) => ({
-    id: row.id,
-    title: `${row.category_name} ${plot.name}`,
-    meta: row.material_names ? `${row.note} · ${row.material_names}` : row.note,
-    trailing: row.follow_up_on ? formatThaiShortDate(row.follow_up_on) : formatThaiShortDate(row.performed_at),
-    variant: 'activity',
-  }));
+  const recentItems: TodayActivityItem[] = activityRows
+    .map((row) => ({
+      id: row.id,
+      title: `${row.category_name} ${plot.name}`,
+      meta: row.material_names ? `${row.note} · ${row.material_names}` : row.note,
+      trailing: formatFollowUpDueLabel(row.follow_up_on) ?? formatThaiShortDate(row.performed_at),
+      variant: 'activity' as const,
+      dueState: followUpDueState(row.follow_up_on),
+    }))
+    .sort((left, right) => {
+      const priority = { overdue: 0, due_today: 1, upcoming: 2, none: 3 } as const;
+      return priority[left.dueState] - priority[right.dueState];
+    })
+    .map(({ dueState: _dueState, ...item }) => item);
 
   if (recentItems.length === 0) {
     recentItems.push({
@@ -1137,6 +1306,7 @@ export const getHoleDetail = async (db: SqlExecutor, holeId = 'hole-a-014'): Pro
          holes.status,
          plots.name AS plot_name,
          plantings.plant_name,
+         plantings.variety,
          plantings.planted_on
        FROM holes
        JOIN plots ON plots.id = holes.plot_id
@@ -1181,6 +1351,7 @@ export const getHoleDetail = async (db: SqlExecutor, holeId = 'hole-a-014'): Pro
     status: row.status,
     plotName: row.plot_name,
     plantName: row.plant_name,
+    variety: row.variety,
     plantedOn: row.planted_on,
     ageDays: row.planted_on ? diffDays(row.planted_on) : null,
     activities: activityRows.map((activity) => ({

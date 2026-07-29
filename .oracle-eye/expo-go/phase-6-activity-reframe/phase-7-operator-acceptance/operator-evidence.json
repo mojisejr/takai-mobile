@@ -1,0 +1,29 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-6-activity-reframe/phase-7-operator-acceptance",
+  "status": "pending_operator",
+  "truthLanes": {
+    "expoGoDeviceEye": "pending",
+    "nativeEye": "pending"
+  },
+  "device": null,
+  "clientOrBuild": null,
+  "openedAt": null,
+  "flows": {
+    "plotHoleTree": "pending",
+    "backdatedTimeModes": "pending",
+    "independentWorkerPay": "pending",
+    "chemicalCalculatedAndManualDose": "pending",
+    "followUpDateAndDays": "pending",
+    "todayAndTrackerDueState": "pending",
+    "relaunchPersistence": "pending",
+    "notificationPermissionAndSchedule": "pending_native_build"
+  },
+  "screenshots": [],
+  "repairItems": [],
+  "operatorAcceptance": null,
+  "limitations": [
+    "This artifact is intentionally blank until a human observes the device journey.",
+    "Expo Go does not close the Native Eye notification permission or scheduling lane."
+  ]
+}

@@ -656,8 +656,8 @@ class OperationalFakeSqlite implements SqlExecutor {
     }
 
     if (sql.includes('INSERT INTO activities')) {
-      const [id, plot_id, crop_cycle_id, category_id, performed_at, note, follow_up_on] = params;
-      this.activities.push({ id, plot_id, crop_cycle_id, category_id, performed_at, note, follow_up_on, status: 'done' });
+      const [id, plot_id, crop_cycle_id, category_id, performed_at, activity_date, time_mode, started_at, ended_at, duration_minutes, note, follow_up_on] = params;
+      this.activities.push({ id, plot_id, crop_cycle_id, category_id, performed_at, activity_date, time_mode, started_at, ended_at, duration_minutes, note, follow_up_on, status: 'done' });
       return;
     }
 

@@ -1,5 +1,6 @@
 import type { ActivityCategory, Material } from '../../domain';
-import { DEMO_NOW, formatThaiShortDate, nextDateFrom } from './date';
+import { DEMO_NOW, formatThaiShortDate } from './date';
+import { followUpDueState, formatFollowUpDueLabel } from './followUp';
 import type {
   ActivityCaptureOption,
   CategoryInput,
@@ -11,6 +12,10 @@ import type {
   MenuDashboard,
   MaterialInput,
   MaterialLibraryItem,
+  PlotInput,
+  HoleInput,
+  PlantingInput,
+  SetupPlot,
   PersonDirectoryItem,
   PersonInput,
   CreateActivityInput,
@@ -19,15 +24,19 @@ import type {
 } from './types';
 
 export * from './date';
+export * from './followUp';
 export type * from './types';
 
 type WebPreviewDb = {
   closedCase: boolean;
   demoSprayCount: number;
+  recordedFollowUpOn: string | null;
   categories: Array<ActivityCategory & { archivedAt: string | null }>;
   people: PersonDirectoryItem[];
   materials: Material[];
   trackedCategoryIds: string[];
+  plots: Array<{ id: string; gardenId: string; name: string; areaRai: number; sortOrder: number }>;
+  holes: Array<{ id: string; plotId: string; marker: string; status: 'empty' | 'planted'; plantName: string | null; variety: string | null; plantedOn: string | null }>;
 };
 
 const buildCaseTimeline = (sprayCount: number, closed = false): CaseTimeline => ({
@@ -125,6 +134,7 @@ const buildHoleDetail = (sprayCount: number, closedCase = false): HoleDetail => 
   status: 'planted',
   plotName: 'แปลง A',
   plantName: 'ทุเรียนหมอนทอง',
+  variety: 'หมอนทอง',
   plantedOn: '2024-10-10',
   ageDays: 645,
   activeCases: closedCase
@@ -174,7 +184,8 @@ const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
         count: db.demoSprayCount,
         latestPerformedAt: db.demoSprayCount > 0 ? DEMO_NOW : null,
         elapsedDays: db.demoSprayCount > 0 ? 0 : null,
-        nextDueOn: db.demoSprayCount > 0 ? nextDateFrom(DEMO_NOW, 4) : null,
+        nextDueOn: db.demoSprayCount > 0 ? db.recordedFollowUpOn : null,
+        dueState: followUpDueState(db.demoSprayCount > 0 ? db.recordedFollowUpOn : null),
         progress: db.demoSprayCount > 0 ? 0.2 : 0,
       },
       {
@@ -184,6 +195,7 @@ const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
         latestPerformedAt: '2026-07-10T08:30:00.000Z',
         elapsedDays: 6,
         nextDueOn: '2026-07-25',
+        dueState: followUpDueState('2026-07-25'),
         progress: 0.86,
       },
       {
@@ -193,6 +205,7 @@ const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
         latestPerformedAt: '2026-07-03T08:30:00.000Z',
         elapsedDays: 13,
         nextDueOn: '2026-07-28',
+        dueState: followUpDueState('2026-07-28'),
         progress: 1,
       },
     ].filter((tracker) => db.trackedCategoryIds.includes(tracker.categoryId)),
@@ -213,7 +226,7 @@ const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
           id: 'activity-web-preview-spray',
           title: 'พ่นยา แปลง A',
           meta: 'พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม · ยา A, น้ำสะอาด',
-          trailing: formatThaiShortDate(nextDateFrom(DEMO_NOW, 4)),
+          trailing: formatFollowUpDueLabel(db.recordedFollowUpOn) ?? formatThaiShortDate(DEMO_NOW),
           variant: 'activity',
         },
       ]
@@ -231,16 +244,45 @@ const buildDashboard = (db: WebPreviewDb): TodayDashboard => ({
 export const getActivityCaptureOptions = async (db: WebPreviewDb): Promise<ActivityCaptureOption> => ({
   categories: db.categories.filter((category) => !category.archivedAt),
   materials: db.materials.filter((material) => !material.archivedAt),
-  plots: [{ id: 'plot-a', name: 'แปลง A' }],
-  holes: [{ id: 'hole-a-014', plotId: 'plot-a', marker: 'A-014', status: 'planted' }],
+  plots: db.plots.map(({ id, name }) => ({ id, name })),
+  holes: db.holes.map(({ id, plotId, marker, status }) => ({ id, plotId, marker, status })),
   activeCases: [{ id: 'case-a-014', plotId: 'plot-a', holeId: 'hole-a-014', title: 'A-014 เชื้อราโคนต้น' }],
   people: db.people.filter((person) => !person.archivedAt).map(({ specialty: _specialty, phone: _phone, note: _note, archivedAt: _archivedAt, ...person }) => person),
-  defaultPlotId: 'plot-a',
-  defaultHoleId: 'hole-a-014',
+  defaultPlotId: db.plots[0]?.id ?? 'plot-a',
+  defaultHoleId: db.holes[0]?.id ?? null,
   defaultWorkerId: db.people.find((person) => !person.isSelf && !person.archivedAt)?.id ?? null,
   defaultSelfId: db.people.find((person) => person.isSelf && !person.archivedAt)?.id ?? null,
   defaultPerformedAt: DEMO_NOW,
 });
+
+export const listSetupPlots = async (db: WebPreviewDb): Promise<SetupPlot[]> => db.plots.map((plot) => ({ ...plot }));
+
+export const createPlot = async (db: WebPreviewDb, input: PlotInput): Promise<string> => {
+  const name = input.name.trim();
+  if (!name) throw new Error('TAKAI requires a plot name');
+  const id = `plot-web-${db.plots.length + 1}`;
+  db.plots.push({ id, gardenId: input.gardenId ?? 'garden-web', name, areaRai: Number(input.areaRai ?? 0), sortOrder: input.sortOrder ?? db.plots.length });
+  return id;
+};
+
+export const createHole = async (db: WebPreviewDb, input: HoleInput): Promise<string> => {
+  const marker = input.marker.trim();
+  if (!marker) throw new Error('TAKAI requires a hole marker');
+  const id = `hole-web-${db.holes.length + 1}`;
+  db.holes.push({ id, plotId: input.plotId, marker, status: 'empty', plantName: null, variety: null, plantedOn: null });
+  return id;
+};
+
+export const createPlanting = async (db: WebPreviewDb, input: PlantingInput): Promise<string> => {
+  const hole = db.holes.find((item) => item.id === input.holeId && item.status === 'empty');
+  if (!hole) throw new Error('TAKAI hole is unavailable for planting');
+  if (!input.plantName.trim()) throw new Error('TAKAI requires a plant name');
+  hole.status = 'planted';
+  hole.plantName = input.plantName.trim();
+  hole.variety = input.variety?.trim() || null;
+  hole.plantedOn = input.plantedOn;
+  return `planting-web-${input.holeId}`;
+};
 
 export const listActivityCategories = async (db: WebPreviewDb, includeArchived = false): Promise<ActivityCategory[]> =>
   db.categories.filter((category) => includeArchived || !category.archivedAt);
@@ -325,6 +367,13 @@ export const createMaterial = async (db: WebPreviewDb, input: MaterialInput): Pr
     notes: input.notes?.trim() || null,
     createdAt: DEMO_NOW,
     archivedAt: null,
+    commonName: input.commonName?.trim() || null,
+    brandName: input.brandName?.trim() || null,
+    chemicalGroup: input.chemicalGroup?.trim() || null,
+    usageLabel: input.usageLabel?.trim() || null,
+    referenceAmount: input.referenceAmount ?? null,
+    referenceUnit: input.referenceUnit?.trim() || null,
+    referenceWaterLitres: input.referenceWaterLitres ?? null,
   });
   return id;
 };
@@ -342,6 +391,13 @@ export const updateMaterial = async (db: WebPreviewDb, materialId: string, input
     unit,
     defaultRatePerTank: input.defaultRatePerTank?.trim() || null,
     notes: input.notes?.trim() || null,
+    commonName: input.commonName?.trim() || null,
+    brandName: input.brandName?.trim() || null,
+    chemicalGroup: input.chemicalGroup?.trim() || null,
+    usageLabel: input.usageLabel?.trim() || null,
+    referenceAmount: input.referenceAmount ?? null,
+    referenceUnit: input.referenceUnit?.trim() || null,
+    referenceWaterLitres: input.referenceWaterLitres ?? null,
   });
 };
 
@@ -369,6 +425,7 @@ export const getTodayDashboard = async (db: WebPreviewDb): Promise<TodayDashboar
 
 export const createDemoSprayActivity = async (db: WebPreviewDb): Promise<CreatedActivityResult> => {
   db.demoSprayCount += 1;
+  db.recordedFollowUpOn = null;
   return {
     activityId: 'activity-web-preview-spray',
     cropCycleId: 'crop-2026',
@@ -378,9 +435,10 @@ export const createDemoSprayActivity = async (db: WebPreviewDb): Promise<Created
 
 export const createFieldActivity = async (
   db: WebPreviewDb,
-  _input: Omit<CreateActivityInput, 'id'> & { idSeed: string },
+  input: Omit<CreateActivityInput, 'id'> & { idSeed: string },
 ): Promise<CreatedActivityResult> => {
   db.demoSprayCount += 1;
+  db.recordedFollowUpOn = input.followUpOn ?? null;
   return {
     activityId: 'activity-web-preview-field',
     cropCycleId: 'crop-2026',

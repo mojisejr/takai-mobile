@@ -1,0 +1,84 @@
+- generic [ref=e184] [box=0,0,390,844]:
+  - generic [ref=e186] [box=0,-605,390,2068]:
+    - generic [ref=e187] [box=16,-589,358,52]:
+      - generic [ref=e188] [box=32,-578,28,30]: ☰
+      - generic [ref=e189] [box=72,-577,224,28]: บันทึกกิจกรรม
+      - button "ออฟไลน์" [ref=e190] [cursor=pointer] [box=308,-572,50,19]
+    - generic [ref=e425] [box=16,-521,86,28]: เพิ่มวัสดุแล้ว
+    - generic [ref=e272] [box=16,-477,358,117]:
+      - generic [ref=e273] [box=31,-462,328,18]: บันทึกภาคสนาม
+      - generic [ref=e274] [box=31,-444,328,23]: ใส่ปุ๋ย · แปลง A
+      - generic [ref=e275] [box=31,-417,328,42]: เลือก ค้นหา หรือเพิ่มรายการใหม่ได้ โดยแบบฟอร์มที่กำลังกรอกจะไม่หาย
+    - generic [ref=e276] [box=16,-344,358,371]:
+      - generic [ref=e277] [box=16,-344,358,36]: 1. งานและสถานที่
+      - generic [ref=e280] [box=16,-300,358,327]:
+        - generic [ref=e281] [box=31,-285,328,73]:
+          - generic [ref=e282] [box=31,-285,328,19]: หมวดงาน
+          - button "ใส่ปุ๋ย เลือก" [ref=e374] [cursor=pointer] [box=31,-260,328,48]:
+            - generic [ref=e284] [box=44,-247,261,22]: ใส่ปุ๋ย
+            - generic [ref=e285] [box=317,-245,29,19]: เลือก
+        - generic [ref=e286] [box=31,-212,328,73]:
+          - generic [ref=e287] [box=31,-212,328,19]: แปลง
+          - button "แปลง A เลือก" [ref=e288] [cursor=pointer] [box=31,-187,328,48]:
+            - generic [ref=e289] [box=44,-174,261,22]: แปลง A
+            - generic [ref=e290] [box=317,-172,29,19]: เลือก
+        - generic [ref=e291] [box=31,-139,328,73]:
+          - generic [ref=e292] [box=31,-139,328,19]: เป้าหมายในแปลง
+          - button "เลือกทั้งแปลง หลุม หรือเคส เลือก" [ref=e293] [cursor=pointer] [box=31,-114,328,48]:
+            - generic [ref=e294] [box=44,-101,261,22]: เลือกทั้งแปลง หลุม หรือเคส
+            - generic [ref=e295] [box=317,-99,29,19]: เลือก
+        - generic [ref=e296] [box=31,-56,328,18]: วันและเวลา (Phase 3 จะเปลี่ยนเป็นปฏิทิน)
+        - textbox [ref=e297] [box=31,-32,328,44]: 2026-07-28T07:28:30.985Z
+    - generic [ref=e298] [box=16,43,358,200]:
+      - generic [ref=e299] [box=16,43,358,36]: 2. บันทึก
+      - generic [ref=e302] [box=16,87,358,156]:
+        - generic [ref=e303] [box=31,112,328,18]: บันทึก
+        - textbox [ref=e304] [box=31,136,328,92]: พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม
+    - generic [ref=e305] [box=16,259,358,584]:
+      - generic [ref=e306] [box=16,259,358,36]: 3. วัสดุครั้งนี้
+      - generic [ref=e309] [box=16,303,358,540]:
+        - generic [ref=e375] [box=31,318,328,450]:
+          - generic [ref=e376] [box=31,318,328,34]:
+            - generic [ref=e377] [box=31,324,42,23]: วัสดุ 1
+            - button "นำออก" [ref=e378] [cursor=pointer] [box=306,318,53,34]
+          - generic [ref=e380] [box=31,360,328,73]:
+            - generic [ref=e381] [box=31,360,328,19]: วัสดุ
+            - button "ปุ๋ยทดสอบ Eye เลือก" [ref=e427] [cursor=pointer] [box=31,385,328,48]:
+              - generic [ref=e383] [box=44,398,261,22]: ปุ๋ยทดสอบ Eye
+              - generic [ref=e384] [box=317,400,29,19]: เลือก
+          - generic [ref=e385] [box=31,451,328,18]: ปริมาณจริง และหน่วย
+          - generic [ref=e386] [box=31,483,328,44]:
+            - textbox "เช่น 20" [ref=e387] [box=31,483,201,44]
+            - textbox "กรัม" [ref=e428] [box=240,483,201,44]
+          - generic [ref=e389] [box=31,545,328,18]: น้ำ/อัตราผสม/โน้ต (ถ้ามี)
+          - generic [ref=e390] [box=31,577,328,44]:
+            - textbox "น้ำ" [ref=e391] [box=31,577,201,44]
+            - textbox "ลิตร" [ref=e392] [box=240,577,201,44]
+          - textbox "อัตราผสม" [ref=e393] [box=31,629,328,44]
+          - textbox "โน้ตวัสดุ" [ref=e394] [box=31,689,328,64]
+        - button "+ เลือกวัสดุ" [ref=e311] [cursor=pointer] [box=31,782,328,46]
+    - generic [ref=e313] [box=16,859,358,246]:
+      - generic [ref=e314] [box=16,859,358,36]: 4. ผู้ร่วมงานและค่าแรง
+      - generic [ref=e317] [box=16,903,358,202]:
+        - generic [ref=e318] [box=31,918,159,28]: เจ้าของสวน · ไม่คิดค่าแรง
+        - generic [ref=e320] [box=31,950,328,42]: งานที่ทำเองจะเก็บในประวัติกิจกรรม แต่ไม่สร้างยอดค้างจ่าย
+        - generic [ref=e321] [box=31,992,328,73]:
+          - generic [ref=e322] [box=31,992,328,19]: คนงาน
+          - button "ทำเอง เลือก" [ref=e323] [cursor=pointer] [box=31,1017,328,48]:
+            - generic [ref=e324] [box=44,1030,261,22]: ทำเอง
+            - generic [ref=e325] [box=317,1032,29,19]: เลือก
+        - generic [ref=e326] [box=31,1069,328,21]: เลือก “ทำเอง” จึงไม่มีค่าแรงค้างจ่าย
+    - generic [ref=e327] [box=16,1121,358,177]:
+      - generic [ref=e328] [box=16,1121,358,36]: 5. ติดตามต่อ (ถ้ามี)
+      - generic [ref=e331] [box=16,1165,358,133]:
+        - generic [ref=e332] [box=31,1190,328,18]: ติดตามอีกกี่วัน
+        - textbox [ref=e333] [box=31,1214,328,44]: "4"
+        - generic [ref=e334] [box=31,1262,328,21]: ปล่อยว่างหรือ 0 ได้ หากงานนี้ไม่มีวันติดตาม
+    - button "บันทึกกิจกรรมลงเครื่อง" [ref=e336] [cursor=pointer] [box=16,1331,358,46]
+    - button "กลับวันนี้" [ref=e338] [cursor=pointer] [box=16,1409,358,46]
+  - generic [ref=e261] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=e262] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=e264] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=e266] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=e268] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=e270] [cursor=pointer] [box=298,777,69,44]
