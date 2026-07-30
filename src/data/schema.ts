@@ -387,4 +387,42 @@ export const TAKAI_MIGRATIONS: Migration[] = [
       )`,
     ],
   },
+  {
+    id: 12,
+    name: 'labor_settlement_group_ledger',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_settlement_groups (
+        id TEXT PRIMARY KEY,
+        labor_job_id TEXT NOT NULL UNIQUE REFERENCES labor_jobs(id) ON DELETE CASCADE,
+        original_due_satang INTEGER NOT NULL CHECK (typeof(original_due_satang) = 'integer' AND original_due_satang > 0),
+        status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'settled', 'cancelled')),
+        collector_person_id TEXT REFERENCES people(id),
+        collector_label TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_settlement_group_members (
+        id TEXT PRIMARY KEY,
+        settlement_group_id TEXT NOT NULL REFERENCES labor_settlement_groups(id) ON DELETE CASCADE,
+        participant_id TEXT NOT NULL UNIQUE REFERENCES labor_job_participants(id) ON DELETE RESTRICT,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_settlement_group_receipts (
+        id TEXT PRIMARY KEY,
+        settlement_group_id TEXT NOT NULL REFERENCES labor_settlement_groups(id) ON DELETE CASCADE,
+        receipt_date TEXT NOT NULL,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        method TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        status TEXT NOT NULL DEFAULT 'posted' CHECK (status IN ('posted', 'revised', 'cancelled')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_settlement_groups_job ON labor_settlement_groups(labor_job_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_settlement_group_members_group ON labor_settlement_group_members(settlement_group_id, sort_order)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_settlement_group_receipts_group ON labor_settlement_group_receipts(settlement_group_id, receipt_date DESC, created_at DESC)`,
+    ],
+  },
 ];

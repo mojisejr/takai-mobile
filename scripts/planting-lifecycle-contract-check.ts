@@ -51,7 +51,7 @@ const main = async (): Promise<void> => {
     await db.runAsync("INSERT INTO holes (id, plot_id, marker, sort_key, status) VALUES ('hole-legacy', 'plot-lifecycle', 'L-001', 'L-001', 'empty')");
     await db.runAsync("INSERT INTO plantings (id, hole_id, plant_name, planted_on, removed_on) VALUES ('planting-legacy', 'hole-legacy', 'ต้นเก่า', '2020-01-01', '2021-01-01')");
     await db.runAsync("INSERT INTO activities (id, plot_id, category_id, performed_at, note, status) VALUES ('activity-legacy', 'plot-lifecycle', 'cat-lifecycle', '2020-01-02', 'legacy', 'done')");
-    assert.deepEqual(await runMigrations(db), [8, 9, 10, 11], 'a database already at migration 7 must receive only later additive migrations');
+    assert.deepEqual(await runMigrations(db), [8, 9, 10, 11, 12], 'a database already at migration 7 must receive only later additive migrations');
     assert.deepEqual(plainRows(await db.getAllAsync<{ status: string; removed_reason: string | null }>('SELECT status, removed_reason FROM plantings WHERE id = ?', ['planting-legacy'])), [{ status: 'retired', removed_reason: null }], 'legacy ended planting must survive as retired');
     assert.deepEqual(plainRows(await db.getAllAsync<{ id: string; planting_id: string | null }>('SELECT id, planting_id FROM activities WHERE id = ?', ['activity-legacy'])), [{ id: 'activity-legacy', planting_id: null }], 'legacy activities must remain readable without invented planting identity');
 
