@@ -1,24 +1,43 @@
 import type { SqlExecutor } from '../../data/migrations';
 import type {
+  AddContractProgressInput,
+  ContractParticipantInput,
+  CreateLaborContractInput,
+  CreateLaborSettlementGroupInput,
+  CreateManualOpeningBalanceInput,
   CreateNormalWorkInput,
   EditLaborPaymentInput,
+  EditLaborSettlementGroupReceiptInput,
+  ImportLegacyLaborEntriesInput,
+  LaborContract,
+  LaborContractProgress,
+  LegacyCarryForwardBalance,
+  LegacyLaborSource,
   LaborMvpReadModel,
   LaborPayable,
   LaborPayment,
+  LaborSettlementGroup,
+  LaborSettlementGroupReceipt,
   LaborPersonBalance,
   LaborTimelineEvent,
   LaborWorker,
   LaborWorkerInput,
   PaymentAllocationInput,
   PostLaborPaymentInput,
+  PostLaborSettlementGroupReceiptInput,
+  ReconcileContractSharesInput,
   UpdateLaborWorkerInput,
 } from './types';
 
 type PersonRow = { id: string; display_name: string; role: 'owner' | 'worker'; specialty: string; phone: string; note: string; archived_at: string | null; is_self: number };
-type PayableRow = { id: string; labor_job_id: string; title: string; work_date: string; person_id: string; due_satang: number; paid_satang: number };
+type PayableRow = { id: string; labor_job_id: string; title: string; work_date: string; person_id: string; due_satang: number; paid_satang: number; kind: 'normal' | 'contract' | 'legacy_import' };
 type PaymentRow = { id: string; person_id: string; payment_date: string; method: string; note: string; total_satang: number; current_revision: number };
 type AllocationRow = { id: string; payable_id: string; amount_satang: number };
 type TimelineRow = { id: string; entity_type: 'person' | 'labor_job' | 'labor_payment'; entity_id: string; action: string; occurred_at: string; reason: string | null; before_json: string | null; after_json: string; person_id: string | null; labor_job_id: string | null };
+type ContractJobRow = { id: string; title: string; work_date: string; note: string; starts_on: string | null; deadline_on: string | null; completed_on: string | null; status: 'in_progress' | 'awaiting_amount' | 'completed' | 'cancelled'; agreed_total_satang: number | null; final_total_satang: number | null };
+type LegacySourceRow = { id: string; person_id: string; work_date: string; amount_due: number; amount_paid: number; imported_at: string | null };
+type SettlementGroupRow = { id: string; labor_job_id: string; original_due_satang: number; status: 'open' | 'settled' | 'cancelled'; collector_person_id: string | null; collector_label: string; paid_satang: number };
+type SettlementGroupReceiptRow = { id: string; settlement_group_id: string; receipt_date: string; amount_satang: number; method: string; note: string; current_revision: number; status: 'posted' | 'revised' | 'cancelled' };
 
 const timestamp = (): string => new Date().toISOString();
 const generatedId = (prefix: string): string => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -30,6 +49,15 @@ const assertPositiveSatang = (value: number, label: string): void => {
 
 const assertDate = (value: string, label: string): void => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`TAKAI ${label} must be YYYY-MM-DD`);
+};
+
+const bahtToSatang = (value: number, label: string): number => {
+  if (!Number.isFinite(value)) throw new Error(`TAKAI ${label} must be a finite baht amount`);
+  const satang = Math.round(value * 100);
+  if (!Number.isSafeInteger(satang) || Math.abs(value * 100 - satang) > 0.000001) {
+    throw new Error(`TAKAI ${label} cannot be represented safely in satang`);
+  }
+  return satang;
 };
 
 const withTransaction = async <T>(db: SqlExecutor, operation: () => Promise<T>): Promise<T> => {
@@ -79,7 +107,7 @@ const payableRows = async (db: SqlExecutor, allocations: PaymentAllocationInput[
   }
   const placeholders = allocations.map(() => '?').join(', ');
   const rows = await db.getAllAsync<PayableRow>(
-    `SELECT payable.id, payable.labor_job_id, job.title, job.work_date, payable.person_id, payable.due_satang,
+    `SELECT payable.id, payable.labor_job_id, job.title, job.work_date, job.kind, payable.person_id, payable.due_satang,
        COALESCE(SUM(CASE WHEN batch.status = 'posted' THEN allocation.amount_satang ELSE 0 END), 0) AS paid_satang
      FROM labor_payables AS payable
      JOIN labor_jobs AS job ON job.id = payable.labor_job_id
@@ -93,6 +121,57 @@ const payableRows = async (db: SqlExecutor, allocations: PaymentAllocationInput[
   const byId = new Map(rows.map((row) => [row.id, row]));
   return allocations.map((allocation) => ({ ...byId.get(allocation.payableId)!, allocation }));
 };
+
+const assertContractPayablesReadyForSettlement = async (db: SqlExecutor, rows: PayableRow[]): Promise<void> => {
+  const contractJobIds = [...new Set(rows.filter((row) => row.kind === 'contract').map((row) => row.labor_job_id))];
+  for (const jobId of contractJobIds) {
+    const details = await db.getAllAsync<{ total_satang: number | null; share_total_satang: number; status: string }>(
+      `SELECT COALESCE(detail.final_total_satang, detail.agreed_total_satang) AS total_satang,
+         COALESCE((SELECT SUM(due_satang) FROM labor_payables WHERE labor_job_id = job.id AND status = 'open'), 0) AS share_total_satang,
+         detail.status
+       FROM labor_jobs AS job
+       LEFT JOIN labor_contract_details AS detail ON detail.labor_job_id = job.id
+       WHERE job.id = ? AND job.kind = 'contract' AND job.status = 'open' LIMIT 1`,
+      [jobId],
+    );
+    const detail = details[0];
+    if (!detail || detail.total_satang == null || Number(detail.total_satang) <= 0 || Number(detail.share_total_satang) !== Number(detail.total_satang) || detail.status === 'cancelled') {
+      throw new Error('TAKAI contract payment requires reconciled total and shares');
+    }
+  }
+};
+
+const contractJob = async (db: SqlExecutor, jobId: string): Promise<ContractJobRow> => {
+  const rows = await db.getAllAsync<ContractJobRow>(
+    `SELECT job.id, job.title, job.work_date, job.note, detail.starts_on, detail.deadline_on, detail.completed_on,
+       detail.status, detail.agreed_total_satang, detail.final_total_satang
+     FROM labor_jobs AS job
+     JOIN labor_contract_details AS detail ON detail.labor_job_id = job.id
+     WHERE job.id = ? AND job.kind = 'contract' AND job.status = 'open' LIMIT 1`,
+    [jobId],
+  );
+  if (!rows[0]) throw new Error(`TAKAI contract is unavailable: ${jobId}`);
+  return rows[0];
+};
+
+const assertContractParticipants = async (db: SqlExecutor, participants: ContractParticipantInput[]): Promise<Array<{ input: ContractParticipantInput; person: PersonRow; index: number }>> => {
+  if (participants.length === 0) throw new Error('TAKAI contract requires at least one worker participant');
+  const seen = new Set<string>();
+  return Promise.all(participants.map(async (input, index) => {
+    if (!trimmed(input.personId) || seen.has(input.personId)) throw new Error('TAKAI contract participants must be distinct');
+    seen.add(input.personId);
+    return { input, person: await activeWorker(db, input.personId), index };
+  }));
+};
+
+const hasContractPayment = async (db: SqlExecutor, jobId: string): Promise<boolean> => Boolean((await db.getAllAsync<{ id: string }>(
+  `SELECT allocation.id
+   FROM labor_payment_allocations AS allocation
+   JOIN labor_payment_batches AS batch ON batch.id = allocation.payment_batch_id
+   JOIN labor_payables AS payable ON payable.id = allocation.payable_id
+   WHERE payable.labor_job_id = ? AND batch.status = 'posted' LIMIT 1`,
+  [jobId],
+))[0]);
 
 const paymentSnapshot = async (db: SqlExecutor, paymentId: string): Promise<{ payment: LaborPayment; allocations: AllocationRow[] }> => {
   const rows = await db.getAllAsync<PaymentRow>(
@@ -118,6 +197,76 @@ const paymentSnapshot = async (db: SqlExecutor, paymentId: string): Promise<{ pa
     },
     allocations,
   };
+};
+
+const settlementGroupRows = async (db: SqlExecutor, jobId?: string): Promise<SettlementGroupRow[]> => db.getAllAsync<SettlementGroupRow>(
+  `SELECT settlement_group.id, settlement_group.labor_job_id, settlement_group.original_due_satang, settlement_group.status,
+     settlement_group.collector_person_id, settlement_group.collector_label,
+     COALESCE(SUM(CASE WHEN receipt.status IN ('posted', 'revised') THEN receipt.amount_satang ELSE 0 END), 0) AS paid_satang
+   FROM labor_settlement_groups AS settlement_group
+   LEFT JOIN labor_settlement_group_receipts AS receipt ON receipt.settlement_group_id = settlement_group.id
+   ${jobId ? 'WHERE settlement_group.labor_job_id = ?' : ''}
+   GROUP BY settlement_group.id
+   ORDER BY settlement_group.created_at ASC, settlement_group.id ASC`,
+  jobId ? [jobId] : [],
+);
+
+const settlementGroupReceiptRows = async (db: SqlExecutor, settlementGroupId: string): Promise<SettlementGroupReceiptRow[]> => db.getAllAsync<SettlementGroupReceiptRow>(
+  `SELECT id, settlement_group_id, receipt_date, amount_satang, method, note, current_revision, status
+   FROM labor_settlement_group_receipts
+   WHERE settlement_group_id = ? ORDER BY receipt_date ASC, created_at ASC, id ASC`,
+  [settlementGroupId],
+);
+
+const settlementGroupSnapshot = async (db: SqlExecutor, settlementGroupId: string): Promise<LaborSettlementGroup> => {
+  const group = (await settlementGroupRows(db)).find((item) => item.id === settlementGroupId);
+  if (!group) throw new Error(`TAKAI settlement group is unavailable: ${settlementGroupId}`);
+  const [members, receipts] = await Promise.all([
+    db.getAllAsync<{ person_id: string }>(
+      `SELECT participant.person_id
+       FROM labor_settlement_group_members AS member
+       JOIN labor_job_participants AS participant ON participant.id = member.participant_id
+       WHERE member.settlement_group_id = ? ORDER BY member.sort_order ASC, member.id ASC`,
+      [settlementGroupId],
+    ),
+    settlementGroupReceiptRows(db, settlementGroupId),
+  ]);
+  const paidSatang = Number(group.paid_satang);
+  return {
+    id: group.id,
+    jobId: group.labor_job_id,
+    originalDueSatang: Number(group.original_due_satang),
+    paidSatang,
+    remainingSatang: Number(group.original_due_satang) - paidSatang,
+    status: group.status,
+    collectorPersonId: group.collector_person_id,
+    collectorLabel: group.collector_label,
+    memberPersonIds: members.map((member) => member.person_id),
+    receipts: receipts.map((receipt): LaborSettlementGroupReceipt => ({
+      id: receipt.id,
+      settlementGroupId: receipt.settlement_group_id,
+      receiptDate: receipt.receipt_date,
+      amountSatang: Number(receipt.amount_satang),
+      method: receipt.method,
+      note: receipt.note,
+      currentRevision: Number(receipt.current_revision),
+      status: receipt.status,
+    })),
+  };
+};
+
+const assertJobAllowsSettlementGroup = async (db: SqlExecutor, laborJobId: string): Promise<void> => {
+  const job = (await db.getAllAsync<{ id: string }>(
+    "SELECT id FROM labor_jobs WHERE id = ? AND status = 'open' LIMIT 1",
+    [laborJobId],
+  ))[0];
+  if (!job) throw new Error(`TAKAI labor job is unavailable for settlement group: ${laborJobId}`);
+  const [existingPayable, existingGroup] = await Promise.all([
+    db.getAllAsync<{ id: string }>('SELECT id FROM labor_payables WHERE labor_job_id = ? AND status = \'open\' LIMIT 1', [laborJobId]),
+    db.getAllAsync<{ id: string }>('SELECT id FROM labor_settlement_groups WHERE labor_job_id = ? LIMIT 1', [laborJobId]),
+  ]);
+  if (existingPayable[0]) throw new Error('TAKAI settlement group cannot mix with individual payables for one job');
+  if (existingGroup[0]) throw new Error('TAKAI labor job already has a settlement group');
 };
 
 const appendTimeline = async (db: SqlExecutor, input: Omit<LaborTimelineEvent, 'id'> & { id?: string }): Promise<void> => {
@@ -258,12 +407,225 @@ export const createNormalWork = async (db: SqlExecutor, input: CreateNormalWorkI
   });
 };
 
+export const createLaborContract = async (db: SqlExecutor, input: CreateLaborContractInput, now = timestamp()): Promise<string> => {
+  const title = trimmed(input.title);
+  if (!title) throw new Error('TAKAI contract requires a title');
+  assertDate(input.workDate, 'contract work date');
+  if (input.startsOn) assertDate(input.startsOn, 'contract start date');
+  if (input.deadlineOn) assertDate(input.deadlineOn, 'contract deadline date');
+  const prepared = await assertContractParticipants(db, input.participants);
+  const jobId = input.id ?? generatedId('labor-contract');
+  await withTransaction(db, async () => {
+    await db.runAsync(
+      `INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at)
+       VALUES (?, ?, ?, NULL, ?, 'contract', 'open', ?, ?)`,
+      [jobId, title, input.workDate, trimmed(input.note), now, now],
+    );
+    await db.runAsync(
+      `INSERT INTO labor_contract_details
+       (labor_job_id, starts_on, deadline_on, completed_on, status, agreed_total_satang, final_total_satang)
+       VALUES (?, ?, ?, NULL, 'awaiting_amount', NULL, NULL)`,
+      [jobId, input.startsOn ?? null, input.deadlineOn ?? null],
+    );
+    for (const participant of prepared) {
+      await db.runAsync(
+        `INSERT INTO labor_job_participants (id, labor_job_id, person_id, pay_type, sort_order, note)
+         VALUES (?, ?, ?, 'contract', ?, ?)`,
+        [participant.input.participantId ?? `${jobId}-participant-${participant.index + 1}`, jobId, participant.person.id, participant.index, trimmed(participant.input.note)],
+      );
+    }
+    await appendTimeline(db, {
+      entityType: 'labor_job', entityId: jobId, action: 'contract_created', occurredAt: now, reason: null, before: null,
+      after: { id: jobId, title, workDate: input.workDate, plotId: null, startsOn: input.startsOn ?? null, deadlineOn: input.deadlineOn ?? null, participants: prepared.map((participant) => participant.person.id), totalSatang: null },
+      personId: null, laborJobId: jobId,
+    });
+  });
+  return jobId;
+};
+
+export const addLaborContractProgress = async (db: SqlExecutor, jobId: string, input: AddContractProgressInput, now = timestamp()): Promise<string> => {
+  assertDate(input.progressDate, 'contract progress date');
+  const note = trimmed(input.note);
+  if (!note) throw new Error('TAKAI contract progress requires a note');
+  const id = input.id ?? generatedId('contract-progress');
+  await withTransaction(db, async () => {
+    await contractJob(db, jobId);
+    await db.runAsync(
+      `INSERT INTO labor_job_progress (id, labor_job_id, progress_date, note, plot_id, created_at)
+       VALUES (?, ?, ?, ?, NULL, ?)`,
+      [id, jobId, input.progressDate, note, now],
+    );
+    await appendTimeline(db, {
+      entityType: 'labor_job', entityId: jobId, action: 'contract_progress_added', occurredAt: now, reason: null, before: null,
+      after: { id, progressDate: input.progressDate, note, plotId: null }, personId: null, laborJobId: jobId,
+    });
+  });
+  return id;
+};
+
+export const reconcileLaborContractShares = async (db: SqlExecutor, jobId: string, input: ReconcileContractSharesInput, now = timestamp()): Promise<string[]> => {
+  assertPositiveSatang(input.totalSatang, 'contract total');
+  if (!input.shares.length) throw new Error('TAKAI contract requires explicit worker shares');
+  const reason = trimmed(input.reason);
+  const seen = new Set<string>();
+  for (const share of input.shares) {
+    if (!trimmed(share.personId) || seen.has(share.personId)) throw new Error('TAKAI contract shares must name distinct workers');
+    seen.add(share.personId);
+    assertPositiveSatang(share.amountSatang, 'contract share');
+  }
+  if (input.shares.reduce((sum, share) => sum + share.amountSatang, 0) !== input.totalSatang) throw new Error('TAKAI contract shares must equal the contract total exactly');
+  return withTransaction(db, async () => {
+    const contract = await contractJob(db, jobId);
+    if (contract.status === 'cancelled') throw new Error(`TAKAI contract is unavailable: ${jobId}`);
+    if ((await settlementGroupRows(db, jobId)).length) throw new Error('TAKAI contract cannot mix individual shares with a settlement group');
+    if ((contract.agreed_total_satang != null || contract.final_total_satang != null) && !reason) throw new Error('TAKAI contract share update requires a reason');
+    if (await hasContractPayment(db, jobId)) throw new Error('TAKAI contract shares cannot change after payment');
+    const participantRows = await db.getAllAsync<{ id: string; person_id: string }>(
+      "SELECT id, person_id FROM labor_job_participants WHERE labor_job_id = ? AND pay_type = 'contract' ORDER BY sort_order ASC",
+      [jobId],
+    );
+    if (participantRows.length !== input.shares.length || participantRows.some((participant) => !seen.has(participant.person_id))) {
+      throw new Error('TAKAI contract shares must cover every contract participant exactly once');
+    }
+    for (const share of input.shares) await activeWorker(db, share.personId);
+    const before = { totalSatang: contract.final_total_satang ?? contract.agreed_total_satang, status: contract.status };
+    await db.runAsync('DELETE FROM labor_payables WHERE labor_job_id = ?', [jobId]);
+    const participantByPerson = new Map(participantRows.map((participant) => [participant.person_id, participant]));
+    const payableIds: string[] = [];
+    for (const [index, share] of input.shares.entries()) {
+      const payableId = share.payableId ?? `${jobId}-payable-${index + 1}`;
+      await db.runAsync(
+        `INSERT INTO labor_payables (id, labor_job_id, participant_id, person_id, due_satang, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'open', ?)`,
+        [payableId, jobId, participantByPerson.get(share.personId)!.id, share.personId, share.amountSatang, now],
+      );
+      payableIds.push(payableId);
+    }
+    await db.runAsync(
+      `UPDATE labor_contract_details
+       SET agreed_total_satang = ?, final_total_satang = ?, status = 'in_progress'
+       WHERE labor_job_id = ?`,
+      [input.totalSatang, input.totalSatang, jobId],
+    );
+    await db.runAsync('UPDATE labor_jobs SET updated_at = ? WHERE id = ?', [now, jobId]);
+    await appendTimeline(db, {
+      entityType: 'labor_job', entityId: jobId, action: 'contract_shares_reconciled', occurredAt: now,
+      reason: reason || null, before,
+      after: { totalSatang: input.totalSatang, status: 'in_progress', shares: input.shares.map((share) => ({ personId: share.personId, amountSatang: share.amountSatang })) },
+      personId: null, laborJobId: jobId,
+    });
+    return payableIds;
+  });
+};
+
+const legacySourceRows = async (db: SqlExecutor, legacyLaborEntryIds: string[]): Promise<LegacySourceRow[]> => {
+  if (!legacyLaborEntryIds.length) throw new Error('TAKAI legacy import requires at least one unpaid source');
+  if (new Set(legacyLaborEntryIds).size !== legacyLaborEntryIds.length || legacyLaborEntryIds.some((id) => !trimmed(id))) throw new Error('TAKAI legacy import sources must be distinct');
+  const placeholders = legacyLaborEntryIds.map(() => '?').join(', ');
+  const rows = await db.getAllAsync<LegacySourceRow>(
+    `SELECT entry.id, entry.person_id, entry.work_date, entry.amount_due, entry.amount_paid, batch.imported_at
+     FROM labor_entries AS entry
+     JOIN people ON people.id = entry.person_id
+     LEFT JOIN legacy_labor_import_links AS link ON link.legacy_labor_entry_id = entry.id
+     LEFT JOIN legacy_labor_import_batches AS batch ON batch.id = link.import_batch_id
+     WHERE entry.id IN (${placeholders}) AND entry.status = 'unpaid' AND entry.amount_due > entry.amount_paid`,
+    legacyLaborEntryIds,
+  );
+  if (rows.length !== legacyLaborEntryIds.length) throw new Error('TAKAI selected legacy unpaid source is unavailable');
+  if (rows.some((row) => row.imported_at != null)) throw new Error('TAKAI legacy source was already imported');
+  return legacyLaborEntryIds.map((id) => rows.find((row) => row.id === id)!);
+};
+
+export const importLegacyLaborEntries = async (db: SqlExecutor, input: ImportLegacyLaborEntriesInput, now = timestamp()): Promise<{ batchId: string; payableIds: string[] }> => {
+  const sources = await legacySourceRows(db, input.legacyLaborEntryIds);
+  const prepared = await Promise.all(sources.map(async (source) => {
+    await activeWorker(db, source.person_id);
+    const remainingSatang = bahtToSatang(Number(source.amount_due) - Number(source.amount_paid), 'legacy remaining balance');
+    assertPositiveSatang(remainingSatang, 'legacy remaining balance');
+    return { ...source, remainingSatang };
+  }));
+  const batchId = input.id ?? generatedId('legacy-import');
+  return withTransaction(db, async () => {
+    await db.runAsync(
+      'INSERT INTO legacy_labor_import_batches (id, imported_at, note, created_by_person_id) VALUES (?, ?, ?, NULL)',
+      [batchId, now, trimmed(input.note)],
+    );
+    const payableIds: string[] = [];
+    for (const [index, source] of prepared.entries()) {
+      const jobId = `${batchId}-job-${index + 1}`;
+      const participantId = `${jobId}-participant-1`;
+      const payableId = `${jobId}-payable-1`;
+      await db.runAsync(
+        `INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at)
+         VALUES (?, 'ยอดยกมา', ?, NULL, ?, 'legacy_import', 'open', ?, ?)`,
+        [jobId, source.work_date, trimmed(input.note), now, now],
+      );
+      await db.runAsync(
+        `INSERT INTO labor_job_participants (id, labor_job_id, person_id, pay_type, sort_order, note)
+         VALUES (?, ?, ?, 'daily', 0, '')`,
+        [participantId, jobId, source.person_id],
+      );
+      await db.runAsync(
+        `INSERT INTO labor_payables (id, labor_job_id, participant_id, person_id, due_satang, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'open', ?)`,
+        [payableId, jobId, participantId, source.person_id, source.remainingSatang, now],
+      );
+      await db.runAsync(
+        `INSERT INTO legacy_labor_import_links
+         (id, import_batch_id, legacy_labor_entry_id, labor_payable_id, source_work_date, source_due_satang, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [`${batchId}-link-${index + 1}`, batchId, source.id, payableId, source.work_date, source.remainingSatang, now],
+      );
+      await appendTimeline(db, {
+        entityType: 'labor_job', entityId: jobId, action: 'legacy_carry_forward_imported', occurredAt: now, reason: null, before: null,
+        after: { sourceLaborEntryId: source.id, workDate: source.work_date, remainingSatang: source.remainingSatang, label: 'ยอดยกมา' },
+        personId: source.person_id, laborJobId: jobId,
+      });
+      payableIds.push(payableId);
+    }
+    return { batchId, payableIds };
+  });
+};
+
+export const createManualOpeningBalance = async (db: SqlExecutor, input: CreateManualOpeningBalanceInput, now = timestamp()): Promise<string> => {
+  assertDate(input.workDate, 'opening balance date');
+  assertPositiveSatang(input.dueSatang, 'opening balance');
+  const worker = await activeWorker(db, input.personId);
+  const jobId = input.id ?? generatedId('manual-opening');
+  const participantId = input.participantId ?? `${jobId}-participant-1`;
+  const payableId = input.payableId ?? `${jobId}-payable-1`;
+  await withTransaction(db, async () => {
+    await db.runAsync(
+      `INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at)
+       VALUES (?, ?, ?, NULL, ?, 'legacy_import', 'open', ?, ?)`,
+      [jobId, trimmed(input.title) || 'ยอดยกมา', input.workDate, trimmed(input.note), now, now],
+    );
+    await db.runAsync(
+      `INSERT INTO labor_job_participants (id, labor_job_id, person_id, pay_type, sort_order, note)
+       VALUES (?, ?, ?, 'daily', 0, '')`,
+      [participantId, jobId, worker.id],
+    );
+    await db.runAsync(
+      `INSERT INTO labor_payables (id, labor_job_id, participant_id, person_id, due_satang, status, created_at)
+       VALUES (?, ?, ?, ?, ?, 'open', ?)`,
+      [payableId, jobId, participantId, worker.id, input.dueSatang, now],
+    );
+    await appendTimeline(db, {
+      entityType: 'labor_job', entityId: jobId, action: 'manual_opening_balance_created', occurredAt: now, reason: null, before: null,
+      after: { personId: worker.id, workDate: input.workDate, dueSatang: input.dueSatang, label: trimmed(input.title) || 'ยอดยกมา' },
+      personId: worker.id, laborJobId: jobId,
+    });
+  });
+  return payableId;
+};
+
 export const postLaborPayment = async (db: SqlExecutor, input: PostLaborPaymentInput, now = timestamp()): Promise<string> => {
   assertDate(input.paymentDate, 'payment date');
   await activeWorker(db, input.personId);
   const paymentId = input.id ?? generatedId('labor-payment');
   return withTransaction(db, async () => {
     const rows = await payableRows(db, input.allocations);
+    await assertContractPayablesReadyForSettlement(db, rows);
     for (const row of rows) {
       if (row.person_id !== input.personId) throw new Error('TAKAI payment payee must match every payable');
       if (row.allocation.amountSatang > Number(row.due_satang) - Number(row.paid_satang)) throw new Error('TAKAI payment allocation cannot exceed payable remaining balance');
@@ -297,6 +659,7 @@ export const editLaborPayment = async (db: SqlExecutor, paymentId: string, input
     const before = await paymentSnapshot(db, paymentId);
     await activeWorker(db, before.payment.personId);
     const rows = await payableRows(db, input.allocations);
+    await assertContractPayablesReadyForSettlement(db, rows);
     for (const row of rows) {
       if (row.person_id !== before.payment.personId) throw new Error('TAKAI payment payee must match every payable');
       const previousAllocation = before.allocations.find((allocation) => allocation.payable_id === row.id)?.amount_satang ?? 0;
@@ -325,9 +688,128 @@ export const editLaborPayment = async (db: SqlExecutor, paymentId: string, input
   });
 };
 
+export const createLaborSettlementGroup = async (db: SqlExecutor, input: CreateLaborSettlementGroupInput, now = timestamp()): Promise<string> => {
+  assertPositiveSatang(input.originalDueSatang, 'settlement group due');
+  const memberPersonIds = input.memberPersonIds.map((personId) => trimmed(personId));
+  if (!memberPersonIds.length || memberPersonIds.some((personId) => !personId) || new Set(memberPersonIds).size !== memberPersonIds.length) {
+    throw new Error('TAKAI settlement group requires distinct worker members');
+  }
+  const collectorPersonId = trimmed(input.collectorPersonId) || null;
+  const collectorLabel = trimmed(input.collectorLabel);
+  const groupId = input.id ?? generatedId('settlement-group');
+  await withTransaction(db, async () => {
+    await assertJobAllowsSettlementGroup(db, input.laborJobId);
+    if (collectorPersonId) await activeWorker(db, collectorPersonId);
+    const placeholders = memberPersonIds.map(() => '?').join(', ');
+    const participants = await db.getAllAsync<{ id: string; person_id: string; sort_order: number; role: string; is_self: number }>(
+      `SELECT participant.id, participant.person_id, participant.sort_order, person.role, person.is_self
+       FROM labor_job_participants AS participant
+       JOIN people AS person ON person.id = participant.person_id
+       WHERE participant.labor_job_id = ? AND participant.person_id IN (${placeholders})
+       ORDER BY participant.sort_order ASC, participant.id ASC`,
+      [input.laborJobId, ...memberPersonIds],
+    );
+    if (participants.length !== memberPersonIds.length || participants.some((participant) => participant.role !== 'worker' || participant.is_self)) {
+      throw new Error('TAKAI settlement group members must be existing worker participants of this job');
+    }
+    await db.runAsync(
+      `INSERT INTO labor_settlement_groups
+       (id, labor_job_id, original_due_satang, status, collector_person_id, collector_label, created_at, updated_at)
+       VALUES (?, ?, ?, 'open', ?, ?, ?, ?)`,
+      [groupId, input.laborJobId, input.originalDueSatang, collectorPersonId, collectorLabel, now, now],
+    );
+    const participantByPerson = new Map(participants.map((participant) => [participant.person_id, participant]));
+    for (const [index, personId] of memberPersonIds.entries()) {
+      const participant = participantByPerson.get(personId)!;
+      await db.runAsync(
+        `INSERT INTO labor_settlement_group_members (id, settlement_group_id, participant_id, sort_order, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [`${groupId}-member-${index + 1}`, groupId, participant.id, index, now],
+      );
+    }
+    const after = await settlementGroupSnapshot(db, groupId);
+    await appendTimeline(db, {
+      entityType: 'labor_job', entityId: input.laborJobId, action: 'settlement_group_created', occurredAt: now, reason: null,
+      before: null, after, personId: null, laborJobId: input.laborJobId,
+    });
+  });
+  return groupId;
+};
+
+export const postLaborSettlementGroupReceipt = async (db: SqlExecutor, input: PostLaborSettlementGroupReceiptInput, now = timestamp()): Promise<string> => {
+  assertDate(input.receiptDate, 'settlement group receipt date');
+  assertPositiveSatang(input.amountSatang, 'settlement group receipt');
+  const receiptId = input.id ?? generatedId('settlement-group-receipt');
+  await withTransaction(db, async () => {
+    const before = await settlementGroupSnapshot(db, input.settlementGroupId);
+    if (before.status !== 'open') throw new Error('TAKAI settlement group is not open for a receipt');
+    if (input.amountSatang > before.remainingSatang) throw new Error('TAKAI settlement group receipt cannot exceed remaining balance');
+    await db.runAsync(
+      `INSERT INTO labor_settlement_group_receipts
+       (id, settlement_group_id, receipt_date, amount_satang, method, note, current_revision, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 1, 'posted', ?, ?)`,
+      [receiptId, input.settlementGroupId, input.receiptDate, input.amountSatang, trimmed(input.method), trimmed(input.note), now, now],
+    );
+    const after = await settlementGroupSnapshot(db, input.settlementGroupId);
+    await db.runAsync(
+      'UPDATE labor_settlement_groups SET status = ?, updated_at = ? WHERE id = ?',
+      [after.remainingSatang === 0 ? 'settled' : 'open', now, input.settlementGroupId],
+    );
+    const finalAfter = await settlementGroupSnapshot(db, input.settlementGroupId);
+    await appendTimeline(db, {
+      entityType: 'labor_job', entityId: finalAfter.jobId, action: 'settlement_group_receipt_posted', occurredAt: now, reason: null,
+      before, after: { group: finalAfter, receipt: finalAfter.receipts.find((receipt) => receipt.id === receiptId)! }, personId: null, laborJobId: finalAfter.jobId,
+    });
+  });
+  return receiptId;
+};
+
+export const editLaborSettlementGroupReceipt = async (db: SqlExecutor, receiptId: string, input: EditLaborSettlementGroupReceiptInput, now = timestamp()): Promise<void> => {
+  const reason = trimmed(input.reason);
+  if (!reason) throw new Error('TAKAI settlement group receipt edit requires a reason');
+  assertDate(input.receiptDate, 'settlement group receipt date');
+  assertPositiveSatang(input.amountSatang, 'settlement group receipt');
+  await withTransaction(db, async () => {
+    const row = (await db.getAllAsync<SettlementGroupReceiptRow>(
+      `SELECT id, settlement_group_id, receipt_date, amount_satang, method, note, current_revision, status
+       FROM labor_settlement_group_receipts WHERE id = ? AND status IN ('posted', 'revised') LIMIT 1`,
+      [receiptId],
+    ))[0];
+    if (!row) throw new Error(`TAKAI settlement group receipt is unavailable: ${receiptId}`);
+    const before = await settlementGroupSnapshot(db, row.settlement_group_id);
+    const paidOutsideThisReceipt = before.paidSatang - Number(row.amount_satang);
+    if (input.amountSatang > before.originalDueSatang - paidOutsideThisReceipt) {
+      throw new Error('TAKAI settlement group receipt cannot exceed remaining balance');
+    }
+    await db.runAsync(
+      `UPDATE labor_settlement_group_receipts
+       SET receipt_date = ?, amount_satang = ?, method = ?, note = ?, current_revision = current_revision + 1, status = 'revised', updated_at = ?
+       WHERE id = ? AND status IN ('posted', 'revised')`,
+      [input.receiptDate, input.amountSatang, trimmed(input.method), trimmed(input.note), now, receiptId],
+    );
+    const after = await settlementGroupSnapshot(db, row.settlement_group_id);
+    await db.runAsync(
+      'UPDATE labor_settlement_groups SET status = ?, updated_at = ? WHERE id = ?',
+      [after.remainingSatang === 0 ? 'settled' : 'open', now, row.settlement_group_id],
+    );
+    const finalAfter = await settlementGroupSnapshot(db, row.settlement_group_id);
+    await appendTimeline(db, {
+      entityType: 'labor_job', entityId: finalAfter.jobId, action: 'settlement_group_receipt_edited', occurredAt: now, reason,
+      before: { group: before, receipt: before.receipts.find((receipt) => receipt.id === receiptId)! },
+      after: { group: finalAfter, receipt: finalAfter.receipts.find((receipt) => receipt.id === receiptId)! },
+      personId: null, laborJobId: finalAfter.jobId,
+    });
+  });
+};
+
+export const listLaborSettlementGroups = async (db: SqlExecutor, jobId?: string): Promise<LaborSettlementGroup[]> => {
+  const groups = await settlementGroupRows(db, jobId);
+  return Promise.all(groups.map((group) => settlementGroupSnapshot(db, group.id)));
+};
+
 export const listLaborPayables = async (db: SqlExecutor, personId?: string): Promise<LaborPayable[]> => {
   const rows = await db.getAllAsync<PayableRow>(
-    `SELECT payable.id, payable.labor_job_id, job.title, job.work_date, payable.person_id, payable.due_satang,
+    `SELECT payable.id, payable.labor_job_id, job.title, job.work_date, job.kind, payable.person_id, payable.due_satang,
        COALESCE(SUM(CASE WHEN batch.status = 'posted' THEN allocation.amount_satang ELSE 0 END), 0) AS paid_satang
      FROM labor_payables AS payable
      JOIN labor_jobs AS job ON job.id = payable.labor_job_id
@@ -337,7 +819,7 @@ export const listLaborPayables = async (db: SqlExecutor, personId?: string): Pro
      GROUP BY payable.id ORDER BY job.work_date DESC, payable.created_at DESC`,
     personId ? [personId] : [],
   );
-  return rows.map((row) => ({ id: row.id, jobId: row.labor_job_id, jobTitle: row.title, workDate: row.work_date, personId: row.person_id, dueSatang: Number(row.due_satang), paidSatang: Number(row.paid_satang), remainingSatang: Number(row.due_satang) - Number(row.paid_satang) }));
+  return rows.map((row) => ({ id: row.id, jobId: row.labor_job_id, jobTitle: row.title, workDate: row.work_date, personId: row.person_id, dueSatang: Number(row.due_satang), paidSatang: Number(row.paid_satang), remainingSatang: Number(row.due_satang) - Number(row.paid_satang), kind: row.kind }));
 };
 
 export const listLaborPayments = async (db: SqlExecutor, personId?: string): Promise<LaborPayment[]> => {
@@ -350,6 +832,99 @@ export const listLaborPayments = async (db: SqlExecutor, personId?: string): Pro
   return Promise.all(rows.map(async (row) => ({ ...(await paymentSnapshot(db, row.id)).payment })));
 };
 
+export const listLaborContracts = async (db: SqlExecutor): Promise<LaborContract[]> => {
+  const contracts = await db.getAllAsync<ContractJobRow>(
+    `SELECT job.id, job.title, job.work_date, job.note, detail.starts_on, detail.deadline_on, detail.completed_on,
+       detail.status, detail.agreed_total_satang, detail.final_total_satang
+     FROM labor_jobs AS job
+     JOIN labor_contract_details AS detail ON detail.labor_job_id = job.id
+     WHERE job.kind = 'contract' ORDER BY job.work_date DESC, job.created_at DESC`,
+  );
+  return Promise.all(contracts.map(async (contract) => {
+    const [participants, progress] = await Promise.all([
+      db.getAllAsync<{ person_id: string; due_satang: number | null; paid_satang: number }>(
+        `SELECT participant.person_id, payable.due_satang,
+           COALESCE(SUM(CASE WHEN batch.status = 'posted' THEN allocation.amount_satang ELSE 0 END), 0) AS paid_satang
+         FROM labor_job_participants AS participant
+         LEFT JOIN labor_payables AS payable ON payable.participant_id = participant.id AND payable.status = 'open'
+         LEFT JOIN labor_payment_allocations AS allocation ON allocation.payable_id = payable.id
+         LEFT JOIN labor_payment_batches AS batch ON batch.id = allocation.payment_batch_id
+         WHERE participant.labor_job_id = ? AND participant.pay_type = 'contract'
+         GROUP BY participant.id ORDER BY participant.sort_order ASC`,
+        [contract.id],
+      ),
+      db.getAllAsync<{ id: string; progress_date: string; note: string; created_at: string }>(
+        `SELECT id, progress_date, note, created_at FROM labor_job_progress
+         WHERE labor_job_id = ? ORDER BY progress_date ASC, created_at ASC, id ASC`,
+        [contract.id],
+      ),
+    ]);
+    const totalSatang = contract.final_total_satang ?? contract.agreed_total_satang;
+    const shareTotal = participants.reduce((sum, participant) => sum + Number(participant.due_satang ?? 0), 0);
+    return {
+      id: contract.id,
+      title: contract.title,
+      workDate: contract.work_date,
+      note: contract.note,
+      startsOn: contract.starts_on,
+      deadlineOn: contract.deadline_on,
+      completedOn: contract.completed_on,
+      status: contract.status,
+      totalSatang: totalSatang == null ? null : Number(totalSatang),
+      isReconciled: totalSatang != null && shareTotal === Number(totalSatang) && participants.every((participant) => participant.due_satang != null),
+      participants: participants.map((participant) => ({
+        personId: participant.person_id,
+        shareSatang: participant.due_satang == null ? null : Number(participant.due_satang),
+        paidSatang: Number(participant.paid_satang),
+        remainingSatang: participant.due_satang == null ? 0 : Number(participant.due_satang) - Number(participant.paid_satang),
+      })),
+      progress: progress.map((item): LaborContractProgress => ({ id: item.id, progressDate: item.progress_date, note: item.note, createdAt: item.created_at })),
+    };
+  }));
+};
+
+export const listLegacyLaborSources = async (db: SqlExecutor, includeImported = true): Promise<LegacyLaborSource[]> => {
+  const rows = await db.getAllAsync<LegacySourceRow>(
+    `SELECT entry.id, entry.person_id, entry.work_date, entry.amount_due, entry.amount_paid, batch.imported_at
+     FROM labor_entries AS entry
+     LEFT JOIN legacy_labor_import_links AS link ON link.legacy_labor_entry_id = entry.id
+     LEFT JOIN legacy_labor_import_batches AS batch ON batch.id = link.import_batch_id
+     WHERE entry.status = 'unpaid' AND entry.amount_due > entry.amount_paid ${includeImported ? '' : 'AND link.id IS NULL'}
+     ORDER BY entry.work_date ASC, entry.id ASC`,
+  );
+  return rows.map((row) => ({
+    legacyLaborEntryId: row.id,
+    personId: row.person_id,
+    workDate: row.work_date,
+    amountDueBaht: Number(row.amount_due),
+    amountPaidBaht: Number(row.amount_paid),
+    remainingSatang: bahtToSatang(Number(row.amount_due) - Number(row.amount_paid), 'legacy remaining balance'),
+    importedAt: row.imported_at,
+  }));
+};
+
+export const listLegacyCarryForwardBalances = async (db: SqlExecutor): Promise<LegacyCarryForwardBalance[]> => {
+  const payables = (await listLaborPayables(db)).filter((payable) => payable.kind === 'legacy_import');
+  if (!payables.length) return [];
+  const placeholders = payables.map(() => '?').join(', ');
+  const links = await db.getAllAsync<{ labor_payable_id: string; legacy_labor_entry_id: string; source_work_date: string; source_due_satang: number }>(
+    `SELECT labor_payable_id, legacy_labor_entry_id, source_work_date, source_due_satang
+     FROM legacy_labor_import_links WHERE labor_payable_id IN (${placeholders})`,
+    payables.map((payable) => payable.id),
+  );
+  const byPayable = new Map(links.map((link) => [link.labor_payable_id, link]));
+  return payables.map((payable) => {
+    const link = byPayable.get(payable.id);
+    return {
+      ...payable,
+      sourceLaborEntryId: link?.legacy_labor_entry_id ?? null,
+      sourceWorkDate: link?.source_work_date ?? null,
+      sourceDueSatang: link ? Number(link.source_due_satang) : null,
+      isManual: !link,
+    };
+  });
+};
+
 export const listLaborTimeline = async (db: SqlExecutor, entityId?: string): Promise<LaborTimelineEvent[]> => {
   const rows = await db.getAllAsync<TimelineRow>(
     `SELECT id, entity_type, entity_id, action, occurred_at, reason, before_json, after_json, person_id, labor_job_id
@@ -360,10 +935,13 @@ export const listLaborTimeline = async (db: SqlExecutor, entityId?: string): Pro
 };
 
 export const getLaborMvpReadModel = async (db: SqlExecutor): Promise<LaborMvpReadModel> => {
-  const [workers, payables, payments, timeline] = await Promise.all([listLaborWorkers(db, true), listLaborPayables(db), listLaborPayments(db), listLaborTimeline(db)]);
+  const [workers, payables, payments, timeline, contracts, legacySources, legacyBalances, settlementGroups] = await Promise.all([
+    listLaborWorkers(db, true), listLaborPayables(db), listLaborPayments(db), listLaborTimeline(db),
+    listLaborContracts(db), listLegacyLaborSources(db), listLegacyCarryForwardBalances(db), listLaborSettlementGroups(db),
+  ]);
   const people: LaborPersonBalance[] = workers.map((worker) => {
     const rows = payables.filter((payable) => payable.personId === worker.id);
     return { ...worker, dueSatang: rows.reduce((sum, row) => sum + row.dueSatang, 0), paidSatang: rows.reduce((sum, row) => sum + row.paidSatang, 0), remainingSatang: rows.reduce((sum, row) => sum + row.remainingSatang, 0) };
   });
-  return { people, payables, payments, timeline };
+  return { people, payables, payments, timeline, contracts, legacySources, legacyBalances, settlementGroups };
 };
