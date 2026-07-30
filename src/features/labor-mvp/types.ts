@@ -1,6 +1,6 @@
 export type LaborPayType = 'none' | 'daily' | 'hourly' | 'piece' | 'contract';
 export type LaborSettlementRoute = 'individual' | 'group';
-export type LaborWorkBasisKind = 'daily' | 'piece' | 'contract';
+export type LaborWorkBasisKind = 'daily' | 'hourly' | 'piece' | 'contract';
 
 export type LaborWorkerInput = {
   id?: string;
@@ -27,6 +27,7 @@ export type NormalWorkParticipantInput = {
   payableId?: string;
   rateSatang?: number;
   quantityMilli?: number;
+  durationMinutes?: number;
   unitLabel?: string;
 };
 
@@ -222,6 +223,7 @@ export type LaborWorkBasisSnapshot = {
   personId: string | null;
   rateSatang: number | null;
   quantityMilli: number | null;
+  durationMinutes: number | null;
   unitLabel: string;
   totalSatang: number | null;
   note: string;

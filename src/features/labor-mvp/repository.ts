@@ -42,7 +42,7 @@ type ContractJobRow = { id: string; title: string; work_date: string; note: stri
 type LegacySourceRow = { id: string; person_id: string; work_date: string; amount_due: number; amount_paid: number; imported_at: string | null };
 type SettlementGroupRow = { id: string; labor_job_id: string; original_due_satang: number; status: 'open' | 'settled' | 'cancelled'; collector_person_id: string | null; collector_label: string; paid_satang: number };
 type SettlementGroupReceiptRow = { id: string; settlement_group_id: string; receipt_date: string; amount_satang: number; method: string; note: string; current_revision: number; status: 'posted' | 'revised' | 'cancelled' };
-type WorkBasisSnapshotRow = { id: string; labor_job_id: string; settlement_route: LaborSettlementRoute; basis_kind: 'daily' | 'piece' | 'contract'; stage: 'recorded' | 'started' | 'progress' | 'completed'; person_id: string | null; rate_satang: number | null; quantity_milli: number | null; unit_label: string; total_satang: number | null; note: string; created_at: string };
+type WorkBasisSnapshotRow = { id: string; labor_job_id: string; settlement_route: LaborSettlementRoute; basis_kind: 'daily' | 'hourly' | 'piece' | 'contract'; stage: 'recorded' | 'started' | 'progress' | 'completed'; person_id: string | null; rate_satang: number | null; quantity_milli: number | null; duration_minutes: number | null; unit_label: string; total_satang: number | null; note: string; created_at: string };
 
 const timestamp = (): string => new Date().toISOString();
 const generatedId = (prefix: string): string => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -62,6 +62,14 @@ const dueForRateAndQuantity = (rateSatang: number, quantityMilli: number, label:
   const multiplied = rateSatang * quantityMilli;
   if (!Number.isSafeInteger(multiplied) || multiplied % 1000 !== 0) throw new Error(`TAKAI ${label} rate and quantity must resolve to whole satang`);
   return multiplied / 1000;
+};
+
+const dueForHourlyRateAndDuration = (rateSatang: number, durationMinutes: number, label: string): number => {
+  assertPositiveSatang(rateSatang, `${label} rate`);
+  if (!Number.isSafeInteger(durationMinutes) || durationMinutes <= 0) throw new Error(`TAKAI ${label} duration must be positive whole minutes`);
+  const multiplied = rateSatang * durationMinutes;
+  if (!Number.isSafeInteger(multiplied) || multiplied % 60 !== 0) throw new Error(`TAKAI ${label} rate and duration must resolve to whole satang`);
+  return multiplied / 60;
 };
 
 const assertDate = (value: string, label: string): void => {
@@ -288,6 +296,18 @@ const assertJobAllowsSettlementGroup = async (db: SqlExecutor, laborJobId: strin
 
 const appendWorkBasisSnapshot = async (db: SqlExecutor, input: Omit<LaborWorkBasisSnapshot, 'id'> & { id?: string }): Promise<string> => {
   const id = input.id ?? generatedId('work-basis');
+  if (input.basisKind === 'hourly') {
+    if (input.rateSatang == null || input.durationMinutes == null || input.totalSatang == null) {
+      throw new Error('TAKAI hourly work basis requires rate, duration minutes, and total');
+    }
+    await db.runAsync(
+      `INSERT INTO labor_hourly_work_basis_snapshots
+       (id, labor_job_id, settlement_route, stage, person_id, rate_satang, duration_minutes, unit_label, total_satang, note, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, input.jobId, input.settlementRoute, input.stage, input.personId, input.rateSatang, input.durationMinutes, input.unitLabel, input.totalSatang, input.note, input.createdAt],
+    );
+    return id;
+  }
   await db.runAsync(
     `INSERT INTO labor_work_basis_snapshots
      (id, labor_job_id, settlement_route, basis_kind, stage, person_id, rate_satang, quantity_milli, unit_label, total_satang, note, created_at)
@@ -299,14 +319,20 @@ const appendWorkBasisSnapshot = async (db: SqlExecutor, input: Omit<LaborWorkBas
 
 const workBasisSnapshotsForJob = async (db: SqlExecutor, jobId: string): Promise<LaborWorkBasisSnapshot[]> => {
   const rows = await db.getAllAsync<WorkBasisSnapshotRow>(
-    `SELECT id, labor_job_id, settlement_route, basis_kind, stage, person_id, rate_satang, quantity_milli, unit_label, total_satang, note, created_at
-     FROM labor_work_basis_snapshots WHERE labor_job_id = ? ORDER BY created_at ASC, id ASC`,
-    [jobId],
+    `SELECT id, labor_job_id, settlement_route, basis_kind, stage, person_id, rate_satang, quantity_milli,
+            NULL AS duration_minutes, unit_label, total_satang, note, created_at
+     FROM labor_work_basis_snapshots WHERE labor_job_id = ?
+     UNION ALL
+     SELECT id, labor_job_id, settlement_route, 'hourly' AS basis_kind, stage, person_id, rate_satang,
+            NULL AS quantity_milli, duration_minutes, unit_label, total_satang, note, created_at
+     FROM labor_hourly_work_basis_snapshots WHERE labor_job_id = ?
+     ORDER BY created_at ASC, id ASC`,
+    [jobId, jobId],
   );
   return rows.map((row) => ({
     id: row.id, jobId: row.labor_job_id, settlementRoute: row.settlement_route, basisKind: row.basis_kind,
     stage: row.stage, personId: row.person_id, rateSatang: row.rate_satang == null ? null : Number(row.rate_satang),
-    quantityMilli: row.quantity_milli == null ? null : Number(row.quantity_milli), unitLabel: row.unit_label,
+    quantityMilli: row.quantity_milli == null ? null : Number(row.quantity_milli), durationMinutes: row.duration_minutes == null ? null : Number(row.duration_minutes), unitLabel: row.unit_label,
     totalSatang: row.total_satang == null ? null : Number(row.total_satang), note: row.note, createdAt: row.created_at,
   }));
 };
@@ -421,7 +447,7 @@ export const createNormalWork = async (db: SqlExecutor, input: CreateNormalWorkI
     if (!trimmed(participant.personId) || participantIds.has(participant.personId)) throw new Error('TAKAI normal work participants must be distinct');
     participantIds.add(participant.personId);
     const person = await activePerson(db, participant.personId);
-    const hasBasis = participant.rateSatang !== undefined || participant.quantityMilli !== undefined || participant.unitLabel !== undefined;
+    const hasBasis = participant.rateSatang !== undefined || participant.quantityMilli !== undefined || participant.durationMinutes !== undefined || participant.unitLabel !== undefined;
     if (person.is_self) {
       if (participant.dueSatang != null && participant.dueSatang !== 0) throw new Error('TAKAI self participant cannot create a payable');
       if (hasBasis) throw new Error('TAKAI self participant cannot own an individual work-basis payable');
@@ -432,11 +458,32 @@ export const createNormalWork = async (db: SqlExecutor, input: CreateNormalWorkI
     assertPositiveSatang(participant.dueSatang, 'worker due');
     const payType = participant.payType ?? 'daily';
     if (hasBasis) {
-      if (participant.rateSatang === undefined || participant.quantityMilli === undefined) throw new Error('TAKAI individual work basis requires rate and quantity together');
-      if (payType !== 'daily' && payType !== 'piece') throw new Error('TAKAI individual work basis supports daily or piece pay only');
-      const dueSatang = dueForRateAndQuantity(participant.rateSatang, participant.quantityMilli, 'individual work');
+      if (participant.rateSatang === undefined) throw new Error('TAKAI individual work basis requires a rate');
+      let dueSatang: number;
+      let quantityMilli: number | null = null;
+      let durationMinutes: number | null = null;
+      let unitLabel = trimmed(participant.unitLabel);
+      if (payType === 'daily') {
+        if (participant.durationMinutes !== undefined || participant.quantityMilli === undefined || ![500, 1000].includes(participant.quantityMilli)) {
+          throw new Error('TAKAI daily work supports full day or half day only; use hourly for other durations');
+        }
+        dueSatang = dueForRateAndQuantity(participant.rateSatang, participant.quantityMilli, 'daily work');
+        quantityMilli = participant.quantityMilli;
+        unitLabel ||= 'วัน';
+      } else if (payType === 'hourly') {
+        if (participant.quantityMilli !== undefined || participant.durationMinutes === undefined) throw new Error('TAKAI hourly work requires rate and duration minutes, without quantity');
+        dueSatang = dueForHourlyRateAndDuration(participant.rateSatang, participant.durationMinutes, 'hourly work');
+        durationMinutes = participant.durationMinutes;
+        unitLabel ||= 'ชั่วโมง';
+      } else if (payType === 'piece') {
+        if (participant.durationMinutes !== undefined || participant.quantityMilli === undefined) throw new Error('TAKAI piece work requires rate and quantity, without duration minutes');
+        dueSatang = dueForRateAndQuantity(participant.rateSatang, participant.quantityMilli, 'piece work');
+        quantityMilli = participant.quantityMilli;
+      } else {
+        throw new Error('TAKAI individual work basis supports daily, hourly, or piece pay only');
+      }
       if (dueSatang !== participant.dueSatang) throw new Error('TAKAI individual work due must equal rate times own quantity');
-      return { participant, person, index, dueSatang: participant.dueSatang, payType, basis: { rateSatang: participant.rateSatang, quantityMilli: participant.quantityMilli, unitLabel: trimmed(participant.unitLabel) } };
+      return { participant, person, index, dueSatang: participant.dueSatang, payType, basis: { rateSatang: participant.rateSatang, quantityMilli, durationMinutes, unitLabel } };
     }
     return { participant, person, index, dueSatang: participant.dueSatang, payType, basis: null };
   }));
@@ -468,11 +515,12 @@ export const createNormalWork = async (db: SqlExecutor, input: CreateNormalWorkI
           id: `${jobId}-basis-${item.index + 1}`,
           jobId,
           settlementRoute: 'individual',
-          basisKind: item.payType === 'piece' ? 'piece' : 'daily',
+          basisKind: item.payType === 'piece' ? 'piece' : item.payType === 'hourly' ? 'hourly' : 'daily',
           stage: 'recorded',
           personId: item.person.id,
           rateSatang: item.basis.rateSatang,
           quantityMilli: item.basis.quantityMilli,
+          durationMinutes: item.basis.durationMinutes,
           unitLabel: item.basis.unitLabel,
           totalSatang: item.dueSatang,
           note: trimmed(item.participant.note),
@@ -535,7 +583,7 @@ export const createGroupPieceWork = async (db: SqlExecutor, input: CreateGroupPi
     }
     await appendWorkBasisSnapshot(db, {
       id: `${jobId}-basis-1`, jobId, settlementRoute: 'group', basisKind: 'piece', stage: 'recorded', personId: null,
-      rateSatang: input.rateSatang, quantityMilli: input.quantityMilli, unitLabel, totalSatang: originalDueSatang, note: trimmed(input.note), createdAt: now,
+      rateSatang: input.rateSatang, quantityMilli: input.quantityMilli, durationMinutes: null, unitLabel, totalSatang: originalDueSatang, note: trimmed(input.note), createdAt: now,
     });
     const group = await settlementGroupSnapshot(db, settlementGroupId);
     await appendTimeline(db, {
@@ -588,6 +636,7 @@ export const createLaborContract = async (db: SqlExecutor, input: CreateLaborCon
         personId: null,
         rateSatang: null,
         quantityMilli: null,
+        durationMinutes: null,
         unitLabel: '',
         totalSatang: null,
         note: trimmed(input.note),
@@ -624,7 +673,7 @@ export const addLaborContractProgress = async (db: SqlExecutor, jobId: string, i
       if (!route) throw new Error('TAKAI contract progress quantity requires an explicit settlement route');
       await appendWorkBasisSnapshot(db, {
         id: `${id}-basis`, jobId, settlementRoute: route, basisKind: 'contract', stage: 'progress', personId: null,
-        rateSatang: null, quantityMilli: input.quantityMilli, unitLabel: trimmed(input.unitLabel), totalSatang: null, note, createdAt: now,
+        rateSatang: null, quantityMilli: input.quantityMilli, durationMinutes: null, unitLabel: trimmed(input.unitLabel), totalSatang: null, note, createdAt: now,
       });
     }
     await appendTimeline(db, {
@@ -661,7 +710,7 @@ export const completeLaborContractWork = async (db: SqlExecutor, jobId: string, 
     );
     await appendWorkBasisSnapshot(db, {
       id: snapshotId, jobId, settlementRoute: route, basisKind: 'contract', stage: 'completed', personId: null,
-      rateSatang: input.rateSatang ?? null, quantityMilli: input.quantityMilli ?? null, unitLabel: trimmed(input.unitLabel),
+      rateSatang: input.rateSatang ?? null, quantityMilli: input.quantityMilli ?? null, durationMinutes: null, unitLabel: trimmed(input.unitLabel),
       totalSatang: input.finalTotalSatang, note: trimmed(input.note), createdAt: now,
     });
     await db.runAsync('UPDATE labor_jobs SET updated_at = ? WHERE id = ?', [now, jobId]);
@@ -1034,13 +1083,19 @@ export const listLaborSettlementGroups = async (db: SqlExecutor, jobId?: string)
 export const listLaborWorkBasisSnapshots = async (db: SqlExecutor, jobId?: string): Promise<LaborWorkBasisSnapshot[]> => {
   if (jobId) return workBasisSnapshotsForJob(db, jobId);
   const rows = await db.getAllAsync<WorkBasisSnapshotRow>(
-    `SELECT id, labor_job_id, settlement_route, basis_kind, stage, person_id, rate_satang, quantity_milli, unit_label, total_satang, note, created_at
-     FROM labor_work_basis_snapshots ORDER BY created_at ASC, id ASC`,
+    `SELECT id, labor_job_id, settlement_route, basis_kind, stage, person_id, rate_satang, quantity_milli,
+            NULL AS duration_minutes, unit_label, total_satang, note, created_at
+     FROM labor_work_basis_snapshots
+     UNION ALL
+     SELECT id, labor_job_id, settlement_route, 'hourly' AS basis_kind, stage, person_id, rate_satang,
+            NULL AS quantity_milli, duration_minutes, unit_label, total_satang, note, created_at
+     FROM labor_hourly_work_basis_snapshots
+     ORDER BY created_at ASC, id ASC`,
   );
   return rows.map((row) => ({
     id: row.id, jobId: row.labor_job_id, settlementRoute: row.settlement_route, basisKind: row.basis_kind,
     stage: row.stage, personId: row.person_id, rateSatang: row.rate_satang == null ? null : Number(row.rate_satang),
-    quantityMilli: row.quantity_milli == null ? null : Number(row.quantity_milli), unitLabel: row.unit_label,
+    quantityMilli: row.quantity_milli == null ? null : Number(row.quantity_milli), durationMinutes: row.duration_minutes == null ? null : Number(row.duration_minutes), unitLabel: row.unit_label,
     totalSatang: row.total_satang == null ? null : Number(row.total_satang), note: row.note, createdAt: row.created_at,
   }));
 };

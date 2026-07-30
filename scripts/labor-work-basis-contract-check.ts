@@ -19,6 +19,7 @@ import {
   listLaborPayables,
   listLaborSettlementGroups,
   listLaborWorkBasisSnapshots,
+  postLaborPayment,
   postLaborSettlementGroupReceipt,
   reconcileLaborContractShares,
 } from '../src/features/labor-mvp';
@@ -48,18 +49,53 @@ const main = async (): Promise<void> => {
     firstConnection = new DatabaseSync(databasePath);
     const db = new NodeSqliteExecutor(firstConnection);
     await applyThroughTwelve(db);
-    assert.deepEqual(await runMigrations(db), [13], 'schema-12 upgrade must add only immutable work-basis surfaces');
+    assert.deepEqual(await runMigrations(db), [13, 14], 'schema-12 upgrade must add immutable work-basis and hourly-duration surfaces');
     const su = await createLaborWorker(db, { id: 'worker-su', displayName: 'สุ' });
     const phuang = await createLaborWorker(db, { id: 'worker-phuang', displayName: 'พ่วง' });
 
     const individual = await createNormalWork(db, {
-      id: 'daily-chon', title: 'เก็บกิ่งรายวัน', workDate: '2026-07-31',
-      participants: [{ personId: su, payType: 'daily', dueSatang: 87_500, rateSatang: 35_000, quantityMilli: 2_500, unitLabel: 'วัน' }],
+      id: 'daily-chon', title: 'เก็บกิ่งครึ่งวัน', workDate: '2026-07-31',
+      participants: [{ personId: su, payType: 'daily', dueSatang: 17_500, rateSatang: 35_000, quantityMilli: 500, unitLabel: 'วัน' }],
     }, '2026-07-31T01:00:00.000Z');
-    assert.deepEqual((await listLaborPayables(db)).filter((payable) => payable.jobId === individual.jobId).map((payable) => payable.dueSatang), [87_500], '2.5 daily units must create only the worker’s exact individual due');
-    assert.deepEqual((await listLaborWorkBasisSnapshots(db, individual.jobId)).map((snapshot) => [snapshot.settlementRoute, snapshot.basisKind, snapshot.personId, snapshot.rateSatang, snapshot.quantityMilli, snapshot.totalSatang]), [
-      ['individual', 'daily', su, 35_000, 2_500, 87_500],
-    ], 'individual quantity is per worker and immutable');
+    assert.deepEqual((await listLaborPayables(db)).filter((payable) => payable.jobId === individual.jobId).map((payable) => payable.dueSatang), [17_500], 'half-day work must create only the worker’s exact individual due');
+    assert.deepEqual((await listLaborWorkBasisSnapshots(db, individual.jobId)).map((snapshot) => [snapshot.settlementRoute, snapshot.basisKind, snapshot.personId, snapshot.rateSatang, snapshot.quantityMilli, snapshot.durationMinutes, snapshot.totalSatang]), [
+      ['individual', 'daily', su, 35_000, 500, null, 17_500],
+    ], 'daily basis is limited to half or full day and is immutable');
+    await assert.rejects(
+      createNormalWork(db, { title: 'รายวันผิดรูปแบบ', workDate: '2026-07-31', participants: [{ personId: su, payType: 'daily', dueSatang: 87_500, rateSatang: 35_000, quantityMilli: 2_500 }] }),
+      /full day or half day only/,
+      'daily work must reject arbitrary fractional quantities',
+    );
+    await assert.rejects(
+      createNormalWork(db, { title: 'รายชั่วโมงผิดรูปแบบ', workDate: '2026-07-31', participants: [{ personId: su, payType: 'hourly', dueSatang: 12_000, rateSatang: 12_000, quantityMilli: 1_000, durationMinutes: 60 }] }),
+      /without quantity/,
+      'hourly work must reject a quantity alongside duration',
+    );
+    await assert.rejects(
+      createNormalWork(db, { title: 'รายชั่วโมงเศษสตางค์', workDate: '2026-07-31', participants: [{ personId: su, payType: 'hourly', dueSatang: 1, rateSatang: 1_000, durationMinutes: 1 }] }),
+      /whole satang/,
+      'hourly work must reject a duration whose rate would create fractional satang',
+    );
+    const hourly = await createNormalWork(db, {
+      id: 'hourly-chon', title: 'เก็บกิ่งรายชั่วโมง', workDate: '2026-07-31',
+      participants: [{ personId: su, payType: 'hourly', dueSatang: 18_000, rateSatang: 12_000, durationMinutes: 90, unitLabel: 'ชั่วโมง' }],
+    }, '2026-07-31T01:01:00.000Z');
+    const piece = await createNormalWork(db, {
+      id: 'piece-chon', title: 'ขนของรายชิ้น', workDate: '2026-07-31',
+      participants: [{ personId: su, payType: 'piece', dueSatang: 200, rateSatang: 100, quantityMilli: 2_000, unitLabel: 'ชิ้น' }],
+    }, '2026-07-31T01:02:00.000Z');
+    assert.deepEqual((await listLaborWorkBasisSnapshots(db, hourly.jobId)).map((snapshot) => [snapshot.basisKind, snapshot.quantityMilli, snapshot.durationMinutes, snapshot.totalSatang]), [['hourly', null, 90, 18_000]], 'hourly rate times whole duration minutes must persist without a quantity');
+    await postLaborPayment(db, {
+      id: 'combined-same-date-payment', personId: su, paymentDate: '2026-07-31',
+      allocations: [
+        { payableId: individual.payableIds[0]!, amountSatang: 17_500 },
+        { payableId: hourly.payableIds[0]!, amountSatang: 18_000 },
+        { payableId: piece.payableIds[0]!, amountSatang: 200 },
+      ],
+    }, '2026-07-31T02:00:00.000Z');
+    assert.deepEqual((await listLaborPayables(db, su)).filter((payable) => [individual.jobId, hourly.jobId, piece.jobId].includes(payable.jobId)).map((payable) => [payable.jobId, payable.remainingSatang]).sort(), [
+      [individual.jobId, 0], [hourly.jobId, 0], [piece.jobId, 0],
+    ], 'same worker and date can settle selected half-day, hourly, and piece payables together without merging their work basis');
 
     const groupPiece = await createGroupPieceWork(db, {
       id: 'group-bags', settlementGroupId: 'group-bags-settlement', title: 'เก็บกระสอบรวม', workDate: '2026-08-01',
@@ -117,7 +153,7 @@ const main = async (): Promise<void> => {
     secondConnection = new DatabaseSync(databasePath);
     const reopened = new NodeSqliteExecutor(secondConnection);
     assert.deepEqual(await getLaborMvpReadModel(reopened), firstRead, 'work-basis, route, and legacy ledgers must survive close/reopen');
-    console.log('LABOR_WORK_BASIS_CONTRACT_PASS: fractional individual work, one-time group output, explicit routes, completed contracts, and receipt locks are valid');
+    console.log('LABOR_WORK_BASIS_CONTRACT_PASS: full/half daily work, hourly durations, one-time group output, explicit routes, completed contracts, and receipt locks are valid');
   } finally {
     secondConnection?.close();
     firstConnection?.close();

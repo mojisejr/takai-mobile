@@ -66,7 +66,7 @@ class SetupContractDb implements SqlExecutor {
 
 const main = async (): Promise<void> => {
   const db = new SetupContractDb();
-  assert.deepEqual(await runMigrations(db), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 'a migrations 1–3 database must receive only later forward migrations');
+  assert.deepEqual(await runMigrations(db), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], 'a migrations 1–3 database must receive only later forward migrations');
   assert.ok(db.migrationStatements.some((sql) => sql.includes('ADD COLUMN variety')), 'migration 4 must add planting variety');
   assert.ok(db.migrationStatements.some((sql) => sql.includes('ADD COLUMN activity_date')), 'migration 5 must preserve legacy activity history while adding truthful date fields');
   assert.equal(db.migrationStatements.some((sql) => /DROP TABLE|DELETE FROM/i.test(sql)), false, 'migration 4 must preserve legacy data');

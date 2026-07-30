@@ -50,7 +50,7 @@ const main = async (): Promise<void> => {
     firstConnection = new DatabaseSync(databasePath);
     const db = new NodeSqliteExecutor(firstConnection);
     await applyThroughEleven(db);
-    assert.deepEqual(await runMigrations(db), [12, 13], 'schema-11 upgrade must apply only additive settlement-group and work-basis migrations');
+    assert.deepEqual(await runMigrations(db), [12, 13, 14], 'schema-11 upgrade must apply only additive settlement-group, work-basis, and hourly-duration migrations');
 
     const su = await createLaborWorker(db, { id: 'worker-su', displayName: 'สุ' }, '2026-07-31T01:00:00.000Z');
     const phuang = await createLaborWorker(db, { id: 'worker-phuang', displayName: 'พ่วง' }, '2026-07-31T01:00:01.000Z');

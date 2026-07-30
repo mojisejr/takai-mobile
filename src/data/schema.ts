@@ -452,4 +452,30 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         BEGIN SELECT RAISE(ABORT, 'labor work-basis snapshots are immutable'); END`,
     ],
   },
+  {
+    id: 14,
+    name: 'labor_hourly_work_basis_duration',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_hourly_work_basis_snapshots (
+        id TEXT PRIMARY KEY,
+        labor_job_id TEXT NOT NULL REFERENCES labor_jobs(id) ON DELETE CASCADE,
+        settlement_route TEXT NOT NULL CHECK (settlement_route IN ('individual', 'group')),
+        stage TEXT NOT NULL CHECK (stage IN ('recorded', 'started', 'progress', 'completed')),
+        person_id TEXT REFERENCES people(id),
+        rate_satang INTEGER NOT NULL CHECK (typeof(rate_satang) = 'integer' AND rate_satang > 0),
+        duration_minutes INTEGER NOT NULL CHECK (typeof(duration_minutes) = 'integer' AND duration_minutes > 0),
+        unit_label TEXT NOT NULL DEFAULT 'ชั่วโมง',
+        total_satang INTEGER NOT NULL CHECK (typeof(total_satang) = 'integer' AND total_satang > 0),
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_hourly_work_basis_job ON labor_hourly_work_basis_snapshots(labor_job_id, created_at ASC, id ASC)`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_labor_hourly_work_basis_snapshot_update
+        BEFORE UPDATE ON labor_hourly_work_basis_snapshots
+        BEGIN SELECT RAISE(ABORT, 'labor hourly work-basis snapshots are immutable'); END`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_labor_hourly_work_basis_snapshot_delete
+        BEFORE DELETE ON labor_hourly_work_basis_snapshots
+        BEGIN SELECT RAISE(ABORT, 'labor hourly work-basis snapshots are immutable'); END`,
+    ],
+  },
 ];
