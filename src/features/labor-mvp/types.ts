@@ -1,4 +1,6 @@
 export type LaborPayType = 'none' | 'daily' | 'hourly' | 'piece' | 'contract';
+export type LaborSettlementRoute = 'individual' | 'group';
+export type LaborWorkBasisKind = 'daily' | 'hourly' | 'piece' | 'contract';
 
 export type LaborWorkerInput = {
   id?: string;
@@ -23,6 +25,10 @@ export type NormalWorkParticipantInput = {
   note?: string;
   participantId?: string;
   payableId?: string;
+  rateSatang?: number;
+  quantityMilli?: number;
+  durationMinutes?: number;
+  unitLabel?: string;
 };
 
 export type CreateNormalWorkInput = {
@@ -47,12 +53,39 @@ export type CreateLaborContractInput = {
   deadlineOn?: string;
   note?: string;
   participants: ContractParticipantInput[];
+  settlementRoute?: LaborSettlementRoute;
 };
 
 export type AddContractProgressInput = {
   id?: string;
   progressDate: string;
   note: string;
+  quantityMilli?: number;
+  unitLabel?: string;
+};
+
+export type CompleteLaborContractWorkInput = {
+  id?: string;
+  completedOn: string;
+  finalTotalSatang: number;
+  rateSatang?: number;
+  quantityMilli?: number;
+  unitLabel?: string;
+  note?: string;
+};
+
+export type CreateGroupPieceWorkInput = {
+  id?: string;
+  settlementGroupId?: string;
+  title: string;
+  workDate: string;
+  note?: string;
+  memberPersonIds: string[];
+  quantityMilli: number;
+  rateSatang: number;
+  unitLabel: string;
+  collectorPersonId?: string;
+  collectorLabel?: string;
 };
 
 export type ContractShareInput = {
@@ -181,6 +214,22 @@ export type LaborSettlementGroup = {
   receipts: LaborSettlementGroupReceipt[];
 };
 
+export type LaborWorkBasisSnapshot = {
+  id: string;
+  jobId: string;
+  settlementRoute: LaborSettlementRoute;
+  basisKind: LaborWorkBasisKind;
+  stage: 'recorded' | 'started' | 'progress' | 'completed';
+  personId: string | null;
+  rateSatang: number | null;
+  quantityMilli: number | null;
+  durationMinutes: number | null;
+  unitLabel: string;
+  totalSatang: number | null;
+  note: string;
+  createdAt: string;
+};
+
 export type LaborTimelineEvent = {
   id: string;
   entityType: 'person' | 'labor_job' | 'labor_payment';
@@ -248,4 +297,5 @@ export type LaborMvpReadModel = {
   legacySources: LegacyLaborSource[];
   legacyBalances: LegacyCarryForwardBalance[];
   settlementGroups: LaborSettlementGroup[];
+  workBasisSnapshots: LaborWorkBasisSnapshot[];
 };

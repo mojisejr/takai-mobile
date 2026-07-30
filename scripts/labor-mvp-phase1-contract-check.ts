@@ -60,7 +60,7 @@ const main = async (): Promise<void> => {
     await db.runAsync("INSERT INTO people (id, display_name, role, is_self, specialty, phone, note) VALUES ('owner-self', 'เจ้าของสวน', 'owner', 1, '', '', '')");
     const legacyCounts = { activities: await count(db, 'activities'), laborEntries: await count(db, 'labor_entries') };
 
-    assert.deepEqual(await runMigrations(db), [9, 10, 11, 12], 'a schema-8 fixture must receive only additive Labor MVP migrations');
+    assert.deepEqual(await runMigrations(db), [9, 10, 11, 12, 13, 14], 'a schema-8 fixture must receive only additive Labor MVP migrations');
     assert.deepEqual({ activities: await count(db, 'activities'), laborEntries: await count(db, 'labor_entries') }, legacyCounts, 'Labor MVP migration must leave legacy garden and labor rows untouched');
     assert.equal((await db.getAllAsync<{ plot_id: string | null }>("SELECT plot_id FROM labor_jobs WHERE id = 'none'"))[0], undefined, 'new labor jobs are isolated from the legacy activity table');
 
