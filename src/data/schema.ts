@@ -425,4 +425,31 @@ export const TAKAI_MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_labor_settlement_group_receipts_group ON labor_settlement_group_receipts(settlement_group_id, receipt_date DESC, created_at DESC)`,
     ],
   },
+  {
+    id: 13,
+    name: 'labor_work_basis_and_settlement_route_snapshots',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_work_basis_snapshots (
+        id TEXT PRIMARY KEY,
+        labor_job_id TEXT NOT NULL REFERENCES labor_jobs(id) ON DELETE CASCADE,
+        settlement_route TEXT NOT NULL CHECK (settlement_route IN ('individual', 'group')),
+        basis_kind TEXT NOT NULL CHECK (basis_kind IN ('daily', 'piece', 'contract')),
+        stage TEXT NOT NULL CHECK (stage IN ('recorded', 'started', 'progress', 'completed')),
+        person_id TEXT REFERENCES people(id),
+        rate_satang INTEGER CHECK (rate_satang IS NULL OR (typeof(rate_satang) = 'integer' AND rate_satang > 0)),
+        quantity_milli INTEGER CHECK (quantity_milli IS NULL OR (typeof(quantity_milli) = 'integer' AND quantity_milli > 0)),
+        unit_label TEXT NOT NULL DEFAULT '',
+        total_satang INTEGER CHECK (total_satang IS NULL OR (typeof(total_satang) = 'integer' AND total_satang > 0)),
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_work_basis_job ON labor_work_basis_snapshots(labor_job_id, created_at ASC, id ASC)`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_labor_work_basis_snapshot_update
+        BEFORE UPDATE ON labor_work_basis_snapshots
+        BEGIN SELECT RAISE(ABORT, 'labor work-basis snapshots are immutable'); END`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_labor_work_basis_snapshot_delete
+        BEFORE DELETE ON labor_work_basis_snapshots
+        BEGIN SELECT RAISE(ABORT, 'labor work-basis snapshots are immutable'); END`,
+    ],
+  },
 ];
