@@ -174,9 +174,9 @@ const main = async (): Promise<void> => {
   const seedDb = new SeedFakeSqlite();
   await seedDemoGarden(seedDb);
 
-  assert.deepEqual(firstRun, [1, 2, 3, 4, 5, 6, 7, 8], 'empty database should apply every ordered migration');
+  assert.deepEqual(firstRun, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 'empty database should apply every ordered migration');
   assert.deepEqual(secondRun, [], 'rerunning migrations should be idempotent');
-  assert.deepEqual(upgradeRun, [2, 3, 4, 5, 6, 7, 8], 'a migration 1 database must upgrade without replaying its original schema');
+  assert.deepEqual(upgradeRun, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 'a migration 1 database must upgrade without replaying its original schema');
   assert.ok(seedDb.insertedTables.includes('cases'), 'demo seed must include the case timeline record');
   assert.ok(seedDb.insertedTables.includes('plot_trackers'), 'demo seed must include per-plot tracker defaults');
   assert.ok(
