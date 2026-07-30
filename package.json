@@ -26,7 +26,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck",
-    "test": "npm run typecheck && npm run test:domain && npm run test:activity-materials && npm run test:material-catalog-integrity && npm run test:material-library && npm run test:material-form && npm run test:activity-material-return && npm run test:setup-foundation && npm run test:field-form && npm run test:activity-temporal && npm run test:activity-truth && npm run test:planting-lifecycle && npm run test:chemical && npm run test:follow-up && npm run test:follow-up-notifications && npm run test:field-acceptance && npm run test:operations && npm run test:menu-case && npm run test:phase5-review && npm run test:labor-mvp",
+    "test": "npm run typecheck && npm run test:domain && npm run test:activity-materials && npm run test:material-catalog-integrity && npm run test:material-library && npm run test:material-form && npm run test:activity-material-return && npm run test:setup-foundation && npm run test:field-form && npm run test:activity-temporal && npm run test:activity-truth && npm run test:planting-lifecycle && npm run test:chemical && npm run test:follow-up && npm run test:follow-up-notifications && npm run test:field-acceptance && npm run test:operations && npm run test:menu-case && npm run test:phase5-review && npm run test:labor-mvp && npm run test:labor-mvp-phase2",
     "test:domain": "tsx scripts/domain-schema-check.ts",
     "test:activity-materials": "tsx scripts/activity-material-contract-check.ts",
     "test:material-catalog-integrity": "tsx scripts/material-catalog-integrity-contract-check.ts",
@@ -48,6 +48,7 @@
     "test:activity-materials-ui": "node scripts/activity-material-ui-contract-check.mjs",
     "test:phase5-review": "node scripts/phase5-review-check.mjs",
     "test:labor-mvp": "tsx scripts/labor-mvp-phase1-contract-check.ts",
+    "test:labor-mvp-phase2": "tsx scripts/labor-mvp-phase2-contract-check.ts",
     "test:design-contract": "node scripts/design-contract-check.mjs",
     "test:expo-go-compat": "node scripts/expo-go-compat-check.mjs",
     "eye:rn-web": "node scripts/rn-web-eye-check.mjs"
