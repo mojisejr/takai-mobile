@@ -1,10 +1,14 @@
+import { localDateKey } from '../../date';
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-export const DEMO_NOW = '2026-07-16T08:30:00.000Z';
+export { localDateKey } from '../../date';
+
+export const currentTimestamp = (): string => new Date().toISOString();
 
 export const dayKey = (value: string): string => value.slice(0, 10);
 
-export const diffDays = (from: string, to = DEMO_NOW): number => {
+export const diffDays = (from: string, to = localDateKey()): number => {
   const left = Date.parse(`${dayKey(from)}T00:00:00.000Z`);
   const right = Date.parse(`${dayKey(to)}T00:00:00.000Z`);
   if (Number.isNaN(left) || Number.isNaN(right)) {

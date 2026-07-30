@@ -1,0 +1,66 @@
+- generic [ref=e5] [box=0,0,390,844]:
+  - generic [ref=e7] [box=0,0,390,1050]:
+    - generic [ref=e8] [box=16,16,358,52]:
+      - generic [ref=e9] [box=32,27,28,30]: ☰
+      - generic [ref=e10] [box=72,28,224,28]: วันนี้
+      - button "ออฟไลน์" [ref=e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=e13] [box=16,84,358,36]:
+      - generic [ref=e14] [box=16,88,79,28]: สวนตาไก๊
+      - button "บันทึก" [ref=e15] [cursor=pointer] [box=339,93,35,19]
+    - generic [ref=e17] [box=16,136,358,185]:
+      - generic [ref=e18] [box=31,151,328,83]:
+        - generic [ref=e19] [box=31,151,262,83]:
+          - generic [ref=e20] [box=31,151,262,18]: ภาพรวมวันนี้
+          - generic [ref=e21] [box=31,171,262,38]: แปลง A
+          - generic [ref=e22] [box=31,213,262,21]: Crop 2026 · เปิดมา 197 วัน
+        - generic [ref=e23] [box=305,151,54,26]: Local
+      - generic [ref=e25] [box=31,248,328,58]:
+        - generic [ref=e26] [box=31,263,104,43]:
+          - generic [ref=e27] [box=31,263,104,23]: 6.2 ไร่
+          - generic [ref=e28] [box=31,288,104,18]: พื้นที่
+        - generic [ref=e29] [box=143,263,104,43]:
+          - generic [ref=e30] [box=143,263,104,20]: 278/300
+          - generic [ref=e31] [box=143,285,104,18]: หลุมปลูก
+        - generic [ref=e32] [box=255,263,104,43]:
+          - generic [ref=e33] [box=255,263,104,23]: 0 บาท
+          - generic [ref=e34] [box=255,288,104,18]: ค้างจ่าย
+    - button "+ บันทึกกิจกรรม" [ref=e35] [cursor=pointer] [box=16,337,358,46]
+    - generic [ref=e37] [box=16,399,358,36]: รายการล่าสุด
+    - generic [ref=e40] [cursor=pointer] [box=17,452,356,59]:
+      - generic [ref=e42] [box=47,460,287,42]:
+        - generic [ref=e43] [box=47,460,287,22]: ยังไม่มีบันทึกวันนี้
+        - generic [ref=e44] [box=47,484,287,18]: RN Web preview ใช้ข้อมูลจำลอง ไม่แตะ SQLite
+      - generic [ref=e45] [box=342,472,19,18]: เริ่ม
+    - generic [ref=e46] [box=16,528,358,36]:
+      - generic [ref=e47] [box=16,532,127,28]: Tracker สำคัญ
+      - button "แปลง" [ref=e48] [cursor=pointer] [box=342,537,32,19]
+    - generic [ref=e50] [box=16,580,358,96]:
+      - generic [ref=e51] [box=31,595,328,23]: พ่นยา
+      - generic [ref=e53] [box=31,624,328,19]: ครั้งที่ 0 ยังไม่เคยบันทึก
+    - generic [ref=e55] [box=16,692,358,96]:
+      - generic [ref=e56] [box=31,707,328,23]:
+        - generic [ref=e57] [box=31,707,40,23]: ใส่ปุ๋ย
+        - generic [ref=e58] [box=315,709,44,19]: 25 กค.
+      - generic [ref=e59] [box=31,736,328,19]: ครั้งที่ 3 ผ่านมา 6 วัน
+    - generic [ref=e62] [box=16,804,358,96]:
+      - generic [ref=e63] [box=31,819,328,23]:
+        - generic [ref=e64] [box=31,819,48,23]: แต่งกิ่ง
+        - generic [ref=e65] [box=315,821,44,19]: 28 กค.
+      - generic [ref=e66] [box=31,848,328,19]: ครั้งที่ 2 ผ่านมา 13 วัน
+    - generic [ref=e69] [box=16,916,358,36]: สมุดที่ต้องดู
+    - generic [ref=e71] [box=16,968,358,74]:
+      - generic [ref=e72] [cursor=pointer] [box=16,968,114,74]:
+        - generic [ref=e73] [box=25,984,96,23]: 1 ติดตาม
+        - generic [ref=e74] [box=25,1009,96,18]: เคส
+      - generic [ref=e75] [cursor=pointer] [box=138,968,114,74]:
+        - generic [ref=e76] [box=147,984,96,23]: 0 บาท
+        - generic [ref=e77] [box=147,1009,96,18]: ค่าแรง
+      - generic [ref=e78] [cursor=pointer] [box=260,968,114,74]:
+        - generic [ref=e79] [box=269,984,96,23]: 2 รายการ
+        - generic [ref=e80] [box=269,1009,96,18]: วัสดุ
+  - generic [ref=e82] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=e83] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=e85] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=e87] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=e89] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=e91] [cursor=pointer] [box=298,777,69,44]

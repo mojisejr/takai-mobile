@@ -44,6 +44,17 @@ class OperationalFakeSqlite implements SqlExecutor {
   plots: Plot[] = TAKAI_DEMO_SEED.plots.map((plot) => ({ ...plot }));
   cropCycles: CropCycle[] = TAKAI_DEMO_SEED.cropCycles.map((crop) => ({ ...crop }));
   holes: Hole[] = TAKAI_DEMO_SEED.holes.map((hole) => ({ ...hole }));
+  plantings: Row[] = TAKAI_DEMO_SEED.plantings.map((planting) => ({
+    id: planting.id,
+    hole_id: planting.holeId,
+    crop_cycle_id: planting.cropCycleId ?? null,
+    plant_name: planting.plantName,
+    variety: null,
+    planted_on: planting.plantedOn,
+    removed_on: planting.removedOn ?? null,
+    removed_reason: null,
+    status: planting.removedOn ? 'retired' : 'active',
+  }));
   categories: ActivityCategory[] = TAKAI_DEMO_SEED.activityCategories.map((category) => ({ ...category }));
   plotTrackers: PlotTracker[] = TAKAI_DEMO_SEED.plotTrackers.map((tracker) => ({ ...tracker }));
   people: Person[] = TAKAI_DEMO_SEED.people.map((person) => ({ ...person }));
@@ -78,6 +89,18 @@ class OperationalFakeSqlite implements SqlExecutor {
 
     if (sql.includes('SELECT id FROM plots ORDER BY sort_order ASC LIMIT 1')) {
       return [{ id: this.plots[0]?.id }] as T[];
+    }
+
+    if (sql.includes('SELECT id, garden_id, name, area_rai, sort_order FROM plots ORDER BY sort_order ASC, name ASC')) {
+      return [...this.plots]
+        .sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name))
+        .map((plot) => ({
+          id: plot.id,
+          garden_id: plot.gardenId,
+          name: plot.name,
+          area_rai: plot.areaRai,
+          sort_order: plot.sortOrder,
+        })) as T[];
     }
 
     if (sql.includes('JOIN cases ON cases.hole_id = holes.id')) {
@@ -160,6 +183,17 @@ class OperationalFakeSqlite implements SqlExecutor {
       return this.people
         .filter((person) => person.id === params[0] && !person.archivedAt)
         .map((person) => ({ id: person.id })) as T[];
+    }
+
+    if (sql.includes("FROM plantings") && sql.includes("status = 'active'") && sql.includes('removed_on IS NULL')) {
+      const planting = this.plantings.find((item) => item.hole_id === params[0] && item.status === 'active' && !item.removed_on);
+      return planting ? ([{ id: planting.id }] as T[]) : [];
+    }
+
+    if (sql.includes('SELECT id, plant_name, variety, planted_on, removed_on, removed_reason, status') && sql.includes('FROM plantings')) {
+      return this.plantings
+        .filter((planting) => planting.hole_id === params[0])
+        .sort((left, right) => String(right.planted_on).localeCompare(String(left.planted_on)) || String(right.id).localeCompare(String(left.id))) as T[];
     }
 
     if (sql.includes('SELECT id FROM materials WHERE id = ? AND archived_at IS NULL')) {
@@ -343,10 +377,12 @@ class OperationalFakeSqlite implements SqlExecutor {
     }
 
     if (sql.includes('GROUP_CONCAT(materials.name') && !sql.includes("activity_targets.target_type = 'hole'")) {
+      const scope = params[0] as string | undefined;
       return this.activities
-        .filter((activity) => activity.plot_id === params[0])
+        .filter((activity) => scope === 'all' || activity.plot_id === scope)
         .map((activity) => {
           const category = this.categories.find((item) => item.id === activity.category_id);
+          const plot = this.plots.find((item) => item.id === activity.plot_id);
           const materialNames = this.activityMaterials
             .filter((row) => row.activity_id === activity.id)
             .map((row) => this.materials.find((material) => material.id === row.material_id)?.name)
@@ -355,6 +391,7 @@ class OperationalFakeSqlite implements SqlExecutor {
           return {
             id: activity.id,
             category_name: category?.name ?? 'กิจกรรม',
+            plot_name: plot?.name ?? '',
             note: activity.note,
             performed_at: activity.performed_at,
             follow_up_on: activity.follow_up_on,
@@ -441,7 +478,7 @@ class OperationalFakeSqlite implements SqlExecutor {
     if (sql.includes('plantings.plant_name') && sql.includes('WHERE holes.id = ?')) {
       const hole = this.holes.find((item) => item.id === params[0]);
       const plot = this.plots.find((item) => item.id === hole?.plotId);
-      const planting = TAKAI_DEMO_SEED.plantings.find((item) => item.holeId === hole?.id && !item.removedOn);
+      const planting = this.plantings.find((item) => item.hole_id === hole?.id && item.status === 'active' && !item.removed_on);
       return hole && plot
         ? ([
             {
@@ -449,8 +486,10 @@ class OperationalFakeSqlite implements SqlExecutor {
               marker: hole.marker,
               status: hole.status,
               plot_name: plot.name,
-              plant_name: planting?.plantName ?? null,
-              planted_on: planting?.plantedOn ?? null,
+              planting_id: planting?.id ?? null,
+              plant_name: planting?.plant_name ?? null,
+              variety: planting?.variety ?? null,
+              planted_on: planting?.planted_on ?? null,
             },
           ] as T[])
         : [];
@@ -463,6 +502,7 @@ class OperationalFakeSqlite implements SqlExecutor {
             (target) => target.activity_id === activity.id && target.target_type === 'hole' && target.target_id === params[0],
           ),
         )
+        .filter((activity) => !sql.includes('activities.planting_id = ?') || activity.planting_id === params[1])
         .map((activity) => {
           const category = this.categories.find((item) => item.id === activity.category_id);
           const materialNames = this.activityMaterials
@@ -656,8 +696,8 @@ class OperationalFakeSqlite implements SqlExecutor {
     }
 
     if (sql.includes('INSERT INTO activities')) {
-      const [id, plot_id, crop_cycle_id, category_id, performed_at, note, follow_up_on] = params;
-      this.activities.push({ id, plot_id, crop_cycle_id, category_id, performed_at, note, follow_up_on, status: 'done' });
+      const [id, plot_id, crop_cycle_id, planting_id, category_id, performed_at, activity_date, time_mode, started_at, ended_at, duration_minutes, note, follow_up_on] = params;
+      this.activities.push({ id, plot_id, crop_cycle_id, planting_id, category_id, performed_at, activity_date, time_mode, started_at, ended_at, duration_minutes, note, follow_up_on, status: 'done' });
       return;
     }
 
@@ -742,7 +782,7 @@ const main = async (): Promise<void> => {
   assert.deepEqual(options.plots.map((plot) => plot.id), ['plot-a'], 'capture must expose real selectable plots instead of a hidden seed default');
   assert.equal(options.holes.find((hole) => hole.id === 'hole-a-014')?.plotId, 'plot-a');
   assert.equal(options.activeCases.find((caseItem) => caseItem.id === 'case-a-014')?.holeId, 'hole-a-014');
-  assert.equal(options.defaultPerformedAt, '2026-07-16T08:30:00.000Z', 'capture must provide a date/time-safe default');
+  assert.equal(Number.isNaN(Date.parse(options.defaultPerformedAt)), false, 'capture must provide a live date/time-safe default');
   assert.equal(options.defaultWorkerId, 'person-worker-somchai');
 
   const quickMaterialId = await createMaterial(db, {
@@ -948,7 +988,7 @@ const main = async (): Promise<void> => {
   );
 
   const materialUsageCountBeforeDemo = db.activityMaterials.length;
-  const created = await createDemoSprayActivity(db);
+  const created = await createDemoSprayActivity(db, '2026-07-16T08:30:00.000Z');
   assert.equal(created.activityId, 'activity-demo-spray');
   assert.equal(created.cropCycleId, 'crop-2026-plot-a');
   assert.deepEqual(created.laborEntryIds, ['labor-participant-activity-demo-spray-2']);

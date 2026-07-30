@@ -1,0 +1,70 @@
+- generic [ref=e5]:
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: ☰
+      - generic [ref=e10]: บันทึกกิจกรรม
+      - button "ออฟไลน์" [ref=e11] [cursor=pointer]
+    - generic [ref=e225]: บันทึกกิจกรรมแล้ว · ตั้งการแจ้งเตือนไม่สำเร็จ
+    - generic [ref=e103]:
+      - generic [ref=e104]: บันทึกภาคสนาม
+      - generic [ref=e105]: พ่นยา · แปลง A
+      - generic [ref=e106]: เลือก ค้นหา หรือเพิ่มรายการใหม่ได้ โดยแบบฟอร์มที่กำลังกรอกจะไม่หาย
+    - generic [ref=e107]:
+      - generic [ref=e108]: 1. งานและสถานที่
+      - generic [ref=e111]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: หมวดงาน
+          - button "พ่นยา เลือก" [ref=e114] [cursor=pointer]:
+            - generic [ref=e115]: พ่นยา
+            - generic [ref=e116]: เลือก
+        - generic [ref=e117]:
+          - generic [ref=e118]: แปลง
+          - button "แปลง A เลือก" [ref=e119] [cursor=pointer]:
+            - generic [ref=e120]: แปลง A
+            - generic [ref=e121]: เลือก
+        - generic [ref=e122]:
+          - generic [ref=e123]: เป้าหมายในแปลง
+          - button "เลือกทั้งแปลง หลุม หรือเคส เลือก" [ref=e124] [cursor=pointer]:
+            - generic [ref=e125]: เลือกทั้งแปลง หลุม หรือเคส
+            - generic [ref=e126]: เลือก
+        - generic [ref=e127]:
+          - generic [ref=e128]: วันที่ทำงาน
+          - textbox "YYYY-MM-DD" [ref=e129]: 2026-07-29
+    - button "เวลา เพิ่มถ้าจำเป็น" [ref=e130] [cursor=pointer]:
+      - generic [ref=e131]: เวลา
+      - generic [ref=e132]: เพิ่มถ้าจำเป็น
+    - generic [ref=e133]:
+      - generic [ref=e134]: 2. บันทึก
+      - generic [ref=e137]:
+        - generic [ref=e138]: บันทึก
+        - textbox [ref=e139]: พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม
+    - button "วัสดุครั้งนี้ ซ่อน" [ref=e154] [cursor=pointer]:
+      - generic [ref=e141]: วัสดุครั้งนี้
+      - generic [ref=e142]: ซ่อน
+    - generic [ref=e155]:
+      - generic [ref=e156]: 3. วัสดุครั้งนี้
+      - generic [ref=e159]:
+        - generic [ref=e163]:
+          - button "แมนโคเซบ · ยา A 5 cc · อัตโนมัติ · ถัง 50 L" [ref=e220] [cursor=pointer]:
+            - generic [ref=e165]: แมนโคเซบ · ยา A
+            - generic [ref=e166]: 5 cc · อัตโนมัติ · ถัง 50 L
+          - button "นำออก" [ref=e168] [cursor=pointer]
+        - button "+ เลือกวัสดุ" [ref=e161] [cursor=pointer]
+    - button "คนงานและค่าแรง เพิ่มถ้าจำเป็น" [ref=e143] [cursor=pointer]:
+      - generic [ref=e144]: คนงานและค่าแรง
+      - generic [ref=e145]: เพิ่มถ้าจำเป็น
+    - button "ติดตามต่อ เพิ่มถ้าจำเป็น" [ref=e146] [cursor=pointer]:
+      - generic [ref=e147]: ติดตามต่อ
+      - generic [ref=e148]: เพิ่มถ้าจำเป็น
+    - generic [ref=e227]:
+      - generic [ref=e228]: บันทึกสำเร็จ
+      - generic [ref=e229]: บันทึกกิจกรรมแล้ว · ตั้งการแจ้งเตือนไม่สำเร็จ
+      - generic [ref=e230]: "เลขที่บันทึก: activity-web-preview-field"
+    - button "บันทึกกิจกรรมลงเครื่อง" [ref=e150] [cursor=pointer]
+    - button "กลับวันนี้" [ref=e152] [cursor=pointer]
+  - generic [ref=e92]:
+    - tab "วันนี้" [ref=e93] [cursor=pointer]
+    - tab "แปลง" [ref=e95] [cursor=pointer]
+    - tab "บันทึก" [ref=e97] [cursor=pointer]
+    - tab "เคส" [ref=e99] [cursor=pointer]
+    - tab "เมนู" [ref=e101] [cursor=pointer]

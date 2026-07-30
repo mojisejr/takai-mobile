@@ -1,0 +1,104 @@
+- generic [ref=f2e1] [box=0,0,390,844]:
+  - generic [ref=f2e311] [box=0,0,390,844]:
+    - generic [ref=f2e313] [box=0,-442,390,1408]:
+      - generic [ref=f2e314] [box=16,-426,358,52]:
+        - generic [ref=f2e315] [box=32,-415,28,30]: ☰
+        - generic [ref=f2e316] [box=72,-414,224,28]: บันทึกกิจกรรม
+        - button "ออฟไลน์" [ref=f2e317] [cursor=pointer] [box=308,-409,50,19]
+      - generic [ref=f2e409] [box=16,-358,358,117]:
+        - generic [ref=f2e410] [box=31,-343,328,18]: บันทึกภาคสนาม
+        - generic [ref=f2e411] [box=31,-325,328,23]: พ่นยา · แปลง A
+        - generic [ref=f2e412] [box=31,-298,328,42]: เลือก ค้นหา หรือเพิ่มรายการใหม่ได้ โดยแบบฟอร์มที่กำลังกรอกจะไม่หาย
+      - generic [ref=f2e413] [box=16,-225,358,366]:
+        - generic [ref=f2e414] [box=16,-225,358,36]: 1. งานและสถานที่
+        - generic [ref=f2e417] [box=16,-181,358,322]:
+          - generic [ref=f2e418] [box=31,-166,328,73]:
+            - generic [ref=f2e419] [box=31,-166,328,19]: หมวดงาน
+            - button "พ่นยา เลือก" [ref=f2e420] [cursor=pointer] [box=31,-141,328,48]:
+              - generic [ref=f2e421] [box=44,-128,261,22]: พ่นยา
+              - generic [ref=f2e422] [box=317,-126,29,19]: เลือก
+          - generic [ref=f2e423] [box=31,-93,328,73]:
+            - generic [ref=f2e424] [box=31,-93,328,19]: แปลง
+            - button "แปลง A เลือก" [ref=f2e425] [cursor=pointer] [box=31,-68,328,48]:
+              - generic [ref=f2e426] [box=44,-55,261,22]: แปลง A
+              - generic [ref=f2e427] [box=317,-53,29,19]: เลือก
+          - generic [ref=f2e428] [box=31,-20,328,73]:
+            - generic [ref=f2e429] [box=31,-20,328,19]: เป้าหมายในแปลง
+            - button "เลือกทั้งแปลง หลุม หรือเคส เลือก" [ref=f2e430] [cursor=pointer] [box=31,5,328,48]:
+              - generic [ref=f2e431] [box=44,18,261,22]: เลือกทั้งแปลง หลุม หรือเคส
+              - generic [ref=f2e432] [box=317,20,29,19]: เลือก
+          - generic [ref=f2e433] [box=31,53,328,73]:
+            - generic [ref=f2e434] [box=31,53,328,19]: วันที่ทำงาน
+            - textbox "YYYY-MM-DD" [ref=f2e435] [box=31,78,328,48]: 2026-07-29
+      - button "เวลา เพิ่มถ้าจำเป็น" [ref=f2e436] [cursor=pointer] [box=16,157,358,44]:
+        - generic [ref=f2e437] [box=16,168,33,23]: เวลา
+        - generic [ref=f2e438] [box=299,170,75,19]: เพิ่มถ้าจำเป็น
+      - generic [ref=f2e439] [box=16,217,358,200]:
+        - generic [ref=f2e440] [box=16,217,358,36]: 2. บันทึก
+        - generic [ref=f2e443] [box=16,261,358,156]:
+          - generic [ref=f2e444] [box=31,286,328,18]: บันทึก
+          - textbox [ref=f2e445] [box=31,310,328,92]: พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม
+      - button "วัสดุครั้งนี้ ซ่อน" [ref=f2e460] [cursor=pointer] [box=16,433,358,44]:
+        - generic [ref=f2e447] [box=16,444,68,23]: วัสดุครั้งนี้
+        - generic [ref=f2e448] [box=348,446,26,19]: ซ่อน
+      - generic [ref=f2e461] [box=16,493,358,188]:
+        - generic [ref=f2e462] [box=16,493,358,36]: 3. วัสดุครั้งนี้
+        - generic [ref=f2e465] [box=16,537,358,144]:
+          - generic [ref=f2e469] [box=31,552,328,68]:
+            - button "วัสดุ 1 ยังไม่ได้เลือกวัสดุ" [ref=f2e470] [cursor=pointer] [box=31,552,267,67]:
+              - generic [ref=f2e471] [box=31,560,267,23]: วัสดุ 1
+              - generic [ref=f2e472] [box=31,590,267,21]: ยังไม่ได้เลือกวัสดุ
+            - button "นำออก" [ref=f2e473] [cursor=pointer] [box=298,569,61,34]
+          - button "+ เลือกวัสดุ" [ref=f2e467] [cursor=pointer] [box=31,620,328,46]
+      - button "คนงานและค่าแรง เพิ่มถ้าจำเป็น" [ref=f2e449] [cursor=pointer] [box=16,697,358,44]:
+        - generic [ref=f2e450] [box=16,708,123,23]: คนงานและค่าแรง
+        - generic [ref=f2e451] [box=299,710,75,19]: เพิ่มถ้าจำเป็น
+      - button "ติดตามต่อ เพิ่มถ้าจำเป็น" [ref=f2e452] [cursor=pointer] [box=16,757,358,44]:
+        - generic [ref=f2e453] [box=16,768,72,23]: ติดตามต่อ
+        - generic [ref=f2e454] [box=299,770,75,19]: เพิ่มถ้าจำเป็น
+      - button "บันทึกกิจกรรมลงเครื่อง" [ref=f2e456] [cursor=pointer] [box=16,834,358,46]
+      - button "กลับวันนี้" [ref=f2e458] [cursor=pointer] [box=16,912,358,46]
+    - generic [ref=f2e398] [box=16,770,358,58]:
+      - tab "วันนี้" [ref=f2e399] [cursor=pointer] [box=23,777,69,44]
+      - tab "แปลง" [ref=f2e401] [cursor=pointer] [box=92,777,69,44]
+      - tab "บันทึก" [ref=f2e403] [cursor=pointer] [box=161,777,69,44]
+      - tab "เคส" [ref=f2e405] [cursor=pointer] [box=229,777,69,44]
+      - tab "เมนู" [ref=f2e407] [cursor=pointer] [box=298,777,69,44]
+  - dialog [ref=f2e476] [box=0,0,390,844]:
+    - generic [ref=f2e479] [box=0,101,390,743]:
+      - generic [ref=f2e480] [box=16,117,358,28]:
+        - generic [ref=f2e481] [box=16,117,77,28]: เลือกวัสดุ
+        - button "ปิด" [ref=f2e482] [cursor=pointer] [box=353,120,21,22]
+      - textbox "พิมพ์เพื่อค้นหา" [active] [ref=f2e484] [box=16,157,358,48]
+      - generic [ref=f2e486] [box=16,217,358,903]:
+        - generic [ref=f2e487] [box=16,217,358,131]:
+          - generic [ref=f2e488] [box=16,217,358,19]: ทั้งหมด
+          - button "ยา A ยาป้องกันเชื้อรา · cc เลือก" [ref=f2e489] [cursor=pointer] [box=16,242,358,52]:
+            - generic [ref=f2e490] [box=28,247,293,42]:
+              - generic [ref=f2e491] [box=28,247,293,22]: ยา A
+              - generic [ref=f2e492] [box=28,271,293,18]: ยาป้องกันเชื้อรา · cc
+            - generic [ref=f2e493] [box=333,258,29,19]: เลือก
+          - button "น้ำสะอาด อื่น ๆ · L เลือก" [ref=f2e494] [cursor=pointer] [box=16,296,358,52]:
+            - generic [ref=f2e495] [box=28,301,293,42]:
+              - generic [ref=f2e496] [box=28,301,293,22]: น้ำสะอาด
+              - generic [ref=f2e497] [box=28,325,293,18]: อื่น ๆ · L
+            - generic [ref=f2e498] [box=333,312,29,19]: เลือก
+        - generic [ref=f2e499] [box=16,364,358,756]:
+          - generic [ref=f2e500] [box=16,381,358,19]: + เพิ่มวัสดุใหม่
+          - generic [ref=f2e501] [box=16,420,358,18]: ชื่อสามัญ / ชื่อเรียก
+          - textbox "เช่น แมนโคเซบ" [ref=f2e502] [box=16,454,358,44]
+          - generic [ref=f2e503] [box=16,518,358,18]: ชื่อยี่ห้อ (ถ้ามี)
+          - textbox "เช่น ไดเทน" [ref=f2e504] [box=16,552,358,44]
+          - generic [ref=f2e505] [box=16,616,358,18]: หน่วยอัตรา
+          - generic [ref=f2e506] [box=16,650,358,38]:
+            - generic [ref=f2e507] [cursor=pointer] [box=16,650,42,38]: cc
+            - generic [ref=f2e509] [cursor=pointer] [box=66,650,43,38]: ml
+            - generic [ref=f2e511] [cursor=pointer] [box=117,650,50,38]: กรัม
+          - textbox "หรือพิมพ์หน่วยเอง เช่น g" [ref=f2e513] [box=16,698,358,44]: cc
+          - generic [ref=f2e514] [box=16,762,358,18]: อัตราอ้างอิง
+          - textbox "เช่น 20" [ref=f2e515] [box=16,796,358,44]
+          - generic [ref=f2e516] [box=16,860,358,18]: น้ำอ้างอิง (L)
+          - textbox "200" [ref=f2e517] [box=16,894,358,44]
+          - generic [ref=f2e518] [box=16,958,358,18]: รายละเอียด (ถ้ามี)
+          - textbox "เช่น ใช้พ่นป้องกันเชื้อรา" [ref=f2e519] [box=16,1000,358,64]
+          - button "เพิ่มและเลือกวัสดุ" [ref=f2e520] [cursor=pointer] [box=16,1074,358,46]

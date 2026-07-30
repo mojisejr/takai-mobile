@@ -1,0 +1,31 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-6-activity-reframe/phase-1-setup",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "targetUrl": "http://localhost:8081/",
+  "viewport": "390x844",
+  "screensChecked": [
+    "Today",
+    "Plots setup: create plot, create hole, plant tree"
+  ],
+  "flowObserved": "Created a plot named แปลงทดสอบ Eye, then hole EYE-001, then a ทุเรียน/หมอนทอง planting in the RN Web preview.",
+  "artifacts": {
+    "initialSnapshot": "setup-initial.yml",
+    "completedSnapshot": "setup-complete.yml",
+    "entryScreenshot": "setup-entry-390x844.png",
+    "workflowScreenshot": "setup-390x844.png",
+    "console": "console.json",
+    "network": "network-requests.json"
+  },
+  "consoleErrorCount": 0,
+  "failedNetworkRequestCount": 0,
+  "knownWarnings": [
+    "React Native Web reports deprecated shadow style props; this is an existing development warning and not a setup-flow failure."
+  ],
+  "observedAt": "2026-07-28T14:19:46+07:00",
+  "limitations": [
+    "Does not prove Expo Go touch, physical safe area, native SQLite, or native packaging.",
+    "The RN Web preview uses mock data and does not prove local SQLite persistence."
+  ]
+}

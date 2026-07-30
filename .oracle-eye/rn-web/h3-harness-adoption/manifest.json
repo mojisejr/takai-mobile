@@ -2,8 +2,8 @@
   "project": "takai-mobile",
   "phase": "h3-harness-adoption",
   "lane": "rn-web-eye",
-  "claimLabel": "RN Web Eye Closed",
-  "generatedAt": "2026-07-17T02:34:06.462Z",
+  "claimLabel": "RN Web Eye Pending",
+  "generatedAt": "2026-07-29T07:15:33.122Z",
   "viewport": "390x844 target for browser capture",
   "exportDir": ".oracle-eye/rn-web/h3-harness-adoption/export",
   "artifacts": {
@@ -13,8 +13,8 @@
     "manifest": ".oracle-eye/rn-web/h3-harness-adoption/manifest.json"
   },
   "notes": [
-    "This script closes RN Web export readiness and records the artifact sink.",
-    "Browser screenshot/console capture should use this sink for visual proof.",
+    "This script closes RN Web export readiness and records the artifact sink only.",
+    "RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.",
     "This lane does not close Expo Go Device Eye or Native Eye."
   ]
 }

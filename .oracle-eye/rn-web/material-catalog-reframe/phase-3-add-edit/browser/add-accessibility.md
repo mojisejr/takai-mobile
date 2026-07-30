@@ -1,0 +1,70 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: ☰
+        - generic [ref=e17]: วัสดุ
+        - button "ออฟไลน์" [ref=e18] [cursor=pointer]
+      - generic [ref=e110]:
+        - generic [ref=e111]: คลังวัสดุ
+        - generic [ref=e112]: ยา ปุ๋ย และวัสดุที่เลือกใช้ซ้ำได้
+        - generic [ref=e113]: แตะรายการเพื่อดูรายละเอียด · เก็บเข้าคลังจะซ่อนจากบันทึกใหม่ แต่ประวัติยังอ่านได้ครบ
+      - generic [ref=e116]: วัสดุที่ใช้งาน
+      - generic [ref=e118]:
+        - textbox "ค้นหาชื่อ ชื่อสามัญ หรือโน้ต" [ref=e119]
+        - generic [ref=e120]:
+          - generic [ref=e121] [cursor=pointer]: กำลังใช้
+          - generic [ref=e123] [cursor=pointer]: ในคลัง
+        - generic [ref=e125]:
+          - generic [ref=e126] [cursor=pointer]: ทั้งหมด
+          - generic [ref=e128] [cursor=pointer]: สารเคมี
+          - generic [ref=e130] [cursor=pointer]: ปุ๋ย
+          - generic [ref=e132] [cursor=pointer]: อื่น ๆ
+      - generic [ref=e134]:
+        - button "แมนโคเซบ ยาป้องกันเชื้อรา · 20 cc / น้ำ 20 L · ใช้แล้ว 0 ครั้ง ดู" [ref=e135] [cursor=pointer]:
+          - generic [ref=e137]:
+            - generic [ref=e138]: แมนโคเซบ
+            - generic [ref=e139]: ยาป้องกันเชื้อรา · 20 cc / น้ำ 20 L · ใช้แล้ว 0 ครั้ง
+          - generic [ref=e140]: ดู
+        - button "น้ำสะอาด อื่น ๆ · 20 L · ใช้แล้ว 0 ครั้ง ดู" [ref=e141] [cursor=pointer]:
+          - generic [ref=e143]:
+            - generic [ref=e144]: น้ำสะอาด
+            - generic [ref=e145]: อื่น ๆ · 20 L · ใช้แล้ว 0 ครั้ง
+          - generic [ref=e146]: ดู
+      - button "บันทึกกิจกรรม" [ref=e147] [cursor=pointer]
+    - generic [ref=e99]:
+      - tab "วันนี้" [ref=e100] [cursor=pointer]
+      - tab "แปลง" [ref=e102] [cursor=pointer]
+      - tab "บันทึก" [ref=e104] [cursor=pointer]
+      - tab "เคส" [ref=e106] [cursor=pointer]
+      - tab "เมนู" [ref=e108] [cursor=pointer]
+  - dialog [ref=e150]:
+    - generic [ref=e153]:
+      - generic [ref=e154]:
+        - generic [ref=e155]:
+          - generic [ref=e156]: เพิ่มวัสดุ
+          - generic [ref=e157]: เริ่มจากข้อมูลที่จำเป็นก่อน
+        - button "ยกเลิก" [ref=e158] [cursor=pointer]
+      - generic [ref=e161]:
+        - generic [ref=e162]: ชื่อสามัญ / ชื่อเรียก *
+        - textbox "เช่น แมนโคเซบ" [active] [ref=e163]
+        - generic [ref=e164]: ชื่อยี่ห้อ (ถ้ามี)
+        - textbox "เช่น ไดเทน" [ref=e165]
+        - generic [ref=e166]: ชนิด
+        - generic [ref=e167]:
+          - generic [ref=e168] [cursor=pointer]: สารป้องกัน
+          - generic [ref=e170] [cursor=pointer]: ปุ๋ย
+          - generic [ref=e172] [cursor=pointer]: อื่น ๆ
+        - generic [ref=e174]: หน่วย *
+        - generic [ref=e175]:
+          - generic [ref=e176] [cursor=pointer]: cc
+          - generic [ref=e178] [cursor=pointer]: ml
+          - generic [ref=e180] [cursor=pointer]: กรัม
+        - textbox "หรือพิมพ์หน่วยเอง เช่น g" [ref=e182]: cc
+        - button "อัตราอ้างอิง (ถ้ามี) เพิ่มอัตรา" [ref=e183] [cursor=pointer]:
+          - generic [ref=e184]: อัตราอ้างอิง (ถ้ามี)
+          - generic [ref=e185]: เพิ่มอัตรา
+        - button "รายละเอียด (ถ้ามี) เพิ่มโน้ต" [ref=e186] [cursor=pointer]:
+          - generic [ref=e187]: รายละเอียด (ถ้ามี)
+          - generic [ref=e188]: เพิ่มโน้ต
+      - button "เพิ่มวัสดุ" [ref=e190] [cursor=pointer]

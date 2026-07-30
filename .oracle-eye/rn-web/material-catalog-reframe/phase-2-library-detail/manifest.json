@@ -1,0 +1,30 @@
+{
+  "project": "takai-mobile",
+  "phase": "material-catalog-reframe/phase-2-library-detail",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-07-29T08:34:47.704Z",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/export/index.html",
+    "browserScreenshots": [
+      ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/browser/library-390x844.png",
+      ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/browser/detail-390x844.png"
+    ],
+    "accessibility": [
+      ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/browser/library-accessibility.md",
+      ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/browser/detail-accessibility.md"
+    ],
+    "console": ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/browser/console-final.json",
+    "network": ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/browser/network-final.json",
+    "manifest": ".oracle-eye/rn-web/material-catalog-reframe/phase-2-library-detail/manifest.json"
+  },
+  "notes": [
+    "Expo Web rendered at http://localhost:8081 with a 390x844 viewport.",
+    "Library and read-first Material Detail were captured after repairing Web barrel export parity.",
+    "Playwright reported 0 console errors; development warnings were React DevTools, deprecated shadow style props, and expo-notifications web listener limitations.",
+    "No non-static network requests failed.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

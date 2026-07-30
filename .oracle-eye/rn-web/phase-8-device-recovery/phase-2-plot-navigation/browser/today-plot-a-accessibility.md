@@ -1,0 +1,73 @@
+- generic [ref=f2e5] [box=0,0,390,844]:
+  - generic [ref=f2e7] [box=0,0,390,1198]:
+    - generic [ref=f2e8] [box=16,16,358,52]:
+      - generic [ref=f2e9] [box=32,27,28,30]: ☰
+      - generic [ref=f2e10] [box=72,28,224,28]: วันนี้
+      - button "ออฟไลน์" [ref=f2e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=f2e232] [box=16,84,358,36]:
+      - generic [ref=f2e233] [box=16,88,79,28]: สวนตาไก๊
+      - button "บันทึก" [ref=f2e234] [cursor=pointer] [box=339,93,35,19]
+    - generic [ref=f2e236] [box=16,136,358,132]:
+      - generic [ref=f2e237] [box=31,151,328,18]: ขอบเขตวันนี้
+      - generic [ref=f2e238] [box=31,169,328,38]:
+        - generic [ref=f2e239] [cursor=pointer] [box=31,169,76,38]: ทุกแปลง
+        - generic [active] [ref=f2e241] [cursor=pointer] [box=115,169,72,38]: แปลง A
+        - generic [ref=f2e243] [cursor=pointer] [box=195,169,107,38]: แปลงหลังบ้าน
+      - generic [ref=f2e245] [box=31,211,328,42]: เลือกเพื่อดูภาพรวมเท่านั้น — แปลงในแบบบันทึกยังเป็นรายการที่เลือกไว้เอง
+    - generic [ref=f2e246] [box=16,284,358,185]:
+      - generic [ref=f2e247] [box=31,299,328,83]:
+        - generic [ref=f2e248] [box=31,299,262,83]:
+          - generic [ref=f2e249] [box=31,299,262,18]: ภาพรวมวันนี้
+          - generic [ref=f2e250] [box=31,319,262,38]: แปลง A
+          - generic [ref=f2e251] [box=31,361,262,21]: Crop 2026 · เปิดมา 197 วัน
+        - generic [ref=f2e252] [box=305,299,54,26]: Local
+      - generic [ref=f2e254] [box=31,396,328,58]:
+        - generic [ref=f2e255] [box=31,411,104,43]:
+          - generic [ref=f2e256] [box=31,411,104,23]: 6.2 ไร่
+          - generic [ref=f2e257] [box=31,436,104,18]: พื้นที่
+        - generic [ref=f2e258] [box=143,411,104,43]:
+          - generic [ref=f2e259] [box=143,411,104,20]: 1/1
+          - generic [ref=f2e260] [box=143,433,104,18]: หลุมปลูก
+        - generic [ref=f2e261] [box=255,411,104,43]:
+          - generic [ref=f2e262] [box=255,411,104,23]: 0 บาท
+          - generic [ref=f2e263] [box=255,436,104,18]: ค้างจ่าย
+    - button "+ บันทึกกิจกรรม" [ref=f2e264] [cursor=pointer] [box=16,485,358,46]
+    - generic [ref=f2e266] [box=16,547,358,36]: รายการล่าสุด
+    - generic [ref=f2e269] [cursor=pointer] [box=17,600,356,59]:
+      - generic [ref=f2e271] [box=47,608,287,42]:
+        - generic [ref=f2e272] [box=47,608,287,22]: ยังไม่มีบันทึกวันนี้
+        - generic [ref=f2e273] [box=47,632,287,18]: RN Web preview ใช้ข้อมูลจำลอง ไม่แตะ SQLite
+      - generic [ref=f2e274] [box=342,620,19,18]: เริ่ม
+    - generic [ref=f2e275] [box=16,676,358,36]:
+      - generic [ref=f2e276] [box=16,680,127,28]: Tracker สำคัญ
+      - button "แปลง" [ref=f2e277] [cursor=pointer] [box=342,685,32,19]
+    - generic [ref=f2e279] [box=16,728,358,96]:
+      - generic [ref=f2e280] [box=31,743,328,23]: พ่นยา · แปลง A
+      - generic [ref=f2e282] [box=31,772,328,19]: ครั้งที่ 0 ยังไม่เคยบันทึก
+    - generic [ref=f2e284] [box=16,840,358,96]:
+      - generic [ref=f2e285] [box=31,855,328,23]:
+        - generic [ref=f2e286] [box=31,855,108,23]: ใส่ปุ๋ย · แปลง A
+        - generic [ref=f2e287] [box=263,857,96,19]: เกินกำหนด 4 วัน
+      - generic [ref=f2e288] [box=31,884,328,19]: ครั้งที่ 3 ผ่านมา 6 วัน
+    - generic [ref=f2e291] [box=16,952,358,96]:
+      - generic [ref=f2e292] [box=31,967,328,23]:
+        - generic [ref=f2e293] [box=31,967,116,23]: แต่งกิ่ง · แปลง A
+        - generic [ref=f2e294] [box=265,969,94,19]: เกินกำหนด 1 วัน
+      - generic [ref=f2e295] [box=31,996,328,19]: ครั้งที่ 2 ผ่านมา 13 วัน
+    - generic [ref=f2e298] [box=16,1064,358,36]: สมุดที่ต้องดู
+    - generic [ref=f2e300] [box=16,1116,358,74]:
+      - generic [ref=f2e301] [cursor=pointer] [box=16,1116,114,74]:
+        - generic [ref=f2e302] [box=25,1132,96,23]: 1 ติดตาม
+        - generic [ref=f2e303] [box=25,1157,96,18]: เคส
+      - generic [ref=f2e304] [cursor=pointer] [box=138,1116,114,74]:
+        - generic [ref=f2e305] [box=147,1132,96,23]: 0 บาท
+        - generic [ref=f2e306] [box=147,1157,96,18]: ค่าแรง
+      - generic [ref=f2e307] [cursor=pointer] [box=260,1116,114,74]:
+        - generic [ref=f2e308] [box=269,1132,96,23]: 2 รายการ
+        - generic [ref=f2e309] [box=269,1157,96,18]: วัสดุ
+  - generic [ref=f2e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f2e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f2e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f2e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f2e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f2e101] [cursor=pointer] [box=298,777,69,44]

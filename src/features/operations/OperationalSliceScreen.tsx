@@ -1,31 +1,51 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { initializeTakaiDatabase, type TakaiDatabase } from '../../data';
 import { tokens } from '../../theme/tokens';
 import {
   AppShell,
+  DatePickerField,
   EvidenceTimeline,
   FieldCard,
+  FormSection,
+  PickerField,
   PrimaryButton,
   RecordListItem,
+  SearchPickerSheet,
   SectionHeader,
   StatusChip,
   TopBar,
   TrackerCard,
+  StickySaveBar,
+  type PickerOption,
 } from '../../ui';
 import { DesignLabScreen } from '../design-lab/DesignLabScreen';
 import {
   closeCase,
+  createHole,
+  createPlanting,
+  retireCurrentPlanting,
+  createPlot,
   createActivityCategory,
   createDemoSprayActivity,
   createFieldActivity,
   createMaterial,
+  calculateChemicalDose,
+  emptyMaterialDraft,
+  filterMaterialLibraryItems,
+  materialDraftFromLibrary,
+  validateMaterialCatalogDraft,
+  validateActivityDraft,
   createPerson,
   formatThaiShortDate,
+  formatFollowUpDueLabel,
+  followUpDaysRemaining,
+  localDateKey,
   getActivityCaptureOptions,
   getCaseList,
   getCaseTimeline,
   getHoleDetail,
+  getPlotDetail,
   getLaborLedger,
   getMenuDashboard,
   getMaterialLibrary,
@@ -34,13 +54,15 @@ import {
   archiveMaterial,
   archivePerson,
   listActivityCategories,
+  listPlotSummaries,
   listPeople,
-  nextDateFrom,
+  resolveFollowUpOn,
   pinPlotTracker,
   restoreActivityCategory,
   restoreMaterial,
   restorePerson,
   settleUnpaidLaborForPerson,
+  syncFollowUpReminder,
   unpinPlotTracker,
   updateActivityCategory,
   updateMaterial,
@@ -50,14 +72,29 @@ import {
   type CaseListItem,
   type CaseTimeline,
   type HoleDetail,
+  type HoleInput,
+  type PlantingInput,
+  type PlotInput,
+  type PlotDetail,
+  type PlotSummary,
   type LaborLedger,
   type MenuDashboard,
   type MaterialLibraryItem,
   type MaterialInput,
+  type ActivityMaterialReturnIntent,
+  type MaterialCatalogMode,
+  type MaterialLibraryTypeFilter,
   type TakaiView,
   type TodayDashboard,
+  type TodayScope,
   type PersonDirectoryItem,
 } from './index';
+import {
+  configureFollowUpNotifications,
+  expoFollowUpNotificationGateway,
+  getFollowUpNotificationPermission,
+  requestFollowUpNotificationPermission,
+} from './expoNotifications';
 
 type LoadState =
   | { status: 'loading' }
@@ -71,23 +108,43 @@ type LoadState =
       laborLedger: LaborLedger;
       menuDashboard: MenuDashboard;
       materials: MaterialLibraryItem[];
-      holeDetail: HoleDetail;
+      holeDetail: HoleDetail | null;
+      plotDetail: PlotDetail;
+      plotList: PlotSummary[];
       categories: Awaited<ReturnType<typeof listActivityCategories>>;
       people: PersonDirectoryItem[];
       message: string | null;
     }
   | { status: 'error'; message: string };
 
+type ActivityPicker = 'category' | 'plot' | 'target' | 'material' | 'worker' | 'payType';
+type WorkerDraft = { key: string; personId: string; payType: 'none' | 'daily' | 'hourly' | 'piece' | 'contract'; amount: string };
+type MaterialUsageDraft = { key: string; materialId: string; amount: string; unit: string; waterVolume: string; waterUnit: string; dilutionText: string; note: string; actualTankLitres: string; manualAmount: string; manualOverride: boolean };
+
 export function OperationalSliceScreen() {
   const [view, setView] = useState<TakaiView>('today');
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedCategoryId, setSelectedCategoryId] = useState('cat-spray');
   const [selectedTarget, setSelectedTarget] = useState<'plot' | 'hole' | 'case'>('hole');
-  const [selectedPlotId, setSelectedPlotId] = useState('plot-a');
+  const [todayScope, setTodayScope] = useState<TodayScope>('all');
+  const [selectedDetailPlotId, setSelectedDetailPlotId] = useState('');
+  const [selectedPlotId, setSelectedPlotId] = useState('');
+  const [selectedHoleId, setSelectedHoleId] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
-  const [performedAtDraft, setPerformedAtDraft] = useState(new Date().toISOString());
+  const [activityDateDraft, setActivityDateDraft] = useState(localDateKey());
+  const [timeMode, setTimeMode] = useState<'all_day' | 'time_range' | 'duration_only'>('all_day');
+  const [startedAtDraft, setStartedAtDraft] = useState('08:00');
+  const [endedAtDraft, setEndedAtDraft] = useState('17:00');
+  const [durationMinutesDraft, setDurationMinutesDraft] = useState('60');
+  const [showTimeDetails, setShowTimeDetails] = useState(false);
+  const [showMaterialDetails, setShowMaterialDetails] = useState(false);
+  const [showWorkerDetails, setShowWorkerDetails] = useState(false);
+  const [showFollowUpDetails, setShowFollowUpDetails] = useState(false);
   const [note, setNote] = useState('พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม');
+  const [followUpMode, setFollowUpMode] = useState<'date' | 'days'>('days');
   const [followUpDays, setFollowUpDays] = useState('4');
+  const [followUpDateDraft, setFollowUpDateDraft] = useState('');
+  const [notificationPermission, setNotificationPermission] = useState<'granted' | 'denied' | 'undetermined' | 'unavailable'>('unavailable');
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [workerAmount, setWorkerAmount] = useState('600');
   const [selectedCaseId, setSelectedCaseId] = useState('case-a-014');
@@ -95,48 +152,167 @@ export function OperationalSliceScreen() {
   const [showArchivedPeople, setShowArchivedPeople] = useState(false);
   const [categoryDraft, setCategoryDraft] = useState<CategoryInput>({ id: '', name: '', kind: 'other' });
   const [personDraft, setPersonDraft] = useState({ id: '', displayName: '', specialty: '', phone: '', note: '' });
-  const [showInlineCategoryForm, setShowInlineCategoryForm] = useState(false);
-  const [showInlineWorkerForm, setShowInlineWorkerForm] = useState(false);
-  const [materialUsages, setMaterialUsages] = useState<Array<{ key: string; materialId: string; amount: string; unit: string; waterVolume: string; waterUnit: string; dilutionText: string; note: string }>>([]);
-  const [showInlineMaterialForm, setShowInlineMaterialForm] = useState(false);
+  const [materialUsages, setMaterialUsages] = useState<MaterialUsageDraft[]>([]);
   const [showArchivedMaterials, setShowArchivedMaterials] = useState(false);
-  const [materialDraft, setMaterialDraft] = useState<MaterialInput>({ id: '', name: '', type: 'other', unit: '' });
+  const [materialDraft, setMaterialDraft] = useState<MaterialInput>(emptyMaterialDraft);
+  const [materialCatalogMode, setMaterialCatalogMode] = useState<MaterialCatalogMode>('library');
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [materialTypeFilter, setMaterialTypeFilter] = useState<MaterialLibraryTypeFilter>('all');
+  const [archiveConfirmationMaterialId, setArchiveConfirmationMaterialId] = useState<string | null>(null);
+  const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const [materialReturnIntent, setMaterialReturnIntent] = useState<ActivityMaterialReturnIntent | null>(null);
+  const [materialFormError, setMaterialFormError] = useState<string | null>(null);
+  const [materialSaving, setMaterialSaving] = useState(false);
+  const [materialDetailKey, setMaterialDetailKey] = useState<string | null>(null);
   const [settlePersonId, setSettlePersonId] = useState<string | null>(null);
+  const [plotDraft, setPlotDraft] = useState<PlotInput>({ name: '', areaRai: 0 });
+  const [holeDraft, setHoleDraft] = useState<HoleInput>({ plotId: '', marker: '' });
+  const [plantingDraft, setPlantingDraft] = useState<PlantingInput>({ holeId: '', plantName: '', variety: '', plantedOn: localDateKey() });
+  const [retirementDate, setRetirementDate] = useState(localDateKey());
+  const [retirementReason, setRetirementReason] = useState('');
+  const [activityPicker, setActivityPicker] = useState<{ kind: ActivityPicker; materialKey?: string } | null>(null);
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [recentPickerIds, setRecentPickerIds] = useState<Record<ActivityPicker, string[]>>({ category: [], plot: [], target: [], material: [], worker: [], payType: [] });
+  const [activityWorkers, setActivityWorkers] = useState<WorkerDraft[]>([]);
+  const [activitySaveState, setActivitySaveState] = useState<{ status: 'idle' | 'saving' | 'success' | 'error'; activityId?: string; message?: string; errors?: string[] }>({ status: 'idle' });
 
-  const addMaterialUsage = useCallback((materialId?: string) => {
-    const material = state.status === 'ready'
-      ? state.options.materials.find((item) => item.id === materialId) ?? state.options.materials[0]
-      : undefined;
-    if (!material) return;
+  const followUpPreview = useMemo(() => {
+    try {
+      return {
+        followUpOn: resolveFollowUpOn({
+          mode: followUpMode,
+          baseDate: activityDateDraft,
+          directDate: followUpDateDraft,
+          days: followUpDays,
+        }),
+        error: null,
+      };
+    } catch (error) {
+      return { followUpOn: null, error: error instanceof Error ? error.message : 'วันติดตามไม่ถูกต้อง' };
+    }
+  }, [activityDateDraft, followUpDateDraft, followUpDays, followUpMode]);
+
+  const openActivityPicker = useCallback((kind: ActivityPicker, materialKey?: string) => {
+    setPickerQuery('');
+    setActivityPicker({ kind, materialKey });
+  }, []);
+
+  const beginMaterialCreate = useCallback((returnIntent: ActivityMaterialReturnIntent | null = null) => {
+    setMaterialCatalogMode('materialCreate');
+    setEditingMaterialId(null);
+    setMaterialDraft(emptyMaterialDraft());
+    setMaterialReturnIntent(returnIntent);
+    setMaterialFormError(null);
+    setMaterialSaving(false);
+  }, []);
+
+  const beginMaterialEdit = useCallback((material: MaterialLibraryItem) => {
+    setMaterialCatalogMode('materialEdit');
+    setEditingMaterialId(material.id);
+    setMaterialDraft(materialDraftFromLibrary(material));
+    setMaterialReturnIntent(null);
+    setMaterialFormError(null);
+    setMaterialSaving(false);
+  }, []);
+
+  const beginMaterialDetail = useCallback((materialId: string) => {
+    setSelectedMaterialId(materialId);
+    setMaterialCatalogMode('materialDetail');
+    setArchiveConfirmationMaterialId(null);
+    setMaterialFormError(null);
+  }, []);
+
+  const openMaterialsLibrary = useCallback(() => {
+    setMaterialCatalogMode('library');
+    setSelectedMaterialId(null);
+    setArchiveConfirmationMaterialId(null);
+    setMaterialFormError(null);
+    setView('materials');
+  }, []);
+
+  const rememberPicker = useCallback((kind: ActivityPicker, id: string) => {
+    setRecentPickerIds((current) => ({
+      ...current,
+      [kind]: [id, ...current[kind].filter((recentId) => recentId !== id)].slice(0, 3),
+    }));
+  }, []);
+
+  const beginMaterialUsage = useCallback(() => {
+    const key = `material-${Date.now()}-${materialUsages.length}`;
     setMaterialUsages((rows) => [...rows, {
-      key: `${material.id}-${Date.now()}-${rows.length}`,
-      materialId: material.id,
+      key,
+      materialId: '',
       amount: '',
-      unit: material.unit,
+      unit: '',
       waterVolume: '',
       waterUnit: 'ลิตร',
       dilutionText: '',
       note: '',
+      actualTankLitres: '',
+      manualAmount: '',
+      manualOverride: false,
     }]);
-  }, [state]);
+    openActivityPicker('material', key);
+  }, [materialUsages.length, openActivityPicker]);
 
-  const refresh = useCallback(async (db: TakaiDatabase, message: string | null = null, caseId = selectedCaseId) => {
-    const [dashboard, options, caseList, laborLedger, menuDashboard, materials, holeDetail, categories, people] = await Promise.all([
-      getTodayDashboard(db),
-      getActivityCaptureOptions(db),
+  const beginActivityMaterialCreate = useCallback(() => {
+    if (activityPicker?.kind !== 'material' || !activityPicker.materialKey) return;
+    const usageKey = activityPicker.materialKey;
+    setActivityPicker(null);
+    beginMaterialCreate({ source: 'activity', usageKey });
+  }, [activityPicker, beginMaterialCreate]);
+
+  const beginWorker = useCallback(() => {
+    const key = `worker-${Date.now()}-${activityWorkers.length}`;
+    setActivityWorkers((rows) => [...rows, { key, personId: '', payType: 'daily', amount: '' }]);
+    openActivityPicker('worker', key);
+  }, [activityWorkers.length, openActivityPicker]);
+
+  const refresh = useCallback(async (
+    db: TakaiDatabase,
+    message: string | null = null,
+    caseId = selectedCaseId,
+    preferredPlotId = selectedPlotId,
+    preferredHoleId = selectedHoleId,
+    preferredScope: TodayScope = todayScope,
+    preferredDetailPlotId = selectedDetailPlotId,
+  ) => {
+    const options = await getActivityCaptureOptions(db);
+    const resolvedPlotId = options.plots.some((plot) => plot.id === preferredPlotId)
+      ? preferredPlotId
+      : options.defaultPlotId;
+    const plotHoles = options.holes.filter((hole) => hole.plotId === resolvedPlotId);
+    const resolvedHoleId = plotHoles.some((hole) => hole.id === preferredHoleId)
+      ? preferredHoleId
+      : plotHoles[0]?.id ?? null;
+    const resolvedScope = preferredScope === 'all' || options.plots.some((plot) => plot.id === preferredScope)
+      ? preferredScope
+      : 'all';
+    const resolvedDetailPlotId = options.plots.some((plot) => plot.id === preferredDetailPlotId)
+      ? preferredDetailPlotId
+      : resolvedPlotId;
+    const [dashboard, caseList, laborLedger, menuDashboard, materials, holeDetail, plotDetail, plotList, categories, people] = await Promise.all([
+      getTodayDashboard(db, resolvedScope),
       getCaseList(db),
       getLaborLedger(db),
       getMenuDashboard(db),
       getMaterialLibrary(db),
-      getHoleDetail(db),
+      getHoleDetail(db, resolvedHoleId ?? undefined),
+      getPlotDetail(db, resolvedDetailPlotId),
+      listPlotSummaries(db),
       listActivityCategories(db, true),
       listPeople(db, true),
     ]);
+    setSelectedPlotId(resolvedPlotId);
+    setSelectedHoleId(resolvedHoleId);
+    setTodayScope(resolvedScope);
+    setSelectedDetailPlotId(resolvedDetailPlotId);
     const resolvedCaseId = caseList.some((caseItem) => caseItem.id === caseId) ? caseId : caseList[0]?.id ?? 'case-a-014';
     const caseTimeline = await getCaseTimeline(db, resolvedCaseId);
     setSelectedCaseId(resolvedCaseId);
-    setState({ status: 'ready', db, dashboard, options, caseList, caseTimeline, laborLedger, menuDashboard, materials, holeDetail, categories, people, message });
-  }, [selectedCaseId]);
+    setState({ status: 'ready', db, dashboard, options, caseList, caseTimeline, laborLedger, menuDashboard, materials, holeDetail, plotDetail, plotList, categories, people, message });
+  }, [selectedCaseId, selectedDetailPlotId, selectedHoleId, selectedPlotId, todayScope]);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +337,11 @@ export function OperationalSliceScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    configureFollowUpNotifications();
+    void getFollowUpNotificationPermission().then(setNotificationPermission).catch(() => setNotificationPermission('unavailable'));
+  }, []);
+
   const saveCategory = useCallback(async (fromActivity = false) => {
     if (state.status !== 'ready') return;
     try {
@@ -171,7 +352,6 @@ export function OperationalSliceScreen() {
       await refresh(state.db, categoryDraft.id ? 'แก้ไขหมวดงานแล้ว' : 'เพิ่มหมวดงานแล้ว');
       setSelectedCategoryId(categoryId);
       setCategoryDraft({ id: '', name: '', kind: 'other' });
-      setShowInlineCategoryForm(false);
       if (!fromActivity) setView('categories');
     } catch (error) {
       await refresh(state.db, error instanceof Error ? error.message : 'บันทึกหมวดงานไม่สำเร็จ');
@@ -195,39 +375,227 @@ export function OperationalSliceScreen() {
       await refresh(state.db, personDraft.id ? 'แก้ไขข้อมูลคนงานแล้ว' : 'เพิ่มคนงานแล้ว');
       setSelectedWorkerId(personId);
       setPersonDraft({ id: '', displayName: '', specialty: '', phone: '', note: '' });
-      setShowInlineWorkerForm(false);
       if (!fromActivity) setView('workers');
     } catch (error) {
       await refresh(state.db, error instanceof Error ? error.message : 'บันทึกคนงานไม่สำเร็จ');
     }
   }, [personDraft, refresh, state]);
 
-  const saveMaterial = useCallback(async (fromActivity = false) => {
+  const savePlot = useCallback(async () => {
     if (state.status !== 'ready') return;
     try {
-      const materialId = materialDraft.id
-        ? (await updateMaterial(state.db, materialDraft.id, materialDraft), materialDraft.id)
-        : await createMaterial(state.db, materialDraft);
-      await refresh(state.db, materialDraft.id ? 'แก้ไขวัสดุแล้ว' : 'เพิ่มวัสดุแล้ว');
-      if (fromActivity) {
-        setMaterialUsages((rows) => [...rows, {
-          key: `${materialId}-${Date.now()}-${rows.length}`,
-          materialId,
-          amount: '',
-          unit: materialDraft.unit.trim(),
-          waterVolume: '',
-          waterUnit: 'ลิตร',
-          dilutionText: '',
-          note: '',
-        }]);
-      }
-      setMaterialDraft({ id: '', name: '', type: 'other', unit: '' });
-      setShowInlineMaterialForm(false);
-      if (!fromActivity) setView('materials');
+      const plotId = await createPlot(state.db, plotDraft);
+      setSelectedDetailPlotId(plotId);
+      await refresh(state.db, 'เพิ่มแปลงแล้ว', selectedCaseId, selectedPlotId, selectedHoleId, todayScope, plotId);
+      setPlotDraft({ name: '', areaRai: 0 });
+      setView('plotDetail');
     } catch (error) {
-      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกวัสดุไม่สำเร็จ');
+      await refresh(state.db, error instanceof Error ? error.message : 'เพิ่มแปลงไม่สำเร็จ');
     }
-  }, [materialDraft, refresh, state]);
+  }, [plotDraft, refresh, selectedCaseId, selectedHoleId, selectedPlotId, state, todayScope]);
+
+  const openPlotDetail = useCallback((plotId: string) => {
+    if (state.status !== 'ready') return;
+    setSelectedDetailPlotId(plotId);
+    setView('plotDetail');
+    void refresh(state.db, null, selectedCaseId, selectedPlotId, selectedHoleId, todayScope, plotId);
+  }, [refresh, selectedCaseId, selectedHoleId, selectedPlotId, state, todayScope]);
+
+  const startPlotActivity = useCallback((plotId: string) => {
+    setSelectedPlotId(plotId);
+    setSelectedTarget('plot');
+    setSelectedTargetId(plotId);
+    setView('activity');
+  }, []);
+
+  const selectTodayScope = useCallback((scope: TodayScope) => {
+    if (state.status !== 'ready') return;
+    setTodayScope(scope);
+    void refresh(state.db, null, selectedCaseId, selectedPlotId, selectedHoleId, scope, selectedDetailPlotId);
+  }, [refresh, selectedCaseId, selectedDetailPlotId, selectedHoleId, selectedPlotId, state]);
+
+  const saveHole = useCallback(async () => {
+    if (state.status !== 'ready') return;
+    try {
+      const plotId = holeDraft.plotId || selectedPlotId;
+      const holeId = await createHole(state.db, { ...holeDraft, plotId });
+      setSelectedHoleId(holeId);
+      setPlantingDraft((draft) => ({ ...draft, holeId }));
+      await refresh(state.db, 'เพิ่มหลุมแล้ว · ใส่ต้นไม้ได้เลย', selectedCaseId, plotId, holeId);
+      setHoleDraft({ plotId, marker: '' });
+    } catch (error) {
+      await refresh(state.db, error instanceof Error ? error.message : 'เพิ่มหลุมไม่สำเร็จ');
+    }
+  }, [holeDraft, refresh, selectedCaseId, selectedPlotId, state]);
+
+  const savePlanting = useCallback(async () => {
+    if (state.status !== 'ready') return;
+    try {
+      const holeId = plantingDraft.holeId || selectedHoleId;
+      if (!holeId) throw new Error('กรุณาเพิ่มหรือเลือกหลุมก่อน');
+      await createPlanting(state.db, { ...plantingDraft, holeId });
+      setSelectedHoleId(holeId);
+      setSelectedTarget('hole');
+      setSelectedTargetId(holeId);
+      await refresh(state.db, 'ปลูกต้นไม้แล้ว · พร้อมบันทึกกิจกรรม', selectedCaseId, selectedPlotId, holeId);
+      setPlantingDraft({ holeId, plantName: '', variety: '', plantedOn: localDateKey() });
+    } catch (error) {
+      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกต้นไม้ไม่สำเร็จ');
+    }
+  }, [plantingDraft, refresh, selectedCaseId, selectedHoleId, selectedPlotId, state]);
+
+  const retirePlanting = useCallback(async (status: 'dead' | 'retired') => {
+    if (state.status !== 'ready' || !selectedHoleId) return;
+    try {
+      await retireCurrentPlanting(state.db, {
+        holeId: selectedHoleId,
+        status,
+        removedOn: retirementDate,
+        removedReason: retirementReason,
+      });
+      setPlantingDraft((draft) => ({ ...draft, holeId: selectedHoleId, plantedOn: localDateKey() }));
+      await refresh(state.db, status === 'dead' ? 'บันทึกว่าต้นตายแล้ว · หลุมพร้อมปลูกใหม่' : 'นำต้นออกแล้ว · หลุมพร้อมปลูกใหม่', selectedCaseId, selectedPlotId, selectedHoleId);
+      setRetirementReason('');
+    } catch (error) {
+      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกการนำต้นออกไม่สำเร็จ');
+    }
+  }, [refresh, retirementDate, retirementReason, selectedCaseId, selectedHoleId, selectedPlotId, state]);
+
+  const quickAddActivityPicker = useCallback(async () => {
+    if (state.status !== 'ready' || !activityPicker) return;
+    try {
+      if (activityPicker.kind === 'plot') {
+        const plotId = await createPlot(state.db, plotDraft);
+        await refresh(state.db, 'เพิ่มแปลงแล้ว', selectedCaseId, plotId, null);
+        setSelectedPlotId(plotId);
+        setSelectedTarget('plot');
+        setSelectedTargetId(plotId);
+        rememberPicker('plot', plotId);
+        setPlotDraft({ name: '', areaRai: 0 });
+      }
+      if (activityPicker.kind === 'category') {
+        const categoryId = await createActivityCategory(state.db, { name: categoryDraft.name, kind: categoryDraft.kind });
+        await refresh(state.db, 'เพิ่มหมวดงานแล้ว');
+        setSelectedCategoryId(categoryId);
+        rememberPicker('category', categoryId);
+        setCategoryDraft({ id: '', name: '', kind: 'other' });
+      }
+      if (activityPicker.kind === 'worker') {
+        const personId = await createPerson(state.db, { displayName: personDraft.displayName, role: 'worker', isSelf: false, specialty: personDraft.specialty, phone: personDraft.phone, note: personDraft.note });
+        await refresh(state.db, 'เพิ่มคนงานแล้ว');
+        setSelectedWorkerId(personId);
+        setActivityWorkers((rows) => rows.map((row) => row.key === activityPicker.materialKey ? { ...row, personId } : row));
+        rememberPicker('worker', personId);
+        setPersonDraft({ id: '', displayName: '', specialty: '', phone: '', note: '' });
+      }
+      setActivityPicker(null);
+    } catch (error) {
+      if (activityPicker.kind === 'material') {
+        setMaterialFormError(error instanceof Error ? error.message : 'เพิ่มวัสดุไม่สำเร็จ');
+        return;
+      }
+      await refresh(state.db, error instanceof Error ? error.message : 'เพิ่มรายการไม่สำเร็จ');
+    }
+  }, [activityPicker, categoryDraft, personDraft, plotDraft, refresh, rememberPicker, selectedCaseId, state]);
+
+  const selectActivityPicker = useCallback((id: string) => {
+    if (!activityPicker || state.status !== 'ready') return;
+    if (activityPicker.kind === 'category') setSelectedCategoryId(id);
+    if (activityPicker.kind === 'plot') {
+      setSelectedPlotId(id);
+      setSelectedHoleId(null);
+      setSelectedTarget('plot');
+      setSelectedTargetId(id);
+      void refresh(state.db, null, selectedCaseId, id, null);
+    }
+    if (activityPicker.kind === 'target') {
+      const [targetType, targetId] = id.split(':', 2) as ['plot' | 'hole' | 'case', string];
+      setSelectedTarget(targetType);
+      setSelectedTargetId(targetId);
+    }
+    if (activityPicker.kind === 'material') {
+      const material = state.options.materials.find((item) => item.id === id);
+      setMaterialUsages((rows) => rows.map((row) => row.key === activityPicker.materialKey ? {
+        ...row,
+        materialId: id,
+        amount: '',
+        actualTankLitres: '',
+        manualAmount: '',
+        manualOverride: false,
+        unit: material?.unit ?? row.unit,
+      } : row));
+      setMaterialDetailKey(activityPicker.materialKey ?? null);
+      setMaterialReturnIntent(null);
+      setMaterialFormError(null);
+    }
+    if (activityPicker.kind === 'worker') setSelectedWorkerId(id === 'self' ? null : id);
+    if (activityPicker.kind === 'worker') setActivityWorkers((rows) => rows.map((row) => row.key === activityPicker.materialKey ? { ...row, personId: id } : row));
+    if (activityPicker.kind === 'payType') setActivityWorkers((rows) => rows.map((row) => row.key === activityPicker.materialKey ? { ...row, payType: id as WorkerDraft['payType'] } : row));
+    rememberPicker(activityPicker.kind, id);
+    setActivityPicker(null);
+  }, [activityPicker, refresh, rememberPicker, selectedCaseId, state]);
+
+  const saveMaterial = useCallback(async () => {
+    if (state.status !== 'ready') return;
+    if (materialSaving) return;
+    const validationError = validateMaterialCatalogDraft(materialDraft);
+    if (validationError) {
+      setMaterialFormError(validationError);
+      return;
+    }
+    setMaterialSaving(true);
+    try {
+      const input = materialInputForSave(materialDraft);
+      const isEditing = materialCatalogMode === 'materialEdit' && Boolean(editingMaterialId);
+      const materialId = isEditing
+        ? (await updateMaterial(state.db, editingMaterialId!, input), editingMaterialId!)
+        : await createMaterial(state.db, input);
+      await refresh(state.db, isEditing ? 'แก้ไขวัสดุแล้ว' : 'เพิ่มวัสดุแล้ว');
+      if (!isEditing && materialReturnIntent?.source === 'activity') {
+        setMaterialUsages((rows) => rows.map((row) => row.key === materialReturnIntent.usageKey
+          ? { ...row, materialId, unit: input.referenceUnit?.trim() || input.unit.trim() }
+          : row));
+        setMaterialDetailKey(materialReturnIntent.usageKey);
+        rememberPicker('material', materialId);
+        setActivityPicker(null);
+        setMaterialReturnIntent(null);
+        setMaterialDraft(emptyMaterialDraft());
+        setMaterialCatalogMode('library');
+        setMaterialFormError(null);
+        setMaterialSaving(false);
+        setView('activity');
+        return;
+      }
+      setMaterialDraft(emptyMaterialDraft());
+      setEditingMaterialId(null);
+      setMaterialCatalogMode(isEditing ? 'materialDetail' : 'library');
+      setMaterialFormError(null);
+      setMaterialSaving(false);
+      setView('materials');
+    } catch (error) {
+      setMaterialFormError(error instanceof Error ? error.message : 'บันทึกวัสดุไม่สำเร็จ');
+      setMaterialSaving(false);
+    }
+  }, [editingMaterialId, materialCatalogMode, materialDraft, materialReturnIntent, materialSaving, refresh, rememberPicker, state]);
+
+  const cancelMaterialForm = useCallback(() => {
+    if (materialReturnIntent?.source === 'activity') {
+      const usageKey = materialReturnIntent.usageKey;
+      setMaterialCatalogMode('library');
+      setMaterialDraft(emptyMaterialDraft());
+      setMaterialFormError(null);
+      setMaterialSaving(false);
+      setMaterialReturnIntent(null);
+      setActivityPicker({ kind: 'material', materialKey: usageKey });
+      return;
+    }
+    const returnToDetail = materialCatalogMode === 'materialEdit' && Boolean(selectedMaterialId);
+    setMaterialCatalogMode(returnToDetail ? 'materialDetail' : 'library');
+    setEditingMaterialId(null);
+    setMaterialDraft(emptyMaterialDraft());
+    setMaterialFormError(null);
+    setMaterialSaving(false);
+  }, [materialCatalogMode, materialReturnIntent, selectedMaterialId]);
 
   const toggleCategoryArchive = useCallback(async (categoryId: string, archivedAt: string | null) => {
     if (state.status !== 'ready') return;
@@ -249,29 +617,65 @@ export function OperationalSliceScreen() {
     if (archivedAt) await restoreMaterial(state.db, materialId);
     else await archiveMaterial(state.db, materialId);
     await refresh(state.db, archivedAt ? 'นำวัสดุกลับมาใช้แล้ว' : 'เก็บวัสดุเข้าแฟ้มแล้ว');
+    setArchiveConfirmationMaterialId(null);
     if (!archivedAt) setMaterialUsages((rows) => rows.filter((row) => row.materialId !== materialId));
   }, [refresh, state]);
 
   const toggleTracker = useCallback(async (categoryId: string, pinned: boolean) => {
     if (state.status !== 'ready') return;
-    if (pinned) await unpinPlotTracker(state.db, state.dashboard.plot.id, categoryId);
-    else await pinPlotTracker(state.db, state.dashboard.plot.id, categoryId);
+    if (pinned) await unpinPlotTracker(state.db, state.plotDetail.plot.id, categoryId);
+    else await pinPlotTracker(state.db, state.plotDetail.plot.id, categoryId);
     await refresh(state.db, pinned ? 'หยุดติดตามหมวดงานนี้ในแปลงแล้ว' : 'เพิ่ม Tracker ของแปลงแล้ว');
+  }, [refresh, state]);
+
+  const requestReminderPermission = useCallback(async () => {
+    const permission = await requestFollowUpNotificationPermission();
+    setNotificationPermission(permission);
+    if (state.status === 'ready') {
+      const message = permission === 'granted'
+        ? 'เปิดการแจ้งเตือนแล้ว · จะตั้งนัดเมื่อบันทึก'
+        : permission === 'denied'
+          ? 'ยังไม่ได้รับอนุญาตให้แจ้งเตือน · บันทึกวันติดตามได้ตามปกติ'
+          : 'การแจ้งเตือนยังใช้ไม่ได้ในอุปกรณ์นี้';
+      await refresh(state.db, message, state.caseTimeline.id);
+    }
   }, [refresh, state]);
 
   const createActivity = useCallback(async (mode: 'demo' | 'field' = 'field') => {
     if (state.status !== 'ready') return;
+    if (activitySaveState.status === 'saving') return;
+    const baseValidationErrors = mode === 'field' ? validateActivityDraft({
+      activityDate: activityDateDraft,
+      timeMode,
+      startedAt: startedAtDraft,
+      endedAt: endedAtDraft,
+      durationMinutes: durationMinutesDraft,
+      materials: materialUsages,
+      workers: activityWorkers,
+    }) : [];
+    const materialUsageErrors = mode === 'field'
+      ? materialUsages.flatMap((usage, index) => {
+        const error = materialUsageValidationError(usage, state.options.materials.find((material) => material.id === usage.materialId));
+        return error ? [`วัสดุ ${index + 1}: ${error}`] : [];
+      })
+      : [];
+    const validationErrors = [...baseValidationErrors, ...materialUsageErrors];
+    if (validationErrors.length) {
+      setActivitySaveState({ status: 'error', message: 'ยังบันทึกไม่ได้ กรุณาตรวจรายการที่แจ้ง', errors: validationErrors });
+      return;
+    }
+    setActivitySaveState({ status: 'saving' });
     try {
+      let completionMessage = selectedTarget === 'case' ? 'เพิ่มบันทึกเคสแล้ว' : 'บันทึกกิจกรรมแล้ว';
+      let createdActivityId: string | undefined;
       if (mode === 'demo') {
-        await createDemoSprayActivity(state.db);
+        createdActivityId = (await createDemoSprayActivity(state.db)).activityId;
       } else {
         const category = state.options.categories.find((item) => item.id === selectedCategoryId) ?? state.options.categories[0];
         if (!category) {
           throw new Error('ยังไม่มีหมวดงานให้บันทึก');
         }
-        const performedAtDate = new Date(performedAtDraft);
-        if (Number.isNaN(performedAtDate.getTime())) throw new Error('วันและเวลาไม่ถูกต้อง');
-        const performedAt = performedAtDate.toISOString();
+        const performedAt = `${activityDateDraft}T12:00:00.000Z`;
         const targetType = selectedTarget;
         const targetId = selectedTargetId
           ?? (targetType === 'case'
@@ -280,48 +684,90 @@ export function OperationalSliceScreen() {
               ? state.options.holes.find((item) => item.plotId === selectedPlotId)?.id
               : selectedPlotId);
         if (!targetId) throw new Error('กรุณาเลือกเป้าหมายกิจกรรม');
-        const parsedFollowUp = Number(followUpDays);
-        const parsedWorkerAmount = Number(workerAmount);
-        await createFieldActivity(state.db, {
+        const followUpOn = resolveFollowUpOn({
+          mode: followUpMode,
+          baseDate: activityDateDraft,
+          directDate: followUpDateDraft,
+          days: followUpDays,
+        });
+        const created = await createFieldActivity(state.db, {
           idSeed: `${Date.now()}`,
           plotId: selectedPlotId,
           categoryId: category.id,
           performedAt,
-          note: note.trim() || `${category.name} ${state.dashboard.plot.name}`,
-          followUpOn: Number.isFinite(parsedFollowUp) && parsedFollowUp > 0 ? nextDateFrom(performedAt, parsedFollowUp) : null,
+          timeMode,
+          activityDate: activityDateDraft,
+          startedAt: startedAtDraft,
+          endedAt: endedAtDraft,
+          durationMinutes: Number(durationMinutesDraft),
+          note: note.trim() || `${category.name} ${options.plots.find((item) => item.id === selectedPlotId)?.name ?? 'แปลง'}`,
+          followUpOn,
           targetType,
           targetId,
-          materials: materialUsages.map((usage, index) => ({
-            materialId: usage.materialId,
-            amount: Number(usage.amount),
-            unit: usage.unit,
-            waterVolume: usage.waterVolume ? Number(usage.waterVolume) : null,
-            waterUnit: usage.waterUnit || null,
-            dilutionText: usage.dilutionText || null,
-            note: usage.note || null,
-            sortOrder: index,
-          })),
+          materials: materialUsages.map((usage, index) => {
+            const material = state.options.materials.find((item) => item.id === usage.materialId);
+            const calculatedAmount = material?.referenceAmount == null || !usage.actualTankLitres
+              ? null
+              : calculateChemicalDose(material.referenceAmount, Number(usage.actualTankLitres), material.referenceWaterLitres ?? 200);
+            return {
+              materialId: usage.materialId,
+              amount: usage.manualOverride && Number(usage.manualAmount) > 0 ? Number(usage.manualAmount) : calculatedAmount ?? Number(usage.amount),
+              unit: material?.referenceUnit || usage.unit,
+              waterVolume: usage.actualTankLitres ? Number(usage.actualTankLitres) : usage.waterVolume ? Number(usage.waterVolume) : null,
+              waterUnit: usage.actualTankLitres ? 'L' : usage.waterUnit || null,
+              dilutionText: usage.dilutionText || null,
+              note: usage.note || null,
+              sortOrder: index,
+              materialNameSnapshot: material?.name ?? null,
+              commonNameSnapshot: material?.commonName ?? null,
+              brandNameSnapshot: material?.brandName ?? null,
+              referenceAmountSnapshot: material?.referenceAmount ?? null,
+              referenceUnitSnapshot: material?.referenceUnit ?? null,
+              referenceWaterLitresSnapshot: material?.referenceWaterLitres ?? null,
+              actualTankLitres: usage.actualTankLitres ? Number(usage.actualTankLitres) : null,
+              calculatedAmount,
+              manualAmount: usage.manualOverride && usage.manualAmount ? Number(usage.manualAmount) : null,
+            };
+          }),
           participants: [
             state.options.defaultSelfId
               ? { personId: state.options.defaultSelfId, payType: 'none' as const, amountDue: 0 }
               : null,
-            selectedWorkerId
-              ? {
-                  personId: selectedWorkerId,
-                  payType: 'daily' as const,
-                  amountDue: Number.isFinite(parsedWorkerAmount) ? parsedWorkerAmount : 0,
-                }
-              : null,
+            ...activityWorkers
+              .filter((worker) => worker.personId)
+              .map((worker) => ({
+                personId: worker.personId,
+                payType: worker.payType,
+                amountDue: worker.payType === 'none' ? 0 : Number(worker.amount) || 0,
+              })),
           ].filter((participant): participant is NonNullable<typeof participant> => Boolean(participant)),
         });
+        createdActivityId = created.activityId;
+        const reminder = await syncFollowUpReminder(
+          state.db,
+          { activityId: created.activityId, followUpOn },
+          expoFollowUpNotificationGateway,
+        );
+        if (followUpOn && reminder.status === 'scheduled') completionMessage = 'บันทึกกิจกรรมและตั้งการแจ้งเตือนแล้ว';
+        if (followUpOn && reminder.status === 'skipped' && reminder.reason === 'permission_undetermined') completionMessage = 'บันทึกกิจกรรมแล้ว · ยังไม่ได้เปิดการแจ้งเตือน';
+        if (followUpOn && reminder.status === 'skipped' && reminder.reason === 'permission_denied') completionMessage = 'บันทึกกิจกรรมแล้ว · การแจ้งเตือนถูกปิดอยู่';
+        if (followUpOn && reminder.status === 'failed') completionMessage = 'บันทึกกิจกรรมแล้ว · ตั้งการแจ้งเตือนไม่สำเร็จ';
       }
-      await refresh(state.db, selectedTarget === 'case' ? 'เพิ่มบันทึกเคสแล้ว' : 'บันทึกกิจกรรมแล้ว', state.caseTimeline.id);
-      setView(selectedTarget === 'case' ? 'cases' : 'today');
+      await refresh(state.db, completionMessage, state.caseTimeline.id);
+      setActivitySaveState({ status: 'success', activityId: createdActivityId, message: completionMessage });
     } catch (error) {
-      await refresh(state.db, error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ', state.caseTimeline.id);
+      const message = error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ';
+      setActivitySaveState({ status: 'error', message, errors: [message] });
     }
   }, [
+    activitySaveState.status,
+    activityDateDraft,
+    activityWorkers,
+    durationMinutesDraft,
+    endedAtDraft,
+    followUpDateDraft,
     followUpDays,
+    followUpMode,
     materialUsages,
     note,
     refresh,
@@ -331,8 +777,8 @@ export function OperationalSliceScreen() {
     selectedTarget,
     selectedWorkerId,
     state,
-    performedAtDraft,
-    workerAmount,
+    startedAtDraft,
+    timeMode,
   ]);
 
   const markCaseClosed = useCallback(async () => {
@@ -360,7 +806,7 @@ export function OperationalSliceScreen() {
   }, [refresh, settlePersonId, state]);
 
   const activeTab = useMemo(() => {
-    if (view === 'plot' || view === 'trackerManage') return 'plots';
+    if (view === 'plot' || view === 'plotList' || view === 'plotCreate' || view === 'plotDetail' || view === 'trackerManage') return 'plots';
     if (view === 'activity') return 'activity';
     if (view === 'cases') return 'cases';
     if (view === 'labor' || view === 'materials' || view === 'hole' || view === 'menu' || view === 'categories' || view === 'workers') return 'menu';
@@ -396,20 +842,37 @@ export function OperationalSliceScreen() {
   }
 
   const { dashboard, options, message } = state;
-  const plot = dashboard.plot;
+  const plot = state.plotDetail.plot;
+  const todayPlots = dashboard.plots;
+  const todayAreaRai = todayPlots.reduce((total, item) => total + item.areaRai, 0);
+  const todayHoles = todayPlots.reduce((total, item) => total + item.totalHoles, 0);
+  const todayPlantedHoles = todayPlots.reduce((total, item) => total + item.plantedHoles, 0);
+  const todayTrackers = todayPlots.flatMap((item) => item.trackers.map((tracker) => ({ ...tracker, plotName: item.name })));
+  const visibleCatalogMaterials = filterMaterialLibraryItems(state.materials, {
+    archived: showArchivedMaterials,
+    query: materialSearch,
+    type: materialTypeFilter,
+  });
+  const selectedCatalogMaterial = selectedMaterialId
+    ? state.materials.find((material) => material.id === selectedMaterialId) ?? null
+    : null;
   const screenTitle =
-    view === 'plot'
-      ? plot.name
+    view === 'plot' || view === 'plotList'
+      ? 'แปลง'
+      : view === 'plotCreate'
+        ? 'เพิ่มแปลง'
+        : view === 'plotDetail'
+          ? state.plotDetail.plot.name
       : view === 'activity'
         ? 'บันทึกกิจกรรม'
         : view === 'cases'
           ? 'เคส'
           : view === 'labor'
             ? 'ค่าแรง'
-            : view === 'materials'
-              ? 'วัสดุ'
+              : view === 'materials'
+                ? 'วัสดุ'
               : view === 'hole'
-                ? `หลุม ${state.holeDetail.marker}`
+                ? state.holeDetail ? `หลุม ${state.holeDetail.marker}` : 'หลุมปลูก'
                 : view === 'menu'
                   ? 'เมนู'
                   : view === 'categories'
@@ -420,10 +883,65 @@ export function OperationalSliceScreen() {
                         ? 'จัดการ Tracker'
                   : 'วันนี้';
 
+  const pickerOptions: Record<ActivityPicker, PickerOption[]> = {
+    category: options.categories.map((item) => ({ id: item.id, label: item.name, meta: 'หมวดงานที่ใช้งานอยู่' })),
+    plot: options.plots.map((item) => ({ id: item.id, label: item.name, meta: 'แปลงที่ใช้งานได้' })),
+    target: [
+      { id: `plot:${selectedPlotId}`, label: 'ทั้งแปลง', meta: options.plots.find((item) => item.id === selectedPlotId)?.name ?? '' },
+      ...options.holes.filter((item) => item.plotId === selectedPlotId).map((item) => ({ id: `hole:${item.id}`, label: `หลุม ${item.marker}`, meta: item.status === 'planted' ? 'มีต้นปลูกแล้ว' : 'หลุมว่าง' })),
+      ...options.activeCases.filter((item) => item.plotId === selectedPlotId).map((item) => ({ id: `case:${item.id}`, label: item.title, meta: 'เคสที่กำลังติดตาม' })),
+    ],
+    material: options.materials.map((item) => ({ id: item.id, label: item.name, meta: `${materialTypeLabel(item.type)} · ${item.unit}` })),
+    worker: options.people.filter((person) => !person.isSelf && person.role === 'worker').map((person) => ({ id: person.id, label: person.displayName, meta: 'คนงานที่ใช้งานอยู่' })),
+    payType: [
+      { id: 'daily', label: 'รายวัน', meta: 'กำหนดจำนวนเงินแยกคน' },
+      { id: 'hourly', label: 'รายชั่วโมง', meta: 'กำหนดจำนวนเงินแยกคน' },
+      { id: 'piece', label: 'เหมางานย่อย', meta: 'กำหนดจำนวนเงินแยกคน' },
+      { id: 'contract', label: 'เหมางาน', meta: 'กำหนดจำนวนเงินแยกคน' },
+      { id: 'none', label: 'ไม่คิดค่าแรง', meta: 'เก็บชื่อในกิจกรรมเท่านั้น' },
+    ],
+  };
+
+  const pickerQuickAdd = activityPicker?.kind === 'plot' ? (
+    <>
+      <Text style={styles.sheetCaption}>+ เพิ่มแปลงใหม่ แล้วเลือกกลับมาที่บันทึกนี้</Text>
+      <TextInput onChangeText={(name) => setPlotDraft((draft) => ({ ...draft, name }))} placeholder="ชื่อแปลง" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={plotDraft.name} />
+      <PrimaryButton label="เพิ่มและเลือกแปลง" onPress={() => void quickAddActivityPicker()} />
+    </>
+  ) : activityPicker?.kind === 'category' ? (
+    <>
+      <Text style={styles.sheetCaption}>+ เพิ่มหมวดงานใหม่</Text>
+      <TextInput onChangeText={(name) => setCategoryDraft({ id: '', name, kind: 'other' })} placeholder="ชื่อหมวดงาน" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={categoryDraft.name} />
+      <PrimaryButton label="เพิ่มและเลือกหมวดงาน" onPress={() => void quickAddActivityPicker()} />
+    </>
+  ) : activityPicker?.kind === 'worker' ? (
+    <>
+      <Text style={styles.sheetCaption}>+ เพิ่มคนงานใหม่</Text>
+      <TextInput onChangeText={(displayName) => setPersonDraft((draft) => ({ ...draft, id: '', displayName }))} placeholder="ชื่อคนงาน" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={personDraft.displayName} />
+      <TextInput onChangeText={(specialty) => setPersonDraft((draft) => ({ ...draft, specialty }))} placeholder="งานที่ถนัด (ถ้ามี)" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={personDraft.specialty} />
+      <PrimaryButton label="เพิ่มและเลือกคนงาน" onPress={() => void quickAddActivityPicker()} />
+    </>
+  ) : activityPicker?.kind === 'material' ? (
+    <>
+      <Text style={styles.sheetCaption}>หาและเลือกวัสดุจากคลังได้ทันที หรือเพิ่มรายการใหม่ในหน้าถัดไป</Text>
+      <PrimaryButton label="+ เพิ่มวัสดุใหม่" onPress={beginActivityMaterialCreate} />
+    </>
+  ) : undefined;
+
+  const materialDetail = materialDetailKey ? materialUsages.find((usage) => usage.key === materialDetailKey) ?? null : null;
+  const materialDetailItem = materialDetail ? options.materials.find((material) => material.id === materialDetail.materialId) ?? null : null;
+  const materialDetailCalculatedDose = materialDetailItem?.referenceAmount == null || !materialDetail?.actualTankLitres
+    ? null
+    : calculateChemicalDose(materialDetailItem.referenceAmount, Number(materialDetail.actualTankLitres), materialDetailItem.referenceWaterLitres ?? 200);
+  const materialDetailError = materialDetail ? materialUsageValidationError(materialDetail, materialDetailItem) : null;
+  const patchMaterialUsage = (key: string, patch: Partial<MaterialUsageDraft>) => {
+    setMaterialUsages((rows) => rows.map((row) => row.key === key ? { ...row, ...patch } : row));
+  };
+
   return (
     <AppShell activeTab={activeTab} onTabPress={(tab) => {
       if (tab === 'today') setView('today');
-      if (tab === 'plots') setView('plot');
+      if (tab === 'plots') setView('plotList');
       if (tab === 'activity') setView('activity');
       if (tab === 'cases') setView('cases');
       if (tab === 'menu') setView('menu');
@@ -435,20 +953,26 @@ export function OperationalSliceScreen() {
       {view === 'today' ? (
         <>
           <SectionHeader title={dashboard.gardenName} actionLabel="บันทึก" onActionPress={() => setView('activity')} />
+          <FieldCard>
+            <Text style={styles.eyebrow}>ขอบเขตวันนี้</Text>
+            <View style={styles.chipWrap}>
+              <SelectPill active={todayScope === 'all'} label="ทุกแปลง" onPress={() => selectTodayScope('all')} />
+              {options.plots.map((item) => <SelectPill active={todayScope === item.id} key={item.id} label={item.name} onPress={() => selectTodayScope(item.id)} />)}
+            </View>
+            <Text style={styles.muted}>เลือกเพื่อดูภาพรวมเท่านั้น — แปลงในแบบบันทึกยังเป็นรายการที่เลือกไว้เอง</Text>
+          </FieldCard>
           <FieldCard variant="raised">
             <View style={styles.heroRow}>
               <View style={styles.flex}>
                 <Text style={styles.eyebrow}>ภาพรวมวันนี้</Text>
-                <Text style={styles.title}>{plot.name}</Text>
-                <Text style={styles.muted}>
-                  {plot.activeCrop ? `${plot.activeCrop.label} · เปิดมา ${plot.activeCrop.activeDays} วัน` : 'ยังไม่มี crop active'}
-                </Text>
+                <Text style={styles.title}>{todayScope === 'all' ? 'ทุกแปลง' : todayPlots[0]?.name}</Text>
+                <Text style={styles.muted}>{todayScope === 'all' ? `${todayPlots.length} แปลงในสวน` : (todayPlots[0]?.activeCrop ? `${todayPlots[0].activeCrop.label} · เปิดมา ${todayPlots[0].activeCrop.activeDays} วัน` : 'ยังไม่มี crop active')}</Text>
               </View>
               <StatusChip label="Local" variant="offline" />
             </View>
             <View style={styles.summaryGrid}>
-              <Metric label="พื้นที่" value={`${plot.areaRai} ไร่`} />
-              <Metric label="หลุมปลูก" value={`${plot.plantedHoles}/${plot.totalHoles}`} />
+              <Metric label="พื้นที่" value={`${todayAreaRai} ไร่`} />
+              <Metric label="หลุมปลูก" value={`${todayPlantedHoles}/${todayHoles}`} />
               <Metric label="ค้างจ่าย" value={`${dashboard.unpaidLaborTotal.toLocaleString('th-TH')} บาท`} danger={dashboard.unpaidLaborTotal > 0} />
             </View>
           </FieldCard>
@@ -468,79 +992,54 @@ export function OperationalSliceScreen() {
             ))}
           </View>
 
-          <SectionHeader title="Tracker สำคัญ" actionLabel="แปลง" onActionPress={() => setView('plot')} />
-          {plot.trackers.map((tracker) => (
+          <SectionHeader title="Tracker สำคัญ" actionLabel="แปลง" onActionPress={() => setView('plotList')} />
+          {todayTrackers.map((tracker) => (
             <TrackerCard
-              key={tracker.categoryId}
+              key={`${tracker.plotName}-${tracker.categoryId}`}
               countLabel={`ครั้งที่ ${tracker.count}`}
               elapsedLabel={tracker.elapsedDays === null ? 'ยังไม่เคยบันทึก' : `ผ่านมา ${tracker.elapsedDays} วัน`}
-              nextDueLabel={tracker.nextDueOn ? formatThaiShortDate(tracker.nextDueOn) : undefined}
+              nextDueLabel={formatFollowUpDueLabel(tracker.nextDueOn) ?? undefined}
               progress={tracker.progress}
-              title={tracker.title}
-              variant={tracker.categoryId === 'cat-spray' ? 'spray' : tracker.categoryId === 'cat-fertilizer' ? 'fertilizer' : 'pruning'}
+              title={`${tracker.title} · ${tracker.plotName}`}
+              variant={tracker.dueState === 'overdue' ? 'overdue' : tracker.categoryId === 'cat-spray' ? 'spray' : tracker.categoryId === 'cat-fertilizer' ? 'fertilizer' : 'pruning'}
             />
           ))}
 
           <SectionHeader title="สมุดที่ต้องดู" />
           <View style={styles.quickGrid}>
-            <QuickAction label="เคส" value={`${plot.activeCases.length} ติดตาม`} onPress={() => setView('cases')} />
+            <QuickAction label="เคส" value={`${todayPlots.reduce((count, item) => count + item.activeCases.length, 0)} ติดตาม`} onPress={() => setView('cases')} />
             <QuickAction label="ค่าแรง" value={`${dashboard.unpaidLaborTotal.toLocaleString('th-TH')} บาท`} onPress={() => setView('labor')} />
-            <QuickAction label="วัสดุ" value={`${state.materials.length} รายการ`} onPress={() => setView('materials')} />
+            <QuickAction label="วัสดุ" value={`${state.materials.length} รายการ`} onPress={openMaterialsLibrary} />
           </View>
         </>
       ) : null}
 
-      {view === 'plot' ? (
+      {view === 'plot' || view === 'plotList' ? (
         <>
-          <TopBar title={plot.name} variant="plot" actionLabel="วันนี้" onActionPress={() => setView('today')} />
-          <FieldCard variant="raised">
-            <View style={styles.heroRow}>
-              <View>
-                <Text style={styles.eyebrow}>{plot.activeCrop?.label ?? 'ไม่มี crop active'}</Text>
-                <Text style={styles.title}>{plot.areaRai} ไร่</Text>
-              </View>
-              <StatusChip label="Active" variant="active" />
-            </View>
-            <View style={styles.summaryGrid}>
-              <Metric label="หลุมทั้งหมด" value={`${plot.totalHoles}`} />
-              <Metric label="หลุมปลูก" value={`${plot.plantedHoles}`} />
-              <Metric label="หลุมว่าง" value={`${plot.emptyHoles}`} />
-            </View>
-          </FieldCard>
-
-          <SectionHeader title="Tracker ที่ติดตาม" actionLabel="จัดการ" onActionPress={() => setView('trackerManage')} />
-          {plot.trackers.map((tracker) => (
-            <TrackerCard
-              key={tracker.categoryId}
-              countLabel={`ครั้งที่ ${tracker.count}`}
-              elapsedLabel={tracker.elapsedDays === null ? 'ยังไม่เริ่ม' : `ผ่านมา ${tracker.elapsedDays} วัน`}
-              nextDueLabel={tracker.nextDueOn ? formatThaiShortDate(tracker.nextDueOn) : undefined}
-              progress={tracker.progress}
-              title={tracker.title}
-              variant={tracker.elapsedDays !== null && tracker.elapsedDays > 7 ? 'overdue' : 'custom'}
-            />
-          ))}
-
-          <SectionHeader title="Active Cases" />
           <View style={styles.list}>
-            {plot.activeCases.length ? (
-              plot.activeCases.map((caseItem) => (
-                <RecordListItem
-                  key={caseItem.id}
-                  meta={caseItem.targetLabel}
-                  onPress={() => openCase(caseItem.id)}
-                  title={caseItem.title}
-                  trailing={caseItem.statusLabel}
-                  variant="case"
-                />
-              ))
-            ) : (
-              <RecordListItem title="ยังไม่มีเคสที่ต้องติดตาม" meta="เมื่อเปิดเคส ระบบจะแสดงตรงนี้" trailing="ดี" variant="case" />
-            )}
+            {state.plotList.map((item) => <RecordListItem key={item.id} title={item.name} meta={`${item.areaRai} ไร่ · ปลูกแล้ว ${item.plantedHoles}/${item.totalHoles} หลุม`} trailing={item.emptyHoles ? `ว่าง ${item.emptyHoles}` : 'ครบ'} variant="hole" onPress={() => openPlotDetail(item.id)} />)}
           </View>
-          <PrimaryButton label={`ดูหลุม ${state.holeDetail.marker}`} onPress={() => setView('hole')} variant="secondary" />
+          <PrimaryButton label="+ เพิ่มแปลง" onPress={() => setView('plotCreate')} />
         </>
       ) : null}
+
+      {view === 'plotCreate' ? <>
+        <FieldCard variant="raised"><Text style={styles.cardTitle}>เพิ่มแปลงใหม่</Text><Text style={styles.muted}>เริ่มด้วยชื่อแปลงและพื้นที่ก่อน ส่วนหลุมกับต้นไม้จัดการจากหน้ารายละเอียดภายหลัง</Text></FieldCard>
+        <FieldCard><Text style={styles.inputLabel}>ชื่อแปลง</Text><TextInput onChangeText={(name) => setPlotDraft((draft) => ({ ...draft, name }))} placeholder="เช่น แปลงหลังบ้าน" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={plotDraft.name} /><Text style={styles.inputLabel}>พื้นที่ (ไร่, ไม่บังคับ)</Text><TextInput keyboardType="decimal-pad" onChangeText={(value) => setPlotDraft((draft) => ({ ...draft, areaRai: Number(value) || 0 }))} placeholder="0" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={plotDraft.areaRai ? String(plotDraft.areaRai) : ''} /><PrimaryButton label="บันทึกแปลง" onPress={() => void savePlot()} /></FieldCard>
+        <PrimaryButton label="กลับรายชื่อแปลง" onPress={() => setView('plotList')} variant="secondary" />
+      </> : null}
+
+      {view === 'plotDetail' ? <>
+        <FieldCard variant="raised"><View style={styles.heroRow}><View><Text style={styles.eyebrow}>{plot.activeCrop?.label ?? 'แปลงที่ใช้งานอยู่'}</Text><Text style={styles.title}>{plot.areaRai} ไร่</Text></View><StatusChip label="Active" variant="active" /></View><View style={styles.summaryGrid}><Metric label="หลุมทั้งหมด" value={`${plot.totalHoles}`} /><Metric label="มีต้น" value={`${plot.plantedHoles}`} /><Metric label="หลุมว่าง" value={`${plot.emptyHoles}`} /></View></FieldCard>
+        <PrimaryButton label="บันทึกกิจกรรมแปลงนี้" onPress={() => startPlotActivity(plot.id)} />
+        <SectionHeader title="ต้นไม้และหลุม" />
+        <View style={styles.list}>{state.plotDetail.holes.map((hole) => <RecordListItem key={hole.id} title={`หลุม ${hole.marker}`} meta={hole.status === 'planted' ? 'มีต้นปลูกแล้ว' : 'หลุมว่าง พร้อมปลูก'} trailing={hole.status === 'planted' ? 'ต้นไม้' : 'ว่าง'} variant="hole" onPress={() => { setSelectedHoleId(hole.id); setView('hole'); }} />)}</View>
+        <SectionHeader title="Tracker ที่ติดตาม" actionLabel="จัดการ" onActionPress={() => setView('trackerManage')} />
+        {plot.trackers.map((tracker) => <TrackerCard key={tracker.categoryId} countLabel={`ครั้งที่ ${tracker.count}`} elapsedLabel={tracker.elapsedDays === null ? 'ยังไม่เริ่ม' : `ผ่านมา ${tracker.elapsedDays} วัน`} nextDueLabel={formatFollowUpDueLabel(tracker.nextDueOn) ?? undefined} progress={tracker.progress} title={tracker.title} variant={tracker.dueState === 'overdue' ? 'overdue' : 'custom'} />)}
+        <SectionHeader title="เคสและประวัติ" />
+        <View style={styles.list}>{plot.activeCases.map((caseItem) => <RecordListItem key={caseItem.id} meta={caseItem.targetLabel} onPress={() => openCase(caseItem.id)} title={caseItem.title} trailing={caseItem.statusLabel} variant="case" />)}{state.plotDetail.recentItems.map((item) => <RecordListItem key={item.id} meta={item.meta} title={item.title} trailing={item.trailing} variant={item.variant} />)}</View>
+        <PrimaryButton label="กลับรายชื่อแปลง" onPress={() => setView('plotList')} variant="secondary" />
+      </> : null}
 
       {view === 'trackerManage' ? (
         <>
@@ -565,7 +1064,7 @@ export function OperationalSliceScreen() {
               );
             })}
           </View>
-          <PrimaryButton label="กลับแปลง" onPress={() => setView('plot')} variant="secondary" />
+          <PrimaryButton label="กลับแปลง" onPress={() => setView('plotDetail')} variant="secondary" />
         </>
       ) : null}
 
@@ -574,124 +1073,101 @@ export function OperationalSliceScreen() {
           <FieldCard variant="summary">
             <Text style={styles.eyebrow}>บันทึกภาคสนาม</Text>
             <Text style={styles.cardTitle}>{options.categories.find((item) => item.id === selectedCategoryId)?.name ?? 'เลือกหมวดงาน'} · {options.plots.find((item) => item.id === selectedPlotId)?.name}</Text>
-            <Text style={styles.muted}>วัสดุเป็นทางเลือก: ไม่เพิ่มรายการ หมายถึงไม่มีวัสดุในครั้งนี้</Text>
+            <Text style={styles.muted}>เลือก ค้นหา หรือเพิ่มรายการใหม่ได้ โดยแบบฟอร์มที่กำลังกรอกจะไม่หาย</Text>
           </FieldCard>
 
-          <SectionHeader title="1. งาน · เป้าหมาย · วันเวลา" />
-          <FieldCard>
-            <Text style={styles.inputLabel}>หมวดงาน</Text>
-            <View style={styles.chipWrap}>
-              {options.categories.map((category) => <SelectPill active={category.id === selectedCategoryId} key={category.id} label={category.name} onPress={() => setSelectedCategoryId(category.id)} />)}
-            </View>
-            <Text style={styles.inputLabel}>แปลง</Text>
-            <View style={styles.chipWrap}>
-              {options.plots.map((item) => <SelectPill active={item.id === selectedPlotId} key={item.id} label={item.name} onPress={() => { setSelectedPlotId(item.id); setSelectedTargetId(null); }} />)}
-            </View>
-            <Text style={styles.inputLabel}>เป้าหมาย</Text>
-            <View style={styles.chipWrap}>
-              <SelectPill active={selectedTarget === 'plot'} label="ทั้งแปลง" onPress={() => { setSelectedTarget('plot'); setSelectedTargetId(selectedPlotId); }} />
-              {options.holes.filter((item) => item.plotId === selectedPlotId).map((item) => <SelectPill active={selectedTarget === 'hole' && selectedTargetId === item.id} key={item.id} label={`หลุม ${item.marker}`} onPress={() => { setSelectedTarget('hole'); setSelectedTargetId(item.id); }} />)}
-              {options.activeCases.filter((item) => item.plotId === selectedPlotId).map((item) => <SelectPill active={selectedTarget === 'case' && selectedTargetId === item.id} key={item.id} label={item.title} onPress={() => { setSelectedTarget('case'); setSelectedTargetId(item.id); }} />)}
-            </View>
-            <Text style={styles.inputLabel}>วันและเวลา (ISO)</Text>
-            <TextInput autoCapitalize="none" onChangeText={setPerformedAtDraft} style={styles.input} value={performedAtDraft} />
-          </FieldCard>
-          <PrimaryButton
-            label={showInlineCategoryForm ? 'ซ่อนแบบฟอร์มเพิ่มหมวดงาน' : '+ เพิ่มหมวดงาน'}
-            onPress={() => setShowInlineCategoryForm((value) => !value)}
-            variant="tertiary"
-          />
-          {showInlineCategoryForm ? (
+          <FormSection title="1. งานและสถานที่">
             <FieldCard>
-              <Text style={styles.inputLabel}>ชื่อหมวดงาน</Text>
-              <TextInput onChangeText={(name) => setCategoryDraft({ id: '', name, kind: 'other' })} style={styles.input} value={categoryDraft.name} />
-              <Text style={styles.muted}>เพิ่มแล้วจะเลือกใช้ในบันทึกนี้ทันที</Text>
-              <PrimaryButton label="เพิ่มและเลือกหมวดงาน" onPress={() => void saveCategory(true)} />
+              <PickerField label="หมวดงาน" onPress={() => openActivityPicker('category')} placeholder="เลือกหมวดงาน" value={options.categories.find((item) => item.id === selectedCategoryId)?.name} />
+              <PickerField label="แปลง" onPress={() => openActivityPicker('plot')} placeholder="เลือกแปลงก่อน" value={options.plots.find((item) => item.id === selectedPlotId)?.name} />
+              <PickerField label="เป้าหมายในแปลง" onPress={() => openActivityPicker('target')} placeholder="เลือกทั้งแปลง หลุม หรือเคส" value={activityTargetLabel(options, selectedPlotId, selectedTarget, selectedTargetId)} />
+              <DatePickerField label="วันที่ทำงาน" onChange={setActivityDateDraft} value={activityDateDraft} />
             </FieldCard>
-          ) : null}
+          </FormSection>
 
-          <SectionHeader title="2. บันทึก" />
-          <FieldCard>
+          <Pressable accessibilityRole="button" onPress={() => setShowTimeDetails((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>เวลา</Text><Text style={styles.disclosureAction}>{showTimeDetails ? 'ซ่อน' : 'เพิ่มถ้าจำเป็น'}</Text></Pressable>
+          {showTimeDetails ? <FormSection title="เวลา (ถ้าต้องการ)">
+            <FieldCard>
+              <TimeModeControl onChange={setTimeMode} value={timeMode} />
+              {timeMode === 'all_day' ? <Text style={styles.muted}>ทำทั้งวัน: จะบันทึกเพียงวันที่ ไม่สร้างเวลาเริ่มหรือเวลาจบขึ้นมาเอง</Text> : null}
+              {timeMode === 'time_range' ? <View style={styles.formRow}><TextInput keyboardType="numbers-and-punctuation" onChangeText={setStartedAtDraft} placeholder="เริ่ม 08:00" style={[styles.input, styles.formCell]} value={startedAtDraft} /><TextInput keyboardType="numbers-and-punctuation" onChangeText={setEndedAtDraft} placeholder="จบ 17:00" style={[styles.input, styles.formCell]} value={endedAtDraft} /></View> : null}
+              {timeMode === 'duration_only' ? <><Text style={styles.inputLabel}>ใช้เวลากี่นาที</Text><TextInput keyboardType="numeric" onChangeText={setDurationMinutesDraft} placeholder="เช่น 90" style={styles.input} value={durationMinutesDraft} /><Text style={styles.muted}>ไม่ต้องระบุช่วงเวลา และเวลาไม่ถูกนำไปคิดค่าแรง</Text></> : null}
+            </FieldCard>
+          </FormSection> : null}
+
+          <FormSection title="2. บันทึก">
+            <FieldCard>
             <Text style={styles.inputLabel}>บันทึก</Text>
             <TextInput multiline onChangeText={setNote} style={[styles.input, styles.textArea]} value={note} />
-          </FieldCard>
+            </FieldCard>
+          </FormSection>
 
-          <SectionHeader title="3. วัสดุครั้งนี้" />
-          <FieldCard>
+          <Pressable accessibilityRole="button" onPress={() => setShowMaterialDetails((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>วัสดุครั้งนี้</Text><Text style={styles.disclosureAction}>{showMaterialDetails ? 'ซ่อน' : 'เพิ่มถ้าจำเป็น'}</Text></Pressable>
+          {showMaterialDetails ? <FormSection title="3. วัสดุครั้งนี้">
+            <FieldCard>
             {materialUsages.length === 0 ? <Text style={styles.noMaterial}>ไม่มีวัสดุในครั้งนี้</Text> : null}
             {materialUsages.map((usage, index) => {
               const selected = options.materials.find((item) => item.id === usage.materialId);
-              const patchUsage = (patch: Partial<typeof usage>) => setMaterialUsages((rows) => rows.map((row) => row.key === usage.key ? { ...row, ...patch } : row));
+              const usageError = materialUsageValidationError(usage, selected);
+              const calculated = selected?.referenceAmount == null || !usage.actualTankLitres
+                ? null
+                : calculateChemicalDose(selected.referenceAmount, Number(usage.actualTankLitres), selected.referenceWaterLitres ?? 200);
+              const amountLabel = usage.manualOverride && usage.manualAmount
+                ? `${usage.manualAmount} ${selected?.referenceUnit ?? usage.unit} · กำหนดเอง`
+                : calculated != null
+                  ? `${calculated} ${selected?.referenceUnit ?? usage.unit} · อัตโนมัติ`
+                  : usage.amount
+                    ? `${usage.amount} ${usage.unit}`
+                    : 'แตะเพื่อใส่ถังหรือปริมาณ';
               return (
-                <View key={usage.key} style={styles.materialUsageRow}>
-                  <View style={styles.usageTitleRow}><Text style={styles.cardTitle}>วัสดุ {index + 1}</Text><Pressable accessibilityRole="button" onPress={() => setMaterialUsages((rows) => rows.filter((row) => row.key !== usage.key))}><Text style={styles.removeText}>นำออก</Text></Pressable></View>
-                  <View style={styles.chipWrap}>
-                    {options.materials.map((item) => <SelectPill active={item.id === usage.materialId} key={item.id} label={item.name} onPress={() => patchUsage({ materialId: item.id, unit: item.unit })} />)}
-                  </View>
-                  <Text style={styles.inputLabel}>ปริมาณจริง และหน่วย</Text>
-                  <View style={styles.formRow}><TextInput keyboardType="decimal-pad" onChangeText={(amount) => patchUsage({ amount })} placeholder="เช่น 20" style={[styles.input, styles.formCell]} value={usage.amount} /><TextInput onChangeText={(unit) => patchUsage({ unit })} placeholder={selected?.unit ?? 'หน่วย'} style={[styles.input, styles.formCell]} value={usage.unit} /></View>
-                  <Text style={styles.inputLabel}>น้ำ/อัตราผสม/โน้ต (ถ้ามี)</Text>
-                  <View style={styles.formRow}><TextInput keyboardType="decimal-pad" onChangeText={(waterVolume) => patchUsage({ waterVolume })} placeholder="น้ำ" style={[styles.input, styles.formCell]} value={usage.waterVolume} /><TextInput onChangeText={(waterUnit) => patchUsage({ waterUnit })} placeholder="ลิตร" style={[styles.input, styles.formCell]} value={usage.waterUnit} /></View>
-                  <TextInput onChangeText={(dilutionText) => patchUsage({ dilutionText })} placeholder="อัตราผสม" style={styles.input} value={usage.dilutionText} />
-                  <TextInput multiline onChangeText={(noteText) => patchUsage({ note: noteText })} placeholder="โน้ตวัสดุ" style={[styles.input, styles.textAreaSmall]} value={usage.note} />
-                </View>
+                <MaterialSummary
+                  key={usage.key}
+                  label={selected ? [selected.commonName, selected.brandName].filter(Boolean).join(' · ') || selected.name : `วัสดุ ${index + 1}`}
+                  meta={selected ? `${amountLabel}${usage.actualTankLitres ? ` · ถัง ${usage.actualTankLitres} L` : ''}` : 'ยังไม่ได้เลือกวัสดุ'}
+                  onOpen={() => selected ? setMaterialDetailKey(usage.key) : openActivityPicker('material', usage.key)}
+                  onRemove={() => setMaterialUsages((rows) => rows.filter((row) => row.key !== usage.key))}
+                  error={usageError}
+                />
               );
             })}
-            <PrimaryButton label="+ เพิ่มวัสดุ" onPress={() => addMaterialUsage()} variant="tertiary" />
-            <PrimaryButton label={showInlineMaterialForm ? 'ซ่อนแบบฟอร์มเพิ่มวัสดุ' : '+ เพิ่มวัสดุใหม่เข้าคลัง'} onPress={() => setShowInlineMaterialForm((value) => !value)} variant="tertiary" />
-            {showInlineMaterialForm ? <View style={styles.inlineForm}>
-              <Text style={styles.inputLabel}>ชื่อวัสดุ</Text><TextInput onChangeText={(name) => setMaterialDraft((draft) => ({ ...draft, id: '', name }))} style={styles.input} value={materialDraft.name} />
-              <Text style={styles.inputLabel}>ชนิด</Text><View style={styles.chipWrap}>{(['fungicide', 'insecticide', 'fertilizer', 'soil', 'tool', 'other'] as const).map((type) => <SelectPill active={materialDraft.type === type} key={type} label={materialTypeLabel(type)} onPress={() => setMaterialDraft((draft) => ({ ...draft, type }))} />)}</View>
-              <Text style={styles.inputLabel}>หน่วย</Text><TextInput onChangeText={(unit) => setMaterialDraft((draft) => ({ ...draft, unit }))} placeholder="เช่น มล. / กรัม / กก." style={styles.input} value={materialDraft.unit} />
-              <PrimaryButton label="เพิ่มและเลือกวัสดุ" onPress={() => void saveMaterial(true)} />
-            </View> : null}
-          </FieldCard>
+            <PrimaryButton label="+ เลือกวัสดุ" onPress={beginMaterialUsage} variant="tertiary" />
+            </FieldCard>
+          </FormSection> : null}
 
-          <SectionHeader title="4. ผู้ร่วมงานและค่าแรง" />
-          <FieldCard>
+          <Pressable accessibilityRole="button" onPress={() => setShowWorkerDetails((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>คนงานและค่าแรง</Text><Text style={styles.disclosureAction}>{showWorkerDetails ? 'ซ่อน' : 'เพิ่มถ้าจำเป็น'}</Text></Pressable>
+          {showWorkerDetails ? <FormSection title="4. ผู้ร่วมงานและค่าแรง">
+            <FieldCard>
             <StatusChip label="เจ้าของสวน · ไม่คิดค่าแรง" variant="paid" />
             <Text style={styles.muted}>งานที่ทำเองจะเก็บในประวัติกิจกรรม แต่ไม่สร้างยอดค้างจ่าย</Text>
-            <Text style={styles.inputLabel}>เลือกคนงาน</Text>
-            <View style={styles.chipWrap}>
-              <SelectPill active={selectedWorkerId === null} label="ทำเอง" onPress={() => setSelectedWorkerId(null)} />
-              {options.people.filter((person) => !person.isSelf && person.role === 'worker').map((person) => (
-                <SelectPill
-                  active={selectedWorkerId === person.id}
-                  key={person.id}
-                  label={person.displayName}
-                  onPress={() => setSelectedWorkerId(person.id)}
-                />
-              ))}
-            </View>
-            <PrimaryButton
-              label={showInlineWorkerForm ? 'ซ่อนแบบฟอร์มเพิ่มคนงาน' : '+ เพิ่มคนงาน'}
-              onPress={() => setShowInlineWorkerForm((value) => !value)}
-              variant="tertiary"
-            />
-            {showInlineWorkerForm ? (
-              <View style={styles.inlineForm}>
-                <Text style={styles.inputLabel}>ชื่อคนงาน</Text>
-                <TextInput onChangeText={(displayName) => setPersonDraft((draft) => ({ ...draft, id: '', displayName }))} style={styles.input} value={personDraft.displayName} />
-                <Text style={styles.inputLabel}>งานที่ถนัด (ถ้ามี)</Text>
-                <TextInput onChangeText={(specialty) => setPersonDraft((draft) => ({ ...draft, specialty }))} style={styles.input} value={personDraft.specialty} />
-                <Text style={styles.inputLabel}>เบอร์โทร (ถ้ามี)</Text>
-                <TextInput keyboardType="phone-pad" onChangeText={(phone) => setPersonDraft((draft) => ({ ...draft, phone }))} style={styles.input} value={personDraft.phone} />
-                <PrimaryButton label="เพิ่มและเลือกคนงาน" onPress={() => void saveWorker(true)} />
-              </View>
-            ) : null}
-            {selectedWorkerId ? (
-              <>
-                <Text style={styles.inputLabel}>ค่าแรง</Text>
-                <TextInput keyboardType="numeric" onChangeText={setWorkerAmount} style={styles.input} value={workerAmount} />
-                <Text style={styles.muted}>จะสร้างยอดค้างจ่ายสำหรับคนงานที่เลือกเท่านั้น</Text>
-              </>
-            ) : <Text style={styles.muted}>เลือก “ทำเอง” จึงไม่มีค่าแรงค้างจ่าย</Text>}
-          </FieldCard>
+            {activityWorkers.map((worker, index) => <View key={worker.key} style={styles.workerRow}>
+              <View style={styles.usageTitleRow}><Text style={styles.cardTitle}>คนงาน {index + 1}</Text><Pressable accessibilityRole="button" onPress={() => setActivityWorkers((rows) => rows.filter((row) => row.key !== worker.key))}><Text style={styles.removeText}>นำออก</Text></Pressable></View>
+              <PickerField label="ชื่อคนงาน" onPress={() => openActivityPicker('worker', worker.key)} placeholder="เลือกหรือเพิ่มคนงาน" value={options.people.find((person) => person.id === worker.personId)?.displayName} />
+              <PickerField label="วิธีคิดค่าแรง" onPress={() => openActivityPicker('payType', worker.key)} placeholder="เลือกวิธีคิด" value={payTypeLabel(worker.payType)} />
+              {worker.payType !== 'none' ? <><Text style={styles.inputLabel}>จำนวนเงิน</Text><TextInput keyboardType="numeric" onChangeText={(amount) => setActivityWorkers((rows) => rows.map((row) => row.key === worker.key ? { ...row, amount } : row))} placeholder="เช่น 600" style={styles.input} value={worker.amount} /></> : null}
+            </View>)}
+            <PrimaryButton label="+ เพิ่มคนงาน" onPress={beginWorker} variant="tertiary" />
+            </FieldCard>
+          </FormSection> : null}
 
-          <SectionHeader title="5. ติดตามต่อ (ถ้ามี)" />
-          <FieldCard><Text style={styles.inputLabel}>ติดตามอีกกี่วัน</Text><TextInput keyboardType="numeric" onChangeText={setFollowUpDays} style={styles.input} value={followUpDays} /><Text style={styles.muted}>ปล่อยว่างหรือ 0 ได้ หากงานนี้ไม่มีวันติดตาม</Text></FieldCard>
-          <SectionHeader title="6. บันทึกลงสมุด" />
-          <PrimaryButton label="บันทึกกิจกรรมลงเครื่อง" onPress={() => createActivity('field')} />
+          <Pressable accessibilityRole="button" onPress={() => setShowFollowUpDetails((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>ติดตามต่อ</Text><Text style={styles.disclosureAction}>{showFollowUpDetails ? 'ซ่อน' : 'เพิ่มถ้าจำเป็น'}</Text></Pressable>
+          {showFollowUpDetails ? <FormSection title="5. ติดตามต่อ (ถ้ามี)">
+            <FieldCard>
+              <Text style={styles.inputLabel}>เลือกวิธีตั้งวันติดตาม</Text>
+              <View style={styles.chipWrap}>
+                <SelectPill active={followUpMode === 'days'} label="อีกกี่วัน" onPress={() => setFollowUpMode('days')} />
+                <SelectPill active={followUpMode === 'date'} label="เลือกวันโดยตรง" onPress={() => setFollowUpMode('date')} />
+              </View>
+              {followUpMode === 'days' ? <><Text style={styles.inputLabel}>ติดตามอีกกี่วัน</Text><TextInput keyboardType="numeric" onChangeText={setFollowUpDays} placeholder="เช่น 7" style={styles.input} value={followUpDays} /></> : <DatePickerField label="วันติดตาม" onChange={setFollowUpDateDraft} value={followUpDateDraft || activityDateDraft} />}
+              {followUpPreview.error ? <Text style={styles.danger}>{followUpPreview.error}</Text> : followUpPreview.followUpOn ? <View style={styles.followUpSummary}><Text style={styles.cardTitle}>นัดติดตาม {formatThaiShortDate(followUpPreview.followUpOn)}</Text><Text style={styles.muted}>{formatFollowUpDueLabel(followUpPreview.followUpOn) ?? ''}</Text></View> : <Text style={styles.muted}>ปล่อยว่างหรือใส่ 0 ได้ หากงานนี้ไม่มีวันติดตาม</Text>}
+              {followUpPreview.followUpOn && followUpDaysRemaining(followUpPreview.followUpOn) !== null && followUpDaysRemaining(followUpPreview.followUpOn)! > 0 ? <View style={styles.reminderPanel}>
+                <Text style={styles.cardTitle}>เตือนในเครื่อง (ไม่บังคับ)</Text>
+                {notificationPermission === 'granted' ? <Text style={styles.muted}>เปิดแล้ว · เมื่อบันทึก ระบบจะตั้งเตือนครั้งเดียวในเช้าวันนัด</Text> : notificationPermission === 'denied' ? <Text style={styles.muted}>ถูกปิดอยู่ · วันติดตามยังบันทึกและแสดงในวันนี้ได้ตามปกติ</Text> : notificationPermission === 'unavailable' ? <Text style={styles.muted}>ตั้งเตือนได้เมื่อเปิดบนแอป Android หรือ iOS</Text> : <><Text style={styles.muted}>ขออนุญาตเฉพาะเมื่อคุณเลือกจะใช้การเตือนนี้</Text><PrimaryButton label="เปิดการแจ้งเตือนวันติดตาม" onPress={() => void requestReminderPermission()} variant="secondary" /></>}
+              </View> : null}
+            </FieldCard>
+          </FormSection> : null}
+          {activitySaveState.status === 'error' ? <FieldCard variant="alert"><Text style={styles.cardTitle}>{activitySaveState.message}</Text>{activitySaveState.errors?.map((error) => <Text key={error} style={styles.danger}>• {error}</Text>)}</FieldCard> : null}
+          {activitySaveState.status === 'success' ? <FieldCard variant="summary"><Text style={styles.cardTitle}>บันทึกสำเร็จ</Text><Text style={styles.muted}>{activitySaveState.message}</Text><Text style={styles.receipt}>เลขที่บันทึก: {activitySaveState.activityId ?? '-'}</Text></FieldCard> : null}
+          <StickySaveBar disabled={activitySaveState.status === 'saving'} label={activitySaveState.status === 'saving' ? 'กำลังบันทึก…' : 'บันทึกกิจกรรมลงเครื่อง'} onPress={() => void createActivity('field')} />
           <PrimaryButton label="กลับวันนี้" onPress={() => setView('today')} variant="secondary" />
         </>
       ) : null}
@@ -732,7 +1208,7 @@ export function OperationalSliceScreen() {
             />
             <RecordListItem
               meta={`${state.materials.length} รายการ · ใช้เลือกตอนบันทึกกิจกรรม`}
-              onPress={() => setView('materials')}
+              onPress={openMaterialsLibrary}
               title="วัสดุ"
               trailing="เปิด"
               variant="material"
@@ -753,7 +1229,7 @@ export function OperationalSliceScreen() {
             />
             <RecordListItem
               meta={`${state.menuDashboard.plotCount} แปลง · ${state.menuDashboard.holeCount} หลุม`}
-              onPress={() => setView('plot')}
+              onPress={() => setView('plotList')}
               title="แปลงและหลุม"
               trailing="เปิด"
               variant="hole"
@@ -958,41 +1434,67 @@ export function OperationalSliceScreen() {
 
       {view === 'materials' ? (
         <>
-          <FieldCard variant="raised">
-            <Text style={styles.eyebrow}>คลังวัสดุ</Text>
-            <Text style={styles.cardTitle}>ยา ปุ๋ย และวัสดุที่เลือกใช้ซ้ำได้</Text>
-            <Text style={styles.muted}>เก็บเข้าแฟ้มจะซ่อนจากบันทึกใหม่ แต่ประวัติการใช้เดิมยังอ่านได้ครบ</Text>
-          </FieldCard>
-          <SectionHeader title={materialDraft.id ? 'แก้ไขวัสดุ' : 'เพิ่มวัสดุ'} />
-          <FieldCard>
-            <Text style={styles.inputLabel}>ชื่อวัสดุ</Text><TextInput onChangeText={(name) => setMaterialDraft((draft) => ({ ...draft, name }))} style={styles.input} value={materialDraft.name} />
-            <Text style={styles.inputLabel}>ชนิด</Text><View style={styles.chipWrap}>{(['fungicide', 'insecticide', 'fertilizer', 'soil', 'tool', 'other'] as const).map((type) => <SelectPill active={materialDraft.type === type} key={type} label={materialTypeLabel(type)} onPress={() => setMaterialDraft((draft) => ({ ...draft, type }))} />)}</View>
-            <Text style={styles.inputLabel}>หน่วย</Text><TextInput onChangeText={(unit) => setMaterialDraft((draft) => ({ ...draft, unit }))} style={styles.input} value={materialDraft.unit} />
-            <Text style={styles.inputLabel}>อัตราเริ่มต้น / โน้ต (ถ้ามี)</Text><TextInput onChangeText={(defaultRatePerTank) => setMaterialDraft((draft) => ({ ...draft, defaultRatePerTank }))} style={styles.input} value={materialDraft.defaultRatePerTank ?? ''} />
-            <TextInput multiline onChangeText={(notes) => setMaterialDraft((draft) => ({ ...draft, notes }))} placeholder="โน้ตคลังวัสดุ" style={[styles.input, styles.textAreaSmall]} value={materialDraft.notes ?? ''} />
-            <PrimaryButton label={materialDraft.id ? 'บันทึกการแก้ไข' : 'เพิ่มวัสดุ'} onPress={() => void saveMaterial()} />
-            {materialDraft.id ? <PrimaryButton label="ยกเลิกการแก้ไข" onPress={() => setMaterialDraft({ id: '', name: '', type: 'other', unit: '' })} variant="tertiary" /> : null}
-          </FieldCard>
-          <SectionHeader title={showArchivedMaterials ? 'วัสดุในแฟ้ม' : 'วัสดุที่ใช้งาน'} actionLabel={showArchivedMaterials ? 'ดูที่ใช้งาน' : 'ดูในแฟ้ม'} onActionPress={() => setShowArchivedMaterials((value) => !value)} />
-          <View style={styles.list}>
-            {state.materials.filter((material) => Boolean(material.archivedAt) === showArchivedMaterials).map((material) => (
-              <View key={material.id} style={styles.directoryRow}>
+          {materialCatalogMode === 'materialDetail' && selectedCatalogMaterial ? <>
+            <FieldCard variant="raised">
+              <Text style={styles.eyebrow}>{selectedCatalogMaterial.archivedAt ? 'อยู่ในคลัง' : 'ใช้เลือกในกิจกรรมใหม่ได้'}</Text>
+              <Text style={styles.title}>{selectedCatalogMaterial.commonName || selectedCatalogMaterial.name}</Text>
+              {selectedCatalogMaterial.brandName ? <Text style={styles.muted}>ยี่ห้อ {selectedCatalogMaterial.brandName}</Text> : null}
+              <Text style={styles.muted}>{materialTypeLabel(selectedCatalogMaterial.type as MaterialInput['type'])} · {selectedCatalogMaterial.unit}</Text>
+            </FieldCard>
+            <SectionHeader title="ข้อมูลการใช้" />
+            <View style={styles.list}>
+              <RecordListItem title="อัตราเริ่มต้น" meta={selectedCatalogMaterial.referenceAmount != null ? `${selectedCatalogMaterial.referenceAmount} ${selectedCatalogMaterial.referenceUnit ?? selectedCatalogMaterial.unit} / น้ำ ${selectedCatalogMaterial.referenceWaterLitres ?? 200} L` : 'ยังไม่ได้ตั้งอัตรา ใช้ระบุปริมาณจริงตอนบันทึกกิจกรรม'} trailing="ค่าเริ่มต้น" variant="material" />
+              <RecordListItem title="ประวัติการใช้" meta={selectedCatalogMaterial.lastUsedAt ? `ใช้ล่าสุด ${formatThaiShortDate(selectedCatalogMaterial.lastUsedAt)}` : 'ยังไม่เคยถูกบันทึกในกิจกรรม'} trailing={`${selectedCatalogMaterial.usageCount} ครั้ง`} variant="activity" />
+              {selectedCatalogMaterial.notes ? <RecordListItem title="รายละเอียด" meta={selectedCatalogMaterial.notes} trailing="โน้ต" variant="material" /> : null}
+            </View>
+            <PrimaryButton label="แก้ไขวัสดุ" onPress={() => beginMaterialEdit(selectedCatalogMaterial)} />
+            {selectedCatalogMaterial.archivedAt ? <>
+              <Text style={styles.muted}>นำกลับมาใช้แล้ว วัสดุนี้จะกลับไปให้เลือกในกิจกรรมใหม่ ประวัติก่อนหน้ายังอยู่ครบ</Text>
+              <PrimaryButton label="นำกลับมาใช้" onPress={() => void toggleMaterialArchive(selectedCatalogMaterial.id, selectedCatalogMaterial.archivedAt)} variant="secondary" />
+            </> : archiveConfirmationMaterialId === selectedCatalogMaterial.id ? <FieldCard variant="alert">
+              <Text style={styles.cardTitle}>เก็บวัสดุเข้าคลัง?</Text>
+              <Text style={styles.muted}>วัสดุนี้จะหายจากตัวเลือกของกิจกรรมใหม่เท่านั้น ประวัติการใช้และ snapshot เดิมจะไม่ถูกลบ</Text>
+              <PrimaryButton label="ยืนยันเก็บเข้าคลัง" onPress={() => void toggleMaterialArchive(selectedCatalogMaterial.id, null)} variant="tertiary" />
+              <PrimaryButton label="ยังไม่เก็บ" onPress={() => setArchiveConfirmationMaterialId(null)} variant="secondary" />
+            </FieldCard> : <PrimaryButton label="เก็บเข้าคลัง" onPress={() => setArchiveConfirmationMaterialId(selectedCatalogMaterial.id)} variant="tertiary" />}
+            <PrimaryButton label="กลับคลังวัสดุ" onPress={() => { setMaterialCatalogMode('library'); setSelectedMaterialId(null); }} variant="secondary" />
+          </> : <>
+            <FieldCard variant="raised">
+              <Text style={styles.eyebrow}>คลังวัสดุ</Text>
+              <Text style={styles.cardTitle}>ยา ปุ๋ย และวัสดุที่เลือกใช้ซ้ำได้</Text>
+              <Text style={styles.muted}>แตะรายการเพื่อดูรายละเอียด · เก็บเข้าคลังจะซ่อนจากบันทึกใหม่ แต่ประวัติยังอ่านได้ครบ</Text>
+            </FieldCard>
+            {materialCatalogMode !== 'materialCreate' && materialCatalogMode !== 'materialEdit' ? <PrimaryButton label="+ เพิ่มวัสดุ" onPress={() => beginMaterialCreate()} /> : null}
+            <SectionHeader title={showArchivedMaterials ? 'วัสดุในคลัง' : 'วัสดุที่ใช้งาน'} />
+            <View style={styles.catalogControls}>
+              <TextInput onChangeText={setMaterialSearch} placeholder="ค้นหาชื่อ ชื่อสามัญ หรือโน้ต" placeholderTextColor={tokens.color.text.muted} style={styles.input} value={materialSearch} />
+              <View style={styles.chipWrap}>
+                <SelectPill active={!showArchivedMaterials} label="กำลังใช้" onPress={() => setShowArchivedMaterials(false)} />
+                <SelectPill active={showArchivedMaterials} label="ในคลัง" onPress={() => setShowArchivedMaterials(true)} />
+              </View>
+              <View style={styles.chipWrap}>
+                {([['all', 'ทั้งหมด'], ['chemical', 'สารเคมี'], ['fertilizer', 'ปุ๋ย'], ['other', 'อื่น ๆ']] as const).map(([filter, label]) => <SelectPill active={materialTypeFilter === filter} key={filter} label={label} onPress={() => setMaterialTypeFilter(filter)} />)}
+              </View>
+            </View>
+            <View style={styles.list}>
+              {visibleCatalogMaterials.map((material) => (
                 <RecordListItem
-                  meta={`${materialTypeLabel(material.type as MaterialInput['type'])} · ${material.defaultRatePerTank ?? material.unit} · ใช้แล้ว ${material.usageCount} ครั้ง${material.archivedAt ? ' · อยู่ในแฟ้ม ประวัติยังอ่านได้' : ''}`}
-                  onPress={() => setMaterialDraft({ id: material.id, name: material.name, type: material.type as MaterialInput['type'], unit: material.unit, defaultRatePerTank: material.defaultRatePerTank })}
-                  title={material.name}
-                  trailing={material.lastUsedAt ? formatThaiShortDate(material.lastUsedAt) : material.unit}
+                  key={material.id}
+                  meta={`${materialTypeLabel(material.type as MaterialInput['type'])} · ${material.defaultRatePerTank ?? material.unit} · ใช้แล้ว ${material.usageCount} ครั้ง`}
+                  onPress={() => beginMaterialDetail(material.id)}
+                  title={material.commonName || material.name}
+                  trailing="ดู"
                   variant="material"
                 />
-                <PrimaryButton label={material.archivedAt ? 'นำกลับมาใช้' : 'เก็บเข้าแฟ้ม'} onPress={() => void toggleMaterialArchive(material.id, material.archivedAt)} variant={material.archivedAt ? 'secondary' : 'tertiary'} />
-              </View>
-            ))}
-          </View>
-          <PrimaryButton label="บันทึกกิจกรรม" onPress={() => setView('activity')} variant="secondary" />
+              ))}
+              {visibleCatalogMaterials.length === 0 ? <RecordListItem title={materialSearch ? 'ไม่พบวัสดุที่ค้นหา' : showArchivedMaterials ? 'ยังไม่มีวัสดุในคลัง' : 'ยังไม่มีวัสดุที่ใช้งาน'} meta={materialSearch ? 'ลองค้นหาด้วยชื่อสามัญ ยี่ห้อ หรือโน้ต' : 'กด + เพิ่มวัสดุ เพื่อเริ่มสร้างคลัง'} trailing="" variant="material" /> : null}
+            </View>
+            <PrimaryButton label="บันทึกกิจกรรม" onPress={() => setView('activity')} variant="secondary" />
+          </>}
         </>
       ) : null}
 
-      {view === 'hole' ? (
+      {view === 'hole' && state.holeDetail ? (
         <>
           <FieldCard variant="raised">
             <Text style={styles.eyebrow}>{state.holeDetail.plotName}</Text>
@@ -1003,6 +1505,35 @@ export function OperationalSliceScreen() {
                 : 'ยังไม่มีต้นปลูก'}
             </Text>
           </FieldCard>
+          <SectionHeader title="วงจรต้นไม้" />
+          <View style={styles.list}>
+            {state.holeDetail.lifecycle.map((planting) => (
+              <RecordListItem
+                key={planting.id}
+                title={`${planting.plantName}${planting.variety ? ` · ${planting.variety}` : ''}`}
+                meta={planting.removedOn ? `ปลูก ${formatThaiShortDate(planting.plantedOn)} · จบ ${formatThaiShortDate(planting.removedOn)}${planting.removedReason ? ` · ${planting.removedReason}` : ''}` : `ปลูก ${formatThaiShortDate(planting.plantedOn)} · กำลังปลูก`}
+                trailing={planting.status === 'dead' ? 'ตาย' : planting.status === 'retired' ? 'นำออก' : 'ปัจจุบัน'}
+                variant="hole"
+              />
+            ))}
+          </View>
+          {state.holeDetail.plantName ? (
+            <FormSection title="จบวงจรต้นนี้">
+              <DatePickerField label="วันที่ตาย/นำออก" onChange={setRetirementDate} value={retirementDate} />
+              <TextInput accessibilityLabel="เหตุผลที่ต้นตายหรือนำออก" onChangeText={setRetirementReason} placeholder="เหตุผล (ถ้ามี)" style={styles.input} value={retirementReason} />
+              <View style={styles.inlineActions}>
+                <PrimaryButton label="บันทึกว่าตาย" onPress={() => void retirePlanting('dead')} variant="tertiary" />
+                <PrimaryButton label="นำต้นออก" onPress={() => void retirePlanting('retired')} variant="secondary" />
+              </View>
+            </FormSection>
+          ) : (
+            <FormSection title="ปลูกใหม่ในหลุมนี้">
+              <TextInput accessibilityLabel="ชื่อต้นที่ปลูกใหม่" onChangeText={(plantName) => setPlantingDraft((draft) => ({ ...draft, plantName }))} placeholder="ชื่อต้น" style={styles.input} value={plantingDraft.plantName} />
+              <TextInput accessibilityLabel="พันธุ์ต้นที่ปลูกใหม่" onChangeText={(variety) => setPlantingDraft((draft) => ({ ...draft, variety }))} placeholder="พันธุ์ (ถ้ามี)" style={styles.input} value={plantingDraft.variety ?? ''} />
+              <DatePickerField label="วันที่ปลูก" onChange={(plantedOn) => setPlantingDraft((draft) => ({ ...draft, plantedOn }))} value={plantingDraft.plantedOn} />
+              <PrimaryButton label="ปลูกต้นใหม่" onPress={() => void savePlanting()} />
+            </FormSection>
+          )}
           <SectionHeader title="เคสในหลุม" />
           <View style={styles.list}>
             {state.holeDetail.activeCases.map((caseItem) => (
@@ -1024,8 +1555,126 @@ export function OperationalSliceScreen() {
           </View>
         </>
       ) : null}
+      <Modal animationType="slide" onRequestClose={cancelMaterialForm} presentationStyle="pageSheet" transparent visible={(view === 'materials' || materialReturnIntent?.source === 'activity') && (materialCatalogMode === 'materialCreate' || materialCatalogMode === 'materialEdit')}>
+        <View style={styles.materialSheetBackdrop}>
+          <View style={styles.materialSheet}>
+            <View style={styles.sheetHeader}>
+              <View><Text style={styles.sheetTitle}>{materialCatalogMode === 'materialEdit' ? 'แก้ไขวัสดุ' : 'เพิ่มวัสดุ'}</Text><Text style={styles.muted}>{materialCatalogMode === 'materialEdit' ? 'แก้เฉพาะข้อมูลในคลัง ประวัติใช้เดิมไม่เปลี่ยน' : materialReturnIntent?.source === 'activity' ? 'เพิ่มแล้วจะกลับไปกำหนดปริมาณในกิจกรรมนี้' : 'เริ่มจากข้อมูลที่จำเป็นก่อน'}</Text></View>
+              <Pressable accessibilityRole="button" onPress={cancelMaterialForm}><Text style={styles.close}>ยกเลิก</Text></Pressable>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <MaterialCatalogFormFields draft={materialDraft} onChange={setMaterialDraft} />
+              {materialFormError ? <Text style={styles.danger}>{materialFormError}</Text> : null}
+            </ScrollView>
+            <StickySaveBar disabled={materialSaving} label={materialSaving ? 'กำลังบันทึก…' : materialCatalogMode === 'materialEdit' ? 'บันทึกการแก้ไข' : materialReturnIntent?.source === 'activity' ? 'เพิ่มและใช้กับกิจกรรมนี้' : 'เพิ่มวัสดุ'} onPress={() => void saveMaterial()} />
+          </View>
+        </View>
+      </Modal>
+      <Modal animationType="slide" onRequestClose={() => setMaterialDetailKey(null)} presentationStyle="pageSheet" transparent visible={Boolean(materialDetail && materialDetailItem)}>
+        <View style={styles.materialSheetBackdrop}>
+          <View style={styles.materialSheet}>
+            <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>กำหนดปริมาณวัสดุ</Text><Pressable accessibilityRole="button" onPress={() => setMaterialDetailKey(null)}><Text style={styles.close}>ปิด</Text></Pressable></View>
+            {materialDetail && materialDetailItem ? <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={styles.chemicalTitle}>{[materialDetailItem.commonName, materialDetailItem.brandName].filter(Boolean).join(' · ') || materialDetailItem.name}</Text>
+              <Text style={styles.muted}>อ้างอิง {materialDetailItem.referenceAmount ?? '—'} {materialDetailItem.referenceUnit ?? materialDetailItem.unit} / น้ำ {materialDetailItem.referenceWaterLitres ?? 200} L</Text>
+              {materialDetailItem.referenceAmount != null ? <>
+                <Text style={styles.inputLabel}>น้ำในถังครั้งนี้ (L)</Text>
+                <TextInput keyboardType="decimal-pad" onChangeText={(actualTankLitres) => patchMaterialUsage(materialDetail.key, { actualTankLitres })} placeholder="เช่น 50" style={styles.input} value={materialDetail.actualTankLitres} />
+                {materialDetailCalculatedDose != null && Number(materialDetail.actualTankLitres) > 0 ? <View style={styles.lockedDose}><Text style={styles.calculatedDose}>ปริมาณที่ต้องใช้: {materialDetailCalculatedDose} {materialDetailItem.referenceUnit ?? materialDetailItem.unit}</Text><Text style={styles.muted}>คำนวณจากอัตราอ้างอิงแล้ว · ปริมาณนี้ล็อกไว้</Text></View> : <Text style={styles.muted}>ต้องระบุน้ำในถังให้มากกว่า 0 L ก่อน ระบบจึงคำนวณปริมาณให้</Text>}
+              </> : <>
+                <Text style={styles.inputLabel}>ปริมาณที่ใช้ *</Text>
+                <View style={styles.formRow}><TextInput keyboardType="decimal-pad" onChangeText={(amount) => patchMaterialUsage(materialDetail.key, { amount })} placeholder="เช่น 20" style={[styles.input, styles.formCell]} value={materialDetail.amount} /><TextInput onChangeText={(unit) => patchMaterialUsage(materialDetail.key, { unit })} placeholder={materialDetailItem.unit} style={[styles.input, styles.formCell]} value={materialDetail.unit} /></View>
+              </>}
+              <Text style={styles.inputLabel}>รายละเอียดเพิ่มเติม (ถ้ามี)</Text>
+              <TextInput multiline onChangeText={(note) => patchMaterialUsage(materialDetail.key, { note })} placeholder="เช่น จุดที่ใช้ หรือข้อสังเกต" style={[styles.input, styles.textAreaSmall]} value={materialDetail.note} />
+              {materialDetailError ? <Text style={styles.danger}>{materialDetailError}</Text> : null}
+            </ScrollView> : null}
+            <StickySaveBar disabled={Boolean(materialDetailError)} label={materialDetailError ? 'กรอกปริมาณให้ครบก่อน' : 'ยืนยันปริมาณ'} onPress={() => setMaterialDetailKey(null)} />
+          </View>
+        </View>
+      </Modal>
+      <SearchPickerSheet
+        emptyLabel="ยังไม่มีรายการที่ใช้งานอยู่"
+        onClose={() => setActivityPicker(null)}
+        onPick={selectActivityPicker}
+        options={activityPicker ? pickerOptions[activityPicker.kind] : []}
+        query={pickerQuery}
+        quickAdd={pickerQuickAdd}
+        recentIds={activityPicker ? recentPickerIds[activityPicker.kind] : []}
+        setQuery={setPickerQuery}
+        title={activityPicker ? ({ category: 'เลือกหมวดงาน', plot: 'เลือกแปลง', target: 'เลือกเป้าหมาย', material: 'เลือกวัสดุ', worker: 'เลือกคนงาน', payType: 'เลือกวิธีคิดค่าแรง' }[activityPicker.kind]) : 'เลือกข้อมูล'}
+        visible={Boolean(activityPicker)}
+      />
     </AppShell>
   );
+}
+
+function MaterialCatalogFormFields({ draft, onChange }: { draft: MaterialInput; onChange: (next: MaterialInput | ((current: MaterialInput) => MaterialInput)) => void }) {
+  const [showRate, setShowRate] = useState(draft.referenceAmount != null);
+  const [showDetail, setShowDetail] = useState(Boolean(draft.notes));
+  const selectUnit = (unit: string) => onChange((current) => ({ ...current, unit, referenceUnit: unit }));
+  return <>
+    <Text style={styles.inputLabel}>ชื่อสามัญ / ชื่อเรียก *</Text>
+    <TextInput autoFocus onChangeText={(name) => onChange((current) => ({ ...current, name }))} placeholder="เช่น แมนโคเซบ" style={styles.input} value={draft.name} />
+    <Text style={styles.inputLabel}>ชื่อยี่ห้อ (ถ้ามี)</Text>
+    <TextInput onChangeText={(brandName) => onChange((current) => ({ ...current, brandName }))} placeholder="เช่น ไดเทน" style={styles.input} value={draft.brandName ?? ''} />
+    <Text style={styles.inputLabel}>ชนิด</Text>
+    <View style={styles.unitChoiceRow}>{([['fungicide', 'สารป้องกัน'], ['fertilizer', 'ปุ๋ย'], ['other', 'อื่น ๆ']] as const).map(([type, label]) => <SelectPill active={draft.type === type} key={type} label={label} onPress={() => onChange((current) => ({ ...current, type }))} />)}</View>
+    <Text style={styles.inputLabel}>หน่วย *</Text>
+    <View style={styles.unitChoiceRow}>{['cc', 'ml', 'กรัม'].map((unit) => <SelectPill active={(draft.referenceUnit ?? draft.unit) === unit} key={unit} label={unit} onPress={() => selectUnit(unit)} />)}</View>
+    <TextInput onChangeText={selectUnit} placeholder="หรือพิมพ์หน่วยเอง เช่น g" style={styles.input} value={draft.referenceUnit ?? draft.unit} />
+    <Pressable accessibilityRole="button" onPress={() => setShowRate((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>อัตราอ้างอิง (ถ้ามี)</Text><Text style={styles.disclosureAction}>{showRate ? 'ซ่อน' : 'เพิ่มอัตรา'}</Text></Pressable>
+    {showRate ? <View style={styles.inlineForm}>
+      <Text style={styles.inputLabel}>อัตราอ้างอิง</Text>
+      <TextInput keyboardType="decimal-pad" onChangeText={(value) => onChange((current) => ({ ...current, referenceAmount: positiveNumberOrNull(value), referenceWaterLitres: current.referenceWaterLitres ?? 200 }))} placeholder="เช่น 20" style={styles.input} value={draft.referenceAmount == null ? '' : String(draft.referenceAmount)} />
+      <Text style={styles.inputLabel}>น้ำอ้างอิง (L)</Text>
+      <TextInput keyboardType="decimal-pad" onChangeText={(value) => onChange((current) => ({ ...current, referenceWaterLitres: positiveNumberOrNull(value) ?? 200 }))} placeholder="200" style={styles.input} value={String(draft.referenceWaterLitres ?? 200)} />
+      <Text style={styles.muted}>หากใส่อัตรา ระบบจะใช้ 200 L เป็นค่าเริ่มต้นและคำนวณจากน้ำในถังตอนบันทึกกิจกรรม</Text>
+    </View> : null}
+    <Pressable accessibilityRole="button" onPress={() => setShowDetail((value) => !value)} style={styles.disclosure}><Text style={styles.disclosureLabel}>รายละเอียด (ถ้ามี)</Text><Text style={styles.disclosureAction}>{showDetail ? 'ซ่อน' : 'เพิ่มโน้ต'}</Text></Pressable>
+    {showDetail ? <TextInput multiline onChangeText={(notes) => onChange((current) => ({ ...current, notes }))} placeholder="เช่น ใช้พ่นป้องกันเชื้อรา" style={[styles.input, styles.textAreaSmall]} value={draft.notes ?? ''} /> : null}
+  </>;
+}
+
+function MaterialSummary({ error, label, meta, onOpen, onRemove }: { error?: string | null; label: string; meta: string; onOpen: () => void; onRemove: () => void }) {
+  return <View style={styles.materialSummary}>
+    <Pressable accessibilityRole="button" onPress={onOpen} style={styles.materialSummaryMain}>
+      <Text numberOfLines={1} style={styles.cardTitle}>{label}</Text>
+      <Text numberOfLines={1} style={styles.muted}>{meta}</Text>
+      {error ? <Text style={styles.danger}>{error}</Text> : null}
+    </Pressable>
+    <Pressable accessibilityRole="button" onPress={onRemove} style={styles.materialSummaryRemove}><Text style={styles.removeText}>นำออก</Text></Pressable>
+  </View>;
+}
+
+function positiveNumberOrNull(value: string): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function materialUsageValidationError(usage: MaterialUsageDraft, material: { referenceAmount?: number | null; unit: string } | null | undefined): string | null {
+  if (!material) return 'กรุณาเลือกวัสดุหรือกดนำออก';
+  if (material.referenceAmount != null) {
+    return Number(usage.actualTankLitres) > 0 ? null : 'กรุณาระบุน้ำในถังให้มากกว่า 0 L';
+  }
+  if (!(Number(usage.amount) > 0)) return 'กรุณาระบุปริมาณที่ใช้ให้มากกว่า 0';
+  if (!usage.unit.trim()) return 'กรุณาระบุหน่วยของปริมาณที่ใช้';
+  return null;
+}
+
+function materialInputForSave(draft: MaterialInput): MaterialInput {
+  const unit = (draft.referenceUnit ?? draft.unit).trim();
+  const referenceAmount = draft.referenceAmount != null && draft.referenceAmount > 0 ? draft.referenceAmount : null;
+  const referenceWaterLitres = referenceAmount ? draft.referenceWaterLitres ?? 200 : null;
+  return {
+    ...draft,
+    unit,
+    commonName: draft.commonName?.trim() || draft.name.trim(),
+    referenceAmount,
+    referenceUnit: referenceAmount ? unit : null,
+    referenceWaterLitres,
+    defaultRatePerTank: referenceAmount ? `${referenceAmount} ${unit} / น้ำ ${referenceWaterLitres} L` : draft.defaultRatePerTank ?? null,
+  };
 }
 
 function Metric({ danger, label, value }: { danger?: boolean; label: string; value: string }) {
@@ -1058,6 +1707,33 @@ function materialTypeLabel(type: MaterialInput['type']): string {
     tool: 'อุปกรณ์',
     other: 'อื่น ๆ',
   }[type];
+}
+
+function activityTargetLabel(
+  options: ActivityCaptureOption,
+  plotId: string,
+  targetType: 'plot' | 'hole' | 'case',
+  targetId: string | null,
+): string | undefined {
+  if (targetType === 'plot') return 'ทั้งแปลง';
+  if (targetType === 'hole') {
+    const hole = options.holes.find((item) => item.id === targetId && item.plotId === plotId);
+    return hole ? `หลุม ${hole.marker}` : undefined;
+  }
+  return options.activeCases.find((item) => item.id === targetId && item.plotId === plotId)?.title;
+}
+
+function payTypeLabel(payType: WorkerDraft['payType']): string {
+  return { none: 'ไม่คิดค่าแรง', daily: 'รายวัน', hourly: 'รายชั่วโมง', piece: 'เหมางานย่อย', contract: 'เหมางาน' }[payType];
+}
+
+function TimeModeControl({ onChange, value }: { value: 'all_day' | 'time_range' | 'duration_only'; onChange: (value: 'all_day' | 'time_range' | 'duration_only') => void }) {
+  const options: Array<{ id: typeof value; label: string }> = [
+    { id: 'all_day', label: 'ทั้งวัน' },
+    { id: 'time_range', label: 'ตั้งแต่–ถึง' },
+    { id: 'duration_only', label: 'ระบุชั่วโมง' },
+  ];
+  return <View style={styles.timeModeRow}>{options.map((option) => <Pressable accessibilityRole="button" key={option.id} onPress={() => onChange(option.id)} style={[styles.timeModeButton, option.id === value && styles.timeModeButtonActive]}><Text style={[styles.timeModeText, option.id === value && styles.timeModeTextActive]}>{option.label}</Text></Pressable>)}</View>;
 }
 
 function SelectPill({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
@@ -1115,6 +1791,10 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginTop: 4,
   },
+  sheetCaption: {
+    color: tokens.color.text.muted,
+    fontSize: tokens.typography.metadata.size,
+  },
   summaryGrid: {
     borderTopColor: tokens.color.border.soft,
     borderTopWidth: 1,
@@ -1149,6 +1829,9 @@ const styles = StyleSheet.create({
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: tokens.spacing.control,
+  },
+  catalogControls: {
     gap: tokens.spacing.control,
   },
   quickGrid: {
@@ -1204,6 +1887,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  inlineActions: {
+    flexDirection: 'row',
+    gap: tokens.spacing.control,
+  },
   textArea: {
     minHeight: 92,
     textAlignVertical: 'top',
@@ -1216,9 +1903,55 @@ const styles = StyleSheet.create({
   formRow: {
     flexDirection: 'row',
     gap: tokens.spacing.control,
+    minWidth: 0,
   },
   formCell: {
     flex: 1,
+    flexBasis: 0,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  disclosure: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 44,
+  },
+  disclosureLabel: {
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.h3.size,
+    fontWeight: '700',
+  },
+  disclosureAction: {
+    color: tokens.color.primary.green,
+    fontSize: tokens.typography.metadata.size,
+    fontWeight: '700',
+  },
+  timeModeRow: {
+    flexDirection: 'row',
+    gap: tokens.spacing.control,
+  },
+  timeModeButton: {
+    alignItems: 'center',
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.button,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  timeModeButtonActive: {
+    backgroundColor: '#E5F2E6',
+    borderColor: tokens.color.primary.green,
+  },
+  timeModeText: {
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.caption.size,
+    fontWeight: '700',
+  },
+  timeModeTextActive: {
+    color: tokens.color.primary.green,
   },
   toggleRow: {
     gap: 4,
@@ -1235,7 +1968,108 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     paddingVertical: tokens.spacing.control,
   },
+  unitChoiceRow: {
+    flexDirection: 'row',
+    gap: tokens.spacing.control,
+  },
+  materialSummary: {
+    alignItems: 'center',
+    borderBottomColor: tokens.color.border.soft,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    minHeight: 64,
+  },
+  materialSummaryMain: {
+    flex: 1,
+    gap: 3,
+    paddingVertical: tokens.spacing.control,
+  },
+  materialSummaryRemove: {
+    paddingLeft: tokens.spacing.control,
+  },
+  materialSheetBackdrop: {
+    backgroundColor: 'rgba(31,45,31,0.35)',
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  materialSheet: {
+    backgroundColor: tokens.color.surface.sand,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    gap: tokens.spacing.control,
+    maxHeight: '84%',
+    padding: tokens.spacing.page,
+  },
+  sheetHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sheetTitle: {
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.h2.size,
+    fontWeight: '700',
+  },
+  close: {
+    color: tokens.color.primary.green,
+    fontSize: tokens.typography.body.size,
+    fontWeight: '700',
+  },
   materialUsageRow: {
+    borderBottomColor: tokens.color.border.soft,
+    borderBottomWidth: 1,
+    gap: tokens.spacing.control,
+    marginBottom: tokens.spacing.card,
+    paddingBottom: tokens.spacing.card,
+  },
+  chemicalBox: {
+    backgroundColor: '#F2F8ED',
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.button,
+    borderWidth: 1,
+    padding: tokens.spacing.control,
+  },
+  chemicalTitle: {
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.metadata.size,
+    fontWeight: '700',
+  },
+  calculatedDose: {
+    color: tokens.color.primary.green,
+    fontSize: tokens.typography.body.size,
+    fontWeight: '700',
+    marginTop: tokens.spacing.control,
+  },
+  lockedDose: {
+    backgroundColor: '#F2F8ED',
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.button,
+    borderWidth: 1,
+    marginTop: tokens.spacing.control,
+    padding: tokens.spacing.control,
+  },
+  followUpSummary: {
+    backgroundColor: '#F2F8ED',
+    borderColor: tokens.color.border.soft,
+    borderRadius: tokens.radius.button,
+    borderWidth: 1,
+    marginTop: tokens.spacing.control,
+    padding: tokens.spacing.control,
+  },
+  receipt: {
+    color: tokens.color.primary.green,
+    fontSize: tokens.typography.metadata.size,
+    fontWeight: '700',
+    marginTop: tokens.spacing.control,
+  },
+  reminderPanel: {
+    borderTopColor: tokens.color.border.soft,
+    borderTopWidth: 1,
+    gap: tokens.spacing.control,
+    marginTop: tokens.spacing.card,
+    paddingTop: tokens.spacing.card,
+  },
+  workerRow: {
     borderBottomColor: tokens.color.border.soft,
     borderBottomWidth: 1,
     gap: tokens.spacing.control,

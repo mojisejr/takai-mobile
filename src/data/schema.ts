@@ -184,4 +184,207 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         ON activity_materials(activity_id, sort_order)`,
     ],
   },
+  {
+    id: 4,
+    name: 'planting_identity_variety',
+    statements: [
+      `ALTER TABLE plantings ADD COLUMN variety TEXT`,
+      `CREATE INDEX IF NOT EXISTS idx_holes_plot_sort_active
+        ON holes(plot_id, sort_key, status)`,
+      `CREATE INDEX IF NOT EXISTS idx_plantings_hole_current
+        ON plantings(hole_id, removed_on)`,
+    ],
+  },
+  {
+    id: 5,
+    name: 'truthful_activity_time',
+    statements: [
+      `ALTER TABLE activities ADD COLUMN activity_date TEXT`,
+      `ALTER TABLE activities ADD COLUMN time_mode TEXT CHECK (time_mode IN ('all_day', 'time_range', 'duration_only'))`,
+      `ALTER TABLE activities ADD COLUMN started_at TEXT`,
+      `ALTER TABLE activities ADD COLUMN ended_at TEXT`,
+      `ALTER TABLE activities ADD COLUMN duration_minutes INTEGER`,
+      `CREATE INDEX IF NOT EXISTS idx_activities_plot_date
+        ON activities(plot_id, activity_date)`,
+    ],
+  },
+  {
+    id: 6,
+    name: 'chemical_catalog_and_use_snapshots',
+    statements: [
+      `ALTER TABLE materials ADD COLUMN common_name TEXT`,
+      `ALTER TABLE materials ADD COLUMN brand_name TEXT`,
+      `ALTER TABLE materials ADD COLUMN chemical_group TEXT`,
+      `ALTER TABLE materials ADD COLUMN usage_label TEXT`,
+      `ALTER TABLE materials ADD COLUMN reference_amount REAL`,
+      `ALTER TABLE materials ADD COLUMN reference_unit TEXT`,
+      `ALTER TABLE materials ADD COLUMN reference_water_litres REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN material_name_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN common_name_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN brand_name_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN reference_amount_snapshot REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN reference_unit_snapshot TEXT`,
+      `ALTER TABLE activity_materials ADD COLUMN reference_water_litres_snapshot REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN actual_tank_litres REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN calculated_amount REAL`,
+      `ALTER TABLE activity_materials ADD COLUMN manual_amount REAL`,
+    ],
+  },
+  {
+    id: 7,
+    name: 'follow_up_notification_reminders',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS notification_reminders (
+        activity_id TEXT PRIMARY KEY REFERENCES activities(id) ON DELETE CASCADE,
+        notification_id TEXT NOT NULL,
+        follow_up_on TEXT NOT NULL,
+        scheduled_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_notification_reminders_follow_up
+        ON notification_reminders(follow_up_on)`,
+    ],
+  },
+  {
+    id: 8,
+    name: 'planting_lifecycle_and_activity_identity',
+    statements: [
+      `ALTER TABLE plantings ADD COLUMN status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'dead', 'retired'))`,
+      `ALTER TABLE plantings ADD COLUMN removed_reason TEXT`,
+      `UPDATE plantings SET status = 'retired' WHERE removed_on IS NOT NULL`,
+      `ALTER TABLE activities ADD COLUMN planting_id TEXT REFERENCES plantings(id) ON DELETE SET NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_plantings_hole_lifecycle
+        ON plantings(hole_id, status, planted_on DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_activities_planting_performed_at
+        ON activities(planting_id, performed_at DESC)`,
+    ],
+  },
+  {
+    id: 9,
+    name: 'labor_mvp_core_ledger_and_timeline',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_jobs (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        work_date TEXT NOT NULL,
+        plot_id TEXT REFERENCES plots(id) ON DELETE SET NULL,
+        note TEXT NOT NULL DEFAULT '',
+        kind TEXT NOT NULL CHECK (kind IN ('normal', 'contract', 'legacy_import')),
+        status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'cancelled')),
+        cancellation_reason TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_job_participants (
+        id TEXT PRIMARY KEY,
+        labor_job_id TEXT NOT NULL REFERENCES labor_jobs(id) ON DELETE CASCADE,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        pay_type TEXT NOT NULL CHECK (pay_type IN ('none', 'daily', 'hourly', 'piece', 'contract')),
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        note TEXT NOT NULL DEFAULT '',
+        UNIQUE(labor_job_id, person_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payables (
+        id TEXT PRIMARY KEY,
+        labor_job_id TEXT NOT NULL REFERENCES labor_jobs(id) ON DELETE CASCADE,
+        participant_id TEXT NOT NULL REFERENCES labor_job_participants(id) ON DELETE CASCADE,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        due_satang INTEGER NOT NULL CHECK (typeof(due_satang) = 'integer' AND due_satang > 0),
+        status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'cancelled')),
+        cancellation_reason TEXT,
+        created_at TEXT NOT NULL,
+        UNIQUE(participant_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_batches (
+        id TEXT PRIMARY KEY,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        payment_date TEXT NOT NULL,
+        method TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        total_satang INTEGER NOT NULL CHECK (typeof(total_satang) = 'integer' AND total_satang > 0),
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        status TEXT NOT NULL DEFAULT 'posted' CHECK (status IN ('posted', 'cancelled')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_allocations (
+        id TEXT PRIMARY KEY,
+        payment_batch_id TEXT NOT NULL REFERENCES labor_payment_batches(id) ON DELETE CASCADE,
+        payable_id TEXT NOT NULL REFERENCES labor_payables(id),
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        UNIQUE(payment_batch_id, payable_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS timeline_events (
+        id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL CHECK (entity_type IN ('person', 'labor_job', 'labor_payment')),
+        entity_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        occurred_at TEXT NOT NULL,
+        reason TEXT,
+        before_json TEXT,
+        after_json TEXT NOT NULL,
+        person_id TEXT REFERENCES people(id),
+        labor_job_id TEXT REFERENCES labor_jobs(id) ON DELETE SET NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_jobs_work_date ON labor_jobs(work_date DESC, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_participants_person ON labor_job_participants(person_id, labor_job_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payables_person_open ON labor_payables(person_id, status, created_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_batches_person_date ON labor_payment_batches(person_id, payment_date DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_allocations_payable ON labor_payment_allocations(payable_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_timeline_events_entity ON timeline_events(entity_type, entity_id, occurred_at DESC)`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_timeline_event_update
+        BEFORE UPDATE ON timeline_events
+        BEGIN SELECT RAISE(ABORT, 'timeline events are immutable'); END`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_timeline_event_delete
+        BEFORE DELETE ON timeline_events
+        BEGIN SELECT RAISE(ABORT, 'timeline events are immutable'); END`,
+    ],
+  },
+  {
+    id: 10,
+    name: 'labor_mvp_contract_detail_surfaces',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_contract_details (
+        labor_job_id TEXT PRIMARY KEY REFERENCES labor_jobs(id) ON DELETE CASCADE,
+        starts_on TEXT,
+        deadline_on TEXT,
+        completed_on TEXT,
+        status TEXT NOT NULL DEFAULT 'awaiting_amount' CHECK (status IN ('in_progress', 'awaiting_amount', 'completed', 'cancelled')),
+        agreed_total_satang INTEGER CHECK (agreed_total_satang IS NULL OR (typeof(agreed_total_satang) = 'integer' AND agreed_total_satang > 0)),
+        final_total_satang INTEGER CHECK (final_total_satang IS NULL OR (typeof(final_total_satang) = 'integer' AND final_total_satang > 0))
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_job_progress (
+        id TEXT PRIMARY KEY,
+        labor_job_id TEXT NOT NULL REFERENCES labor_jobs(id) ON DELETE CASCADE,
+        progress_date TEXT NOT NULL,
+        note TEXT NOT NULL,
+        plot_id TEXT REFERENCES plots(id) ON DELETE SET NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_job_progress_job_date ON labor_job_progress(labor_job_id, progress_date DESC)`,
+    ],
+  },
+  {
+    id: 11,
+    name: 'labor_mvp_legacy_carry_forward_surfaces',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS legacy_labor_import_batches (
+        id TEXT PRIMARY KEY,
+        imported_at TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        created_by_person_id TEXT REFERENCES people(id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS legacy_labor_import_links (
+        id TEXT PRIMARY KEY,
+        import_batch_id TEXT NOT NULL REFERENCES legacy_labor_import_batches(id) ON DELETE CASCADE,
+        legacy_labor_entry_id TEXT NOT NULL REFERENCES labor_entries(id),
+        labor_payable_id TEXT NOT NULL REFERENCES labor_payables(id),
+        source_work_date TEXT NOT NULL,
+        source_due_satang INTEGER NOT NULL CHECK (typeof(source_due_satang) = 'integer' AND source_due_satang > 0),
+        created_at TEXT NOT NULL,
+        UNIQUE(legacy_labor_entry_id),
+        UNIQUE(labor_payable_id)
+      )`,
+    ],
+  },
 ];

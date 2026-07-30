@@ -35,7 +35,7 @@ const manifest = {
   project: 'takai-mobile',
   phase,
   lane: 'rn-web-eye',
-  claimLabel: 'RN Web Eye Closed',
+  claimLabel: 'RN Web Eye Pending',
   generatedAt: new Date().toISOString(),
   viewport: '390x844 target for browser capture',
   exportDir: `.oracle-eye/rn-web/${phase}/export`,
@@ -46,8 +46,8 @@ const manifest = {
     manifest: `.oracle-eye/rn-web/${phase}/manifest.json`,
   },
   notes: [
-    'This script closes RN Web export readiness and records the artifact sink.',
-    'Browser screenshot/console capture should use this sink for visual proof.',
+    'This script closes RN Web export readiness and records the artifact sink only.',
+    'RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.',
     'This lane does not close Expo Go Device Eye or Native Eye.',
   ],
 };

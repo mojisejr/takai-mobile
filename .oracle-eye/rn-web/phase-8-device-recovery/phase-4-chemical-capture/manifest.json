@@ -1,0 +1,26 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-4-chemical-capture",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "targetUrl": "http://localhost:8081/",
+  "viewport": "390x844",
+  "screensChecked": ["Activity collapsed", "Material picker", "Empty material section", "Chemical detail sheet", "50 L automatic calculation", "Advanced manual override", "Saved activity receipt"],
+  "calculation": { "reference": "20 cc / 200 L", "actualTankLitres": 50, "result": "5 cc", "savedReceipt": "activity-web-preview-field" },
+  "artifacts": [
+    "browser/activity-collapsed-390x844.png",
+    "browser/material-empty-390x844.png",
+    "browser/material-picker-accessibility.md",
+    "browser/material-detail-50l-390x844.png",
+    "browser/material-detail-50l-accessibility.md",
+    "browser/manual-override-390x844.png",
+    "browser/activity-saved-proof-390x844.png",
+    "browser/activity-saved-proof-accessibility.md",
+    "browser/console-proof.json",
+    "browser/network-proof.json"
+  ],
+  "console": { "errors": 0, "knownWarnings": ["React DevTools development hint", "shadow style deprecation", "expo-notifications web listener limitation"] },
+  "network": { "failedRequests": 0, "notes": "No non-static failures reported by Playwright." },
+  "notes": ["Web save receipt proves preview flow only.", "Notification scheduling is expected to be unavailable on web and remains a native/device proof item."],
+  "boundary": "RN Web evidence does not close Expo Go Device Eye or Native Eye."
+}

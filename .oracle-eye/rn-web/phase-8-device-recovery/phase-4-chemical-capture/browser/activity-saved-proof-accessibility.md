@@ -1,0 +1,70 @@
+- generic [ref=f5e5] [box=0,0,390,844]:
+  - generic [ref=f5e7] [box=0,-690,390,1573]:
+    - generic [ref=f5e15] [box=16,-674,358,52]:
+      - generic [ref=f5e16] [box=32,-663,28,30]: ☰
+      - generic [ref=f5e17] [box=72,-662,224,28]: บันทึกกิจกรรม
+      - button "ออฟไลน์" [ref=f5e18] [cursor=pointer] [box=308,-657,50,19]
+    - generic [ref=f5e245] [box=16,-606,260,28]: บันทึกกิจกรรมแล้ว · ตั้งการแจ้งเตือนไม่สำเร็จ
+    - generic [ref=f5e110] [box=16,-562,358,117]:
+      - generic [ref=f5e111] [box=31,-547,328,18]: บันทึกภาคสนาม
+      - generic [ref=f5e112] [box=31,-529,328,23]: พ่นยา · แปลง A
+      - generic [ref=f5e113] [box=31,-502,328,42]: เลือก ค้นหา หรือเพิ่มรายการใหม่ได้ โดยแบบฟอร์มที่กำลังกรอกจะไม่หาย
+    - generic [ref=f5e114] [box=16,-429,358,366]:
+      - generic [ref=f5e115] [box=16,-429,358,36]: 1. งานและสถานที่
+      - generic [ref=f5e118] [box=16,-385,358,322]:
+        - generic [ref=f5e119] [box=31,-370,328,73]:
+          - generic [ref=f5e120] [box=31,-370,328,19]: หมวดงาน
+          - button "พ่นยา เลือก" [ref=f5e121] [cursor=pointer] [box=31,-345,328,48]:
+            - generic [ref=f5e122] [box=44,-332,261,22]: พ่นยา
+            - generic [ref=f5e123] [box=317,-330,29,19]: เลือก
+        - generic [ref=f5e124] [box=31,-297,328,73]:
+          - generic [ref=f5e125] [box=31,-297,328,19]: แปลง
+          - button "แปลง A เลือก" [ref=f5e126] [cursor=pointer] [box=31,-272,328,48]:
+            - generic [ref=f5e127] [box=44,-259,261,22]: แปลง A
+            - generic [ref=f5e128] [box=317,-257,29,19]: เลือก
+        - generic [ref=f5e129] [box=31,-224,328,73]:
+          - generic [ref=f5e130] [box=31,-224,328,19]: เป้าหมายในแปลง
+          - button "เลือกทั้งแปลง หลุม หรือเคส เลือก" [ref=f5e131] [cursor=pointer] [box=31,-199,328,48]:
+            - generic [ref=f5e132] [box=44,-186,261,22]: เลือกทั้งแปลง หลุม หรือเคส
+            - generic [ref=f5e133] [box=317,-184,29,19]: เลือก
+        - generic [ref=f5e134] [box=31,-151,328,73]:
+          - generic [ref=f5e135] [box=31,-151,328,19]: วันที่ทำงาน
+          - textbox "YYYY-MM-DD" [ref=f5e136] [box=31,-126,328,48]: 2026-07-29
+    - button "เวลา เพิ่มถ้าจำเป็น" [ref=f5e137] [cursor=pointer] [box=16,-47,358,44]:
+      - generic [ref=f5e138] [box=16,-36,33,23]: เวลา
+      - generic [ref=f5e139] [box=299,-34,75,19]: เพิ่มถ้าจำเป็น
+    - generic [ref=f5e140] [box=16,13,358,200]:
+      - generic [ref=f5e141] [box=16,13,358,36]: 2. บันทึก
+      - generic [ref=f5e144] [box=16,57,358,156]:
+        - generic [ref=f5e145] [box=31,82,328,18]: บันทึก
+        - textbox [ref=f5e146] [box=31,106,328,92]: พ่นยาเชื้อราที่โคนต้นและรอบทรงพุ่ม
+    - button "วัสดุครั้งนี้ ซ่อน" [ref=f5e161] [cursor=pointer] [box=16,229,358,44]:
+      - generic [ref=f5e148] [box=16,240,68,23]: วัสดุครั้งนี้
+      - generic [ref=f5e149] [box=348,242,26,19]: ซ่อน
+    - generic [ref=f5e162] [box=16,289,358,188]:
+      - generic [ref=f5e163] [box=16,289,358,36]: 3. วัสดุครั้งนี้
+      - generic [ref=f5e166] [box=16,333,358,144]:
+        - generic [ref=f5e170] [box=31,348,328,68]:
+          - button "แมนโคเซบ · ยา A 5 cc · อัตโนมัติ · ถัง 50 L" [ref=f5e244] [cursor=pointer] [box=31,348,267,67]:
+            - generic [ref=f5e172] [box=31,356,267,23]: แมนโคเซบ · ยา A
+            - generic [ref=f5e173] [box=31,386,267,21]: 5 cc · อัตโนมัติ · ถัง 50 L
+          - button "นำออก" [ref=f5e174] [cursor=pointer] [box=298,365,61,34]
+        - button "+ เลือกวัสดุ" [ref=f5e168] [cursor=pointer] [box=31,416,328,46]
+    - button "คนงานและค่าแรง เพิ่มถ้าจำเป็น" [ref=f5e150] [cursor=pointer] [box=16,493,358,44]:
+      - generic [ref=f5e151] [box=16,504,123,23]: คนงานและค่าแรง
+      - generic [ref=f5e152] [box=299,506,75,19]: เพิ่มถ้าจำเป็น
+    - button "ติดตามต่อ เพิ่มถ้าจำเป็น" [ref=f5e153] [cursor=pointer] [box=16,553,358,44]:
+      - generic [ref=f5e154] [box=16,564,72,23]: ติดตามต่อ
+      - generic [ref=f5e155] [box=299,566,75,19]: เพิ่มถ้าจำเป็น
+    - generic [ref=f5e247] [box=16,613,358,105]:
+      - generic [ref=f5e248] [box=31,628,328,23]: บันทึกสำเร็จ
+      - generic [ref=f5e249] [box=31,655,328,21]: บันทึกกิจกรรมแล้ว · ตั้งการแจ้งเตือนไม่สำเร็จ
+      - generic [ref=f5e250] [box=31,684,328,19]: "เลขที่บันทึก: activity-web-preview-field"
+    - button "บันทึกกิจกรรมลงเครื่อง" [ref=f5e157] [cursor=pointer] [box=16,751,358,46]
+    - button "กลับวันนี้" [ref=f5e159] [cursor=pointer] [box=16,829,358,46]
+  - generic [ref=f5e99] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f5e100] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=f5e102] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f5e104] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f5e106] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f5e108] [cursor=pointer] [box=298,777,69,44]

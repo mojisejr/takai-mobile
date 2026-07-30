@@ -1,0 +1,24 @@
+- generic [ref=f2e5] [box=0,0,390,844]:
+  - generic [ref=f2e7] [box=0,0,390,274]:
+    - generic [ref=f2e8] [box=16,16,358,52]:
+      - generic [ref=f2e9] [box=32,27,28,30]: ☰
+      - generic [ref=f2e10] [box=72,28,224,28]: แปลง
+      - button "ออฟไลน์" [ref=f2e11] [cursor=pointer] [box=308,33,50,19]
+    - generic [ref=f2e103] [box=16,84,358,120]:
+      - button "แปลง A 6.2 ไร่ · ปลูกแล้ว 1/1 หลุม ครบ" [ref=f2e104] [cursor=pointer] [box=17,85,356,59]:
+        - generic [ref=f2e106] [box=47,93,283,42]:
+          - generic [ref=f2e107] [box=47,93,283,22]: แปลง A
+          - generic [ref=f2e108] [box=47,117,283,18]: 6.2 ไร่ · ปลูกแล้ว 1/1 หลุม
+        - generic [ref=f2e109] [box=338,105,23,18]: ครบ
+      - button "แปลงหลังบ้าน 1.5 ไร่ · ปลูกแล้ว 0/1 หลุม ว่าง 1" [ref=f2e110] [cursor=pointer] [box=17,144,356,59]:
+        - generic [ref=f2e112] [box=47,152,277,42]:
+          - generic [ref=f2e113] [box=47,152,277,22]: แปลงหลังบ้าน
+          - generic [ref=f2e114] [box=47,176,277,18]: 1.5 ไร่ · ปลูกแล้ว 0/1 หลุม
+        - generic [ref=f2e115] [box=332,164,29,18]: ว่าง 1
+    - button "+ เพิ่มแปลง" [ref=f2e116] [cursor=pointer] [box=16,220,358,46]
+  - generic [ref=f2e92] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f2e93] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [active] [ref=f2e95] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=f2e97] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=f2e99] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f2e101] [cursor=pointer] [box=298,777,69,44]

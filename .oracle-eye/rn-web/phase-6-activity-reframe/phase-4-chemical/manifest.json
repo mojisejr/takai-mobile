@@ -1,0 +1,20 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-6-activity-reframe/phase-4-chemical",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Pending",
+  "generatedAt": "2026-07-28T07:48:09.359Z",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-4-chemical/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-4-chemical/export/index.html",
+    "browserScreenshot": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-4-chemical/browser/takai-mobile-h3-rn-web-390x844.png",
+    "browserEvidence": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-4-chemical/browser/browser-evidence.json",
+    "manifest": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-4-chemical/manifest.json"
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink only.",
+    "RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

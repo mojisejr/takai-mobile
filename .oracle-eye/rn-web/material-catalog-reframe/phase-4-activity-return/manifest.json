@@ -1,0 +1,25 @@
+{
+  "project": "takai-mobile",
+  "phase": "material-catalog-reframe/phase-4-activity-return",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-07-29T08:55:12+07:00",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/export/index.html",
+    "doseScreenshot": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/browser/dose-50l-5cc-390x844.png",
+    "activityScreenshot": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/browser/activity-compact-summary-390x844.png",
+    "doseAccessibility": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/browser/dose-50l-accessibility.md",
+    "activityAccessibility": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/browser/activity-save-accessibility.md",
+    "console": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/browser/console-final.json",
+    "network": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/browser/network-final.json",
+    "manifest": ".oracle-eye/rn-web/material-catalog-reframe/phase-4-activity-return/manifest.json"
+  },
+  "notes": [
+    "390x844 RN Web journey exercised Activity picker -> rate material -> 50 L tank -> automatic locked 5 cc -> compact summary -> save receipt.",
+    "Final browser console captured 0 errors; two known warnings are React Native Web shadow deprecation and Expo Notifications web listener availability.",
+    "No non-static network failures were captured. The web preview notification listener limitation is surfaced in its receipt and does not claim Android notification proof.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

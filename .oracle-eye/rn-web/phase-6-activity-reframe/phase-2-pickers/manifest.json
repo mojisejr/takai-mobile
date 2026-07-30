@@ -1,0 +1,20 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-6-activity-reframe/phase-2-pickers",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-07-28T07:32:11.331Z",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-2-pickers/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-2-pickers/export/index.html",
+    "browserScreenshot": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-2-pickers/browser/takai-mobile-h3-rn-web-390x844.png",
+    "browserEvidence": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-2-pickers/browser/browser-evidence.json",
+    "manifest": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-2-pickers/manifest.json"
+  },
+  "browserEvidence": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-2-pickers/browser/browser-evidence.json",
+  "notes": [
+    "RN Web export readiness passed and the browser evidence listed above was captured for this phase.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

@@ -1,0 +1,79 @@
+- generic [ref=e5] [box=0,0,390,844]:
+  - generic [ref=e7] [box=0,-830,390,1860]:
+    - generic [ref=e8] [box=16,-814,358,52]:
+      - generic [ref=e9] [box=32,-803,28,30]: ☰
+      - generic [ref=e10] [box=72,-802,224,28]: แปลง A
+      - button "ออฟไลน์" [ref=e11] [cursor=pointer] [box=308,-797,50,19]
+    - generic [ref=e176] [box=16,-746,216,28]: ปลูกต้นไม้แล้ว · พร้อมบันทึกกิจกรรม
+    - generic [ref=e93] [box=16,-702,358,155]:
+      - generic [ref=e94] [box=31,-687,328,56]:
+        - generic [ref=e95] [box=31,-687,77,56]:
+          - generic [ref=e96] [box=31,-687,77,16]: Crop 2026
+          - generic [ref=e97] [box=31,-669,77,38]: 6.2 ไร่
+        - generic [ref=e98] [box=299,-687,60,26]: Active
+      - generic [ref=e100] [box=31,-617,328,55]:
+        - generic [ref=e101] [box=31,-602,104,40]:
+          - generic [ref=e102] [box=31,-602,104,20]: "300"
+          - generic [ref=e103] [box=31,-580,104,18]: หลุมทั้งหมด
+        - generic [ref=e104] [box=143,-602,104,40]:
+          - generic [ref=e105] [box=143,-602,104,20]: "278"
+          - generic [ref=e106] [box=143,-580,104,18]: หลุมปลูก
+        - generic [ref=e107] [box=255,-602,104,40]:
+          - generic [ref=e108] [box=255,-602,104,20]: "22"
+          - generic [ref=e109] [box=255,-580,104,18]: หลุมว่าง
+    - generic [ref=e110] [box=16,-531,358,36]: ตั้งค่าสวนก่อนบันทึก
+    - generic [ref=e112] [box=16,-479,358,293]:
+      - generic [ref=e113] [box=31,-464,328,23]: 1. เลือกหรือเพิ่มแปลง
+      - generic [ref=e114] [box=31,-441,328,38]:
+        - generic [ref=e115] [cursor=pointer] [box=31,-441,72,38]: แปลง A
+        - generic [ref=e178] [cursor=pointer] [box=111,-441,130,38]: แปลงทดสอบ Eye
+      - generic [ref=e117] [box=31,-393,328,18]: ชื่อแปลงใหม่
+      - textbox "เช่น แปลงหลังบ้าน" [ref=e118] [box=31,-369,328,44]
+      - generic [ref=e119] [box=31,-315,328,18]: พื้นที่ (ไร่, ไม่บังคับ)
+      - textbox "0" [ref=e120] [box=31,-291,328,44]
+      - button "+ เพิ่มแปลงนี้" [ref=e121] [cursor=pointer] [box=31,-247,328,46]
+    - generic [ref=e123] [box=16,-170,358,177]:
+      - generic [ref=e124] [box=31,-155,328,23]: 2. เพิ่มหลุมใน แปลงทดสอบ Eye
+      - generic [ref=e125] [box=31,-122,328,18]: รหัสหรือชื่อหลุม
+      - textbox "เช่น B-001" [ref=e126] [box=31,-98,328,44]
+      - button "+ เพิ่มหลุม" [ref=e127] [cursor=pointer] [box=31,-54,328,46]
+    - generic [ref=e129] [box=16,23,358,358]:
+      - generic [ref=e130] [box=31,38,328,23]: 3. ใส่ต้นไม้ในหลุม
+      - generic [ref=e131] [box=31,65,328,21]: เลือกหลุมที่เพิ่งเพิ่ม หรือดูหลุมเดิมก่อนปลูก
+      - generic [ref=e132] [box=31,96,328,18]: ชื่อต้นไม้
+      - textbox "เช่น ทุเรียน" [ref=e133] [box=31,120,328,44]
+      - generic [ref=e134] [box=31,174,328,18]: พันธุ์ (ไม่บังคับ)
+      - textbox "เช่น หมอนทอง" [ref=e135] [box=31,198,328,44]
+      - generic [ref=e136] [box=31,252,328,18]: วันปลูก (YYYY-MM-DD)
+      - textbox "2026-07-28" [ref=e137] [box=31,276,328,44]
+      - button "บันทึกต้นไม้" [active] [ref=e138] [cursor=pointer] [box=31,320,328,46]
+    - button "ไปบันทึกกิจกรรมของหลุมนี้" [ref=e140] [cursor=pointer] [box=16,397,358,46]
+    - generic [ref=e142] [box=16,459,358,36]:
+      - generic [ref=e143] [box=16,463,149,28]: Tracker ที่ติดตาม
+      - button "จัดการ" [ref=e144] [cursor=pointer] [box=335,468,39,19]
+    - generic [ref=e146] [box=16,511,358,96]:
+      - generic [ref=e147] [box=31,526,328,23]: พ่นยา
+      - generic [ref=e149] [box=31,555,328,19]: ครั้งที่ 0 ยังไม่เริ่ม
+    - generic [ref=e151] [box=16,623,358,96]:
+      - generic [ref=e152] [box=31,638,328,23]:
+        - generic [ref=e153] [box=31,638,40,23]: ใส่ปุ๋ย
+        - generic [ref=e154] [box=315,640,44,19]: 25 กค.
+      - generic [ref=e155] [box=31,667,328,19]: ครั้งที่ 3 ผ่านมา 6 วัน
+    - generic [ref=e158] [box=16,735,358,96]:
+      - generic [ref=e159] [box=31,750,328,23]:
+        - generic [ref=e160] [box=31,750,48,23]: แต่งกิ่ง
+        - generic [ref=e161] [box=315,752,44,19]: 28 กค.
+      - generic [ref=e162] [box=31,779,328,19]: ครั้งที่ 2 ผ่านมา 13 วัน
+    - generic [ref=e165] [box=16,847,358,36]: Active Cases
+    - button "เชื้อราที่โคนต้น หลุม A-014 ติดตามอยู่" [ref=e168] [cursor=pointer] [box=17,900,356,59]:
+      - generic [ref=e170] [box=47,908,251,42]:
+        - generic [ref=e171] [box=47,908,251,22]: เชื้อราที่โคนต้น
+        - generic [ref=e172] [box=47,932,251,18]: หลุม A-014
+      - generic [ref=e173] [box=306,920,55,18]: ติดตามอยู่
+    - button "ดูหลุม A-014" [ref=e174] [cursor=pointer] [box=16,976,358,46]
+  - generic [ref=e82] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=e83] [cursor=pointer] [box=23,777,69,44]
+    - tab "แปลง" [ref=e85] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึก" [ref=e87] [cursor=pointer] [box=161,777,69,44]
+    - tab "เคส" [ref=e89] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=e91] [cursor=pointer] [box=298,777,69,44]

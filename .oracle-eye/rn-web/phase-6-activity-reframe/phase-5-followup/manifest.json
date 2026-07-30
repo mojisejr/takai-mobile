@@ -1,0 +1,20 @@
+{
+  "project": "takai-mobile",
+  "phase": "phase-6-activity-reframe/phase-5-followup",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Pending",
+  "generatedAt": "2026-07-28T10:11:14.472Z",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-5-followup/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-5-followup/export/index.html",
+    "browserScreenshot": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-5-followup/browser/takai-mobile-h3-rn-web-390x844.png",
+    "browserEvidence": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-5-followup/browser/browser-evidence.json",
+    "manifest": ".oracle-eye/rn-web/phase-6-activity-reframe/phase-5-followup/manifest.json"
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink only.",
+    "RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}
