@@ -478,4 +478,45 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         BEGIN SELECT RAISE(ABORT, 'labor hourly work-basis snapshots are immutable'); END`,
     ],
   },
+  {
+    id: 15,
+    name: 'labor_worker_advances_and_recoveries',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_worker_advances (
+        id TEXT PRIMARY KEY,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        advance_date TEXT NOT NULL,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        method TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        status TEXT NOT NULL DEFAULT 'posted' CHECK (status IN ('posted', 'revised', 'cancelled')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_advance_deductions (
+        id TEXT PRIMARY KEY,
+        labor_worker_advance_id TEXT NOT NULL REFERENCES labor_worker_advances(id) ON DELETE RESTRICT,
+        labor_payable_id TEXT NOT NULL REFERENCES labor_payables(id) ON DELETE RESTRICT,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        recovery_date TEXT NOT NULL,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        UNIQUE(labor_worker_advance_id, labor_payable_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_worker_advances_person_date
+        ON labor_worker_advances(person_id, advance_date DESC, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_advance_deductions_advance
+        ON labor_advance_deductions(labor_worker_advance_id, recovery_date ASC, created_at ASC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_advance_deductions_payable
+        ON labor_advance_deductions(labor_payable_id)`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_labor_advance_deduction_update
+        BEFORE UPDATE ON labor_advance_deductions
+        BEGIN SELECT RAISE(ABORT, 'labor advance deductions are immutable'); END`,
+      `CREATE TRIGGER IF NOT EXISTS prevent_labor_advance_deduction_delete
+        BEFORE DELETE ON labor_advance_deductions
+        BEGIN SELECT RAISE(ABORT, 'labor advance deductions are immutable'); END`,
+    ],
+  },
 ];
