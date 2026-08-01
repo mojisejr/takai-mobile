@@ -158,6 +158,28 @@ export type EditLaborSettlementGroupReceiptInput = Omit<PostLaborSettlementGroup
   reason: string;
 };
 
+export type CreateLaborWorkerAdvanceInput = {
+  id?: string;
+  personId: string;
+  advanceDate: string;
+  amountSatang: number;
+  method?: string;
+  note?: string;
+};
+
+export type EditLaborWorkerAdvanceInput = Omit<CreateLaborWorkerAdvanceInput, 'id' | 'personId'> & {
+  reason: string;
+};
+
+export type ApplyLaborAdvanceDeductionInput = {
+  id?: string;
+  advanceId: string;
+  payableId: string;
+  recoveryDate: string;
+  amountSatang: number;
+  note?: string;
+};
+
 export type LaborWorker = {
   id: string;
   displayName: string;
@@ -175,8 +197,32 @@ export type LaborPayable = {
   personId: string;
   dueSatang: number;
   paidSatang: number;
+  recoveredSatang: number;
   remainingSatang: number;
   kind: 'normal' | 'contract' | 'legacy_import';
+};
+
+export type LaborWorkerAdvance = {
+  id: string;
+  personId: string;
+  advanceDate: string;
+  amountSatang: number;
+  recoveredSatang: number;
+  remainingSatang: number;
+  method: string;
+  note: string;
+  currentRevision: number;
+  status: 'posted' | 'revised' | 'cancelled';
+};
+
+export type LaborAdvanceDeduction = {
+  id: string;
+  advanceId: string;
+  payableId: string;
+  personId: string;
+  recoveryDate: string;
+  amountSatang: number;
+  note: string;
 };
 
 export type LaborPayment = {
@@ -244,9 +290,16 @@ export type LaborTimelineEvent = {
 };
 
 export type LaborPersonBalance = LaborWorker & {
+  /** Legacy aliases for gross earned wage, cash paid, and wage remaining. */
   dueSatang: number;
   paidSatang: number;
   remainingSatang: number;
+  grossEarnedSatang: number;
+  cashPaidSatang: number;
+  wageRemainingSatang: number;
+  advanceIssuedSatang: number;
+  advanceRecoveredSatang: number;
+  advanceRemainingSatang: number;
 };
 
 export type LaborContractProgress = {
@@ -298,4 +351,6 @@ export type LaborMvpReadModel = {
   legacyBalances: LegacyCarryForwardBalance[];
   settlementGroups: LaborSettlementGroup[];
   workBasisSnapshots: LaborWorkBasisSnapshot[];
+  advances: LaborWorkerAdvance[];
+  advanceDeductions: LaborAdvanceDeduction[];
 };
