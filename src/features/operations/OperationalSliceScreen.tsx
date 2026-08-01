@@ -806,11 +806,11 @@ export function OperationalSliceScreen() {
   }, [refresh, settlePersonId, state]);
 
   const activeTab = useMemo(() => {
-    if (view === 'plot' || view === 'plotList' || view === 'plotCreate' || view === 'plotDetail' || view === 'trackerManage') return 'plots';
-    if (view === 'activity') return 'activity';
-    if (view === 'cases') return 'cases';
-    if (view === 'labor' || view === 'materials' || view === 'hole' || view === 'menu' || view === 'categories' || view === 'workers') return 'menu';
-    if (view === 'designLab') return 'menu';
+    if (view === 'plot' || view === 'plotList' || view === 'plotCreate' || view === 'plotDetail' || view === 'trackerManage' || view === 'cases') return 'work';
+    if (view === 'activity') return 'record';
+    if (view === 'labor' || view === 'workers') return 'people';
+    if (view === 'materials' || view === 'hole' || view === 'menu' || view === 'categories') return 'more';
+    if (view === 'designLab') return 'more';
     return 'today';
   }, [view]);
 
@@ -941,10 +941,10 @@ export function OperationalSliceScreen() {
   return (
     <AppShell activeTab={activeTab} onTabPress={(tab) => {
       if (tab === 'today') setView('today');
-      if (tab === 'plots') setView('plotList');
-      if (tab === 'activity') setView('activity');
-      if (tab === 'cases') setView('cases');
-      if (tab === 'menu') setView('menu');
+      if (tab === 'work') setView('plotList');
+      if (tab === 'record') setView('activity');
+      if (tab === 'people') setView('workers');
+      if (tab === 'more') setView('menu');
     }}>
       <TopBar title={screenTitle} actionLabel="ออฟไลน์" />
 

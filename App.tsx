@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { OperationalSliceScreen } from './src/features/operations/OperationalSliceScreen';
+import { LaborMvpApp } from './src/features/labor-mvp/LaborMvpApp';
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <OperationalSliceScreen />
+      <LaborMvpApp />
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

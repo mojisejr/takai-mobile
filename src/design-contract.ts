@@ -2,28 +2,23 @@ import { tokens } from './theme/tokens';
 import {
   AppShell,
   BottomTabBar,
-  EvidenceTimeline,
   FieldCard,
   PrimaryButton,
-  RecordListItem,
   SectionHeader,
   StatusChip,
   TopBar,
-  TrackerCard,
 } from './ui';
 
 export const designContract = {
   tokens,
+  navigation: ['today', 'work', 'record', 'people', 'more'] as const,
   primitives: {
     AppShell,
     BottomTabBar,
-    EvidenceTimeline,
     FieldCard,
     PrimaryButton,
-    RecordListItem,
     SectionHeader,
     StatusChip,
     TopBar,
-    TrackerCard,
   },
 };

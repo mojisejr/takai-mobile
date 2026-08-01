@@ -23,8 +23,8 @@ const webOperations = readRequired('src/features/operations/index.web.ts');
 const webData = readRequired('src/data/index.web.ts');
 
 const requiredScreenContracts = [
-  "if (tab === 'cases') setView('cases')",
-  "if (tab === 'menu') setView('menu')",
+  "if (tab === 'work') setView('plotList')",
+  "if (tab === 'more') setView('menu')",
   "view === 'menu'",
   'getCaseList(db)',
   'getMenuDashboard(db)',
@@ -39,7 +39,7 @@ for (const contract of requiredScreenContracts) {
   }
 }
 
-if (screen.includes("if (tab === 'menu') setView('designLab')")) {
+if (screen.includes("if (tab === 'more') setView('designLab')")) {
   fail('bottom menu tab must not route directly to Design Lab');
 }
 
@@ -55,8 +55,8 @@ if (!webOperations.includes('export const getCaseList') || !webOperations.includ
   fail('RN Web preview adapter must expose case list and menu dashboard read models');
 }
 
-if (!webData.includes('closedCase: boolean') || !webData.includes('closedCase: false')) {
-  fail('RN Web preview db must seed closedCase state for case close proof');
+if (!webData.includes('initializeTakaiLaborPreview') || !webData.includes('createWebLaborPreviewAdapter')) {
+  fail('Labor MVP web preview must use the Labor preview adapter');
 }
 
-console.log('MENU_CASE_CONTRACT_PASS: menu route and case surface contracts are valid');
+console.log('MENU_CASE_CONTRACT_PASS: preserved legacy menu/case contracts coexist with Labor MVP web preview cutover');

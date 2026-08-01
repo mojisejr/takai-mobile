@@ -92,7 +92,7 @@ export function DesignLabScreen() {
       </View>
 
       <SectionHeader title="แถบนำทาง" />
-      <BottomTabBar activeTab="activity" />
+      <BottomTabBar activeTab="record" />
 
       <SectionHeader title="Tracker รายแปลง" actionLabel="ทั้งหมด" />
       <TrackerCard title="พ่นยา" countLabel="ครั้งที่ 5" elapsedLabel="ผ่านมา 4 วัน" nextDueLabel="20 ก.ค." progress={0.62} variant="spray" />
