@@ -13,6 +13,28 @@ verify_tokens:
     expect: "12"
   - name: typography.body.size
     expect: "16"
+verify_eyes:
+  - kind: rn-static-eye
+    gate: required
+    sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
+    does_not_see: [Rendered browser layout, Android touch, native safe areas]
+    artifact_sink: .oracle-eye/rn-static/labor-calendar-mvp/
+    commands: [npm run test:design-contract, npm run test:labor-read-ui]
+    claim_label: RN Static Token Gate Closed
+  - kind: rn-web-eye
+    gate: required
+    sees: [Rendered Expo Web layout, browser console, failed requests, narrow viewport overflow]
+    does_not_see: [Expo Go touch, physical safe areas, native packaging]
+    artifact_sink: .oracle-eye/rn-web/labor-calendar-mvp/
+    commands: [npm run eye:rn-web, browser capture at 390x844 and 320px]
+    claim_label: RN Web Eye Closed
+  - kind: expo-go-device-eye
+    gate: manual
+    sees: [Android touch, scrolling, keyboard, safe area, operator comprehension]
+    does_not_see: [Native build packaging]
+    artifact_sink: .oracle-eye/expo-go/labor-calendar-mvp/
+    commands: [Operator runs Expo Go Android scenarios in Phase 5]
+    claim_label: Expo Go Device Eye Closed
 labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, คน, เมนู]
 proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
 ---

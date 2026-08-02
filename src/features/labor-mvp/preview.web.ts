@@ -1,5 +1,28 @@
 import type { LaborPreviewAdapter } from './preview';
-import { LABOR_PREVIEW_WEB_READ_MODEL } from './preview.web.fixture';
+import type { LaborCalendarRangeInput, LaborHistoryInput, LaborProjectionEvent } from './types';
+import { LABOR_PREVIEW_WEB_PROJECTIONS, LABOR_PREVIEW_WEB_READ_MODEL } from './preview.web.fixture';
+
+const matches = (event: LaborProjectionEvent, input: LaborCalendarRangeInput): boolean => {
+  if (input.personId && event.personId !== input.personId && !event.personIds.includes(input.personId)) return false;
+  if (input.eventTypes?.length && !input.eventTypes.includes(event.eventType)) return false;
+  if (input.paymentState && event.paymentState !== input.paymentState) return false;
+  if (input.settlementRoute && event.settlementRoute !== input.settlementRoute) return false;
+  const keyword = input.keyword?.trim().toLocaleLowerCase('th-TH');
+  return !keyword || `${event.label} ${event.detail}`.toLocaleLowerCase('th-TH').includes(keyword);
+};
+
+const calendar = (input: LaborCalendarRangeInput) => ({
+  startDate: input.startDate,
+  endDate: input.endDate,
+  days: LABOR_PREVIEW_WEB_PROJECTIONS.calendar.days
+    .filter((day) => day.date >= input.startDate && day.date <= input.endDate)
+    .map((day) => ({ ...day, events: day.events.filter((event) => matches(event, input)) })),
+});
+
+const history = (input: LaborHistoryInput) => {
+  const events = LABOR_PREVIEW_WEB_PROJECTIONS.history.events.filter((event) => event.effectiveDate >= input.startDate && event.effectiveDate <= input.endDate && matches(event, input));
+  return { events: input.limit ? events.slice(0, input.limit) : events, total: events.length };
+};
 
 /**
  * Expo SQLite's WASM bundle is not available in this repository's web export.
@@ -11,4 +34,11 @@ export const createWebLaborPreviewAdapter = (): LaborPreviewAdapter => ({
   label: 'ตัวอย่าง Labor Preview · ข้อมูลจาก Labor ledger',
   fixtureVersion: 'labor-preview-v1',
   getReadModel: async () => structuredClone(LABOR_PREVIEW_WEB_READ_MODEL),
+  getTodaySummary: async (date = '2026-08-02') => date === LABOR_PREVIEW_WEB_PROJECTIONS.today.date
+    ? structuredClone(LABOR_PREVIEW_WEB_PROJECTIONS.today)
+    : { date, day: { date, events: [], workCount: 0, workDueSatang: 0, individualPaymentSatang: 0, groupReceiptSatang: 0, advanceIssuedSatang: 0, advanceRecoveredSatang: 0, contractProgressCount: 0, contractCompletionCount: 0, contractDeadlineCount: 0 }, unpaidPeople: [], advanceAttentionPeople: [] },
+  getCalendarRange: async (input) => structuredClone(calendar(input)),
+  getHistory: async (input) => structuredClone(history(input)),
+  getJobDetail: async (jobId) => structuredClone(LABOR_PREVIEW_WEB_PROJECTIONS.jobs[jobId] ?? null),
+  getPersonDetail: async (personId) => structuredClone(LABOR_PREVIEW_WEB_PROJECTIONS.people[personId] ?? null),
 });

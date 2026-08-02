@@ -4,12 +4,17 @@ import {
   createLaborWorker,
   createLaborWorkerAdvance,
   createNormalWork,
+  getLaborCalendarRange,
+  getLaborHistory,
+  getLaborJobDetail,
   getLaborMvpReadModel,
+  getLaborPersonDetail,
+  getLaborTodaySummary,
   listLaborWorkers,
   postLaborPayment,
   postLaborSettlementGroupReceipt,
 } from './repository';
-import type { LaborMvpReadModel } from './types';
+import type { LaborCalendarRange, LaborCalendarRangeInput, LaborHistory, LaborHistoryInput, LaborJobDetail, LaborMvpReadModel, LaborPersonDetail, LaborTodaySummary } from './types';
 
 export const LABOR_PREVIEW_FIXTURE = {
   version: 'labor-preview-v1',
@@ -26,6 +31,11 @@ export type LaborPreviewAdapter = {
   label: string;
   fixtureVersion: typeof LABOR_PREVIEW_FIXTURE.version;
   getReadModel: () => Promise<LaborMvpReadModel>;
+  getTodaySummary: (date?: string) => Promise<LaborTodaySummary>;
+  getCalendarRange: (input: LaborCalendarRangeInput) => Promise<LaborCalendarRange>;
+  getHistory: (input: LaborHistoryInput) => Promise<LaborHistory>;
+  getJobDetail: (jobId: string) => Promise<LaborJobDetail | null>;
+  getPersonDetail: (personId: string) => Promise<LaborPersonDetail | null>;
 };
 
 /** Timeline UUIDs are audit implementation details; preview gives them stable display IDs. */
@@ -105,5 +115,10 @@ export const createLaborPreviewAdapter = async (
     label: 'ตัวอย่าง Labor Preview · ข้อมูลจาก Labor ledger',
     fixtureVersion: LABOR_PREVIEW_FIXTURE.version,
     getReadModel: async () => normalizeLaborPreviewReadModel(await getLaborMvpReadModel(db)),
+    getTodaySummary: (date) => getLaborTodaySummary(db, date),
+    getCalendarRange: (input) => getLaborCalendarRange(db, input),
+    getHistory: (input) => getLaborHistory(db, input),
+    getJobDetail: (jobId) => getLaborJobDetail(db, jobId),
+    getPersonDetail: (personId) => getLaborPersonDetail(db, personId),
   };
 };

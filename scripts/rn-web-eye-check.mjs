@@ -41,7 +41,7 @@ const manifest = {
   exportDir: `.oracle-eye/rn-web/${phase}/export`,
   artifacts: {
     exportIndex: `.oracle-eye/rn-web/${phase}/export/index.html`,
-    browserScreenshot: `.oracle-eye/rn-web/${phase}/browser/takai-labor-calendar-mvp-390x844.png`,
+    browserScreenshot: `.oracle-eye/rn-web/${phase}/browser/today-390x844.png`,
     browserEvidence: `.oracle-eye/rn-web/${phase}/browser/browser-evidence.json`,
     manifest: `.oracle-eye/rn-web/${phase}/manifest.json`,
   },
