@@ -464,3 +464,12 @@ export type LaborTodaySummary = {
   unpaidPeople: LaborPersonBalance[];
   advanceAttentionPeople: LaborPersonBalance[];
 };
+
+/** Precomputed from real repository queries for the web-only SQLite-less preview. */
+export type LaborPreviewWebProjections = {
+  today: LaborTodaySummary;
+  calendar: LaborCalendarRange;
+  history: LaborHistory;
+  jobs: Record<string, LaborJobDetail | null>;
+  people: Record<string, LaborPersonDetail | null>;
+};

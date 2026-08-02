@@ -18,6 +18,9 @@ const webFixtureGeneratorSource = read('scripts/generate-labor-preview-web-fixtu
 const laborPreviewSource = read('src/features/labor-mvp/preview.ts');
 
 if (!design.includes('design_md_version: 2')) fail('DESIGN.md must declare Labor MVP design contract v2');
+for (const lane of ['kind: rn-static-eye', 'kind: rn-web-eye', 'kind: expo-go-device-eye']) {
+  if (!design.includes(lane)) fail(`DESIGN.md must declare ${lane} proof lane`);
+}
 for (const label of ['วันนี้', 'งาน', 'บันทึกงาน', 'คน', 'เมนู']) {
   if (!design.includes(label) || !tabSource.includes(`label: '${label}'`)) fail(`Labor navigation missing ${label}`);
 }

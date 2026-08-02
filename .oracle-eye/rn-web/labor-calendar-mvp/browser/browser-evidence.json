@@ -1,0 +1,31 @@
+{
+  "phase": "labor-calendar-mvp",
+  "capturedAt": "2026-08-02T09:36:00+07:00",
+  "viewports": ["390x844", "320x844"],
+  "screens": [
+    "Today",
+    "Calendar with selected-day context",
+    "History filtered to 7 days",
+    "Job Detail",
+    "Person Detail"
+  ],
+  "artifacts": [
+    "today-390x844.png",
+    "calendar-390x844.png",
+    "calendar-320x844.png",
+    "history-390x844.png",
+    "job-detail-390x844.png",
+    "person-detail-390x844.png"
+  ],
+  "rendered": true,
+  "visualNotes": [
+    "Today, Calendar, filtered History, Job Detail, and Person Detail rendered from the Labor Preview adapter.",
+    "At both 390px and 320px, document scrollWidth and body width equalled the viewport width; calendar preserved seven columns and no horizontal overflow was observed.",
+    "The History capture selected the 7-day quick filter before opening a job detail; the person detail was reached from the People tab."
+  ],
+  "consoleAndNetwork": {
+    "pageConsoleCapture": "Captured through Chrome DevTools Protocol: no console errors. Informational React DevTools output and one React Native Web warning that legacy shadow* props are deprecated in favor of boxShadow were observed.",
+    "failedRequests": 0
+  },
+  "method": "Chrome DevTools Protocol device-metrics emulation, explicit 390px and 320px viewport checks, and Page.captureScreenshot artifacts. This evidence does not close Expo Go device or native Android truth."
+}
