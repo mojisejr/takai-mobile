@@ -1,0 +1,30 @@
+{
+  "project": "takai-mobile",
+  "phase": "labor-calendar-mvp-phase-4-write-flows",
+  "claimLabel": "RN Web Eye Closed",
+  "capturedAt": "2026-08-02T10:04:00+07:00",
+  "targetUrl": "http://localhost:8081/?proof=phase4-write",
+  "viewports": ["390x844", "320x844"],
+  "screens": [
+    "Record: individual work type and first-class work date",
+    "Record: person-only advance with honest web read-only failure"
+  ],
+  "artifacts": [
+    "record-job-390x844.png",
+    "record-advance-web-error-390x844.png",
+    "record-advance-web-error-320x844.png"
+  ],
+  "checks": {
+    "390px": { "innerWidth": 390, "documentScrollWidth": 390, "bodyWidth": 390 },
+    "320px": { "innerWidth": 320, "documentScrollWidth": 320, "bodyWidth": 320 },
+    "consoleErrorCount": 0,
+    "failedRequestCount": 0,
+    "knownWarnings": ["React Native Web legacy shadow* props are deprecated in favor of boxShadow"]
+  },
+  "behaviorObserved": [
+    "The record UI exposes distinct individual work, group lump receipt, advance, recovery, and correction routes.",
+    "Submitting an advance in web preview presents the explicit read-only error and does not create optimistic history.",
+    "Native preview owns actual writes through the same public Labor repository commands."
+  ],
+  "boundary": "This closes rendered RN Web layout and truthful failure feedback only. Expo Go device and native packaging truth remain pending."
+}

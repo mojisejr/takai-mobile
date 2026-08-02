@@ -1,0 +1,9 @@
+{
+  "project": "takai-mobile",
+  "phase": "labor-calendar-mvp-phase-4-write-flows",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "evidence": "browser-evidence.json",
+  "scope": "Rendered write-form layout and honest web-preview failure behavior",
+  "doesNotClose": ["Expo Go touch", "Android safe areas", "native SQLite", "native packaging"]
+}

@@ -1,6 +1,11 @@
 import type { SqlExecutor } from '../../data/migrations';
 import {
+  addLaborContractProgress,
+  applyLaborAdvanceDeduction,
+  completeLaborContractWork,
   createGroupPieceWork,
+  createLaborContract,
+  createLaborSettlementGroup,
   createLaborWorker,
   createLaborWorkerAdvance,
   createNormalWork,
@@ -11,10 +16,13 @@ import {
   getLaborPersonDetail,
   getLaborTodaySummary,
   listLaborWorkers,
+  editLaborPayment,
+  editLaborSettlementGroupReceipt,
+  editLaborWorkerAdvance,
   postLaborPayment,
   postLaborSettlementGroupReceipt,
 } from './repository';
-import type { LaborCalendarRange, LaborCalendarRangeInput, LaborHistory, LaborHistoryInput, LaborJobDetail, LaborMvpReadModel, LaborPersonDetail, LaborTodaySummary } from './types';
+import type { AddContractProgressInput, ApplyLaborAdvanceDeductionInput, CompleteLaborContractWorkInput, CreateGroupPieceWorkInput, CreateLaborContractInput, CreateLaborSettlementGroupInput, CreateLaborWorkerAdvanceInput, CreateNormalWorkInput, EditLaborPaymentInput, EditLaborSettlementGroupReceiptInput, EditLaborWorkerAdvanceInput, LaborCalendarRange, LaborCalendarRangeInput, LaborHistory, LaborHistoryInput, LaborJobDetail, LaborMvpReadModel, LaborPersonDetail, LaborTodaySummary, PostLaborPaymentInput, PostLaborSettlementGroupReceiptInput } from './types';
 
 export const LABOR_PREVIEW_FIXTURE = {
   version: 'labor-preview-v1',
@@ -36,6 +44,22 @@ export type LaborPreviewAdapter = {
   getHistory: (input: LaborHistoryInput) => Promise<LaborHistory>;
   getJobDetail: (jobId: string) => Promise<LaborJobDetail | null>;
   getPersonDetail: (personId: string) => Promise<LaborPersonDetail | null>;
+  /** Native preview writes through the same ledger commands. Web preview is deliberately read-only. */
+  commands: {
+    createNormalWork: (input: CreateNormalWorkInput) => Promise<{ jobId: string; payableIds: string[] }>;
+    createGroupPieceWork: (input: CreateGroupPieceWorkInput) => Promise<{ jobId: string; settlementGroupId: string }>;
+    createLaborContract: (input: CreateLaborContractInput) => Promise<string>;
+    createLaborSettlementGroup: (input: CreateLaborSettlementGroupInput) => Promise<string>;
+    addLaborContractProgress: (jobId: string, input: AddContractProgressInput) => Promise<string>;
+    completeLaborContractWork: (jobId: string, input: CompleteLaborContractWorkInput) => Promise<string>;
+    postLaborPayment: (input: PostLaborPaymentInput) => Promise<string>;
+    postLaborSettlementGroupReceipt: (input: PostLaborSettlementGroupReceiptInput) => Promise<string>;
+    createLaborWorkerAdvance: (input: CreateLaborWorkerAdvanceInput) => Promise<string>;
+    applyLaborAdvanceDeduction: (input: ApplyLaborAdvanceDeductionInput) => Promise<string>;
+    editLaborPayment: (paymentId: string, input: EditLaborPaymentInput) => Promise<void>;
+    editLaborSettlementGroupReceipt: (receiptId: string, input: EditLaborSettlementGroupReceiptInput) => Promise<void>;
+    editLaborWorkerAdvance: (advanceId: string, input: EditLaborWorkerAdvanceInput) => Promise<void>;
+  };
 };
 
 /** Timeline UUIDs are audit implementation details; preview gives them stable display IDs. */
@@ -120,5 +144,20 @@ export const createLaborPreviewAdapter = async (
     getHistory: (input) => getLaborHistory(db, input),
     getJobDetail: (jobId) => getLaborJobDetail(db, jobId),
     getPersonDetail: (personId) => getLaborPersonDetail(db, personId),
+    commands: {
+      createNormalWork: (input) => createNormalWork(db, input),
+      createGroupPieceWork: (input) => createGroupPieceWork(db, input),
+      createLaborContract: (input) => createLaborContract(db, input),
+      createLaborSettlementGroup: (input) => createLaborSettlementGroup(db, input),
+      addLaborContractProgress: (jobId, input) => addLaborContractProgress(db, jobId, input),
+      completeLaborContractWork: (jobId, input) => completeLaborContractWork(db, jobId, input),
+      postLaborPayment: (input) => postLaborPayment(db, input),
+      postLaborSettlementGroupReceipt: (input) => postLaborSettlementGroupReceipt(db, input),
+      createLaborWorkerAdvance: (input) => createLaborWorkerAdvance(db, input),
+      applyLaborAdvanceDeduction: (input) => applyLaborAdvanceDeduction(db, input),
+      editLaborPayment: (paymentId, input) => editLaborPayment(db, paymentId, input),
+      editLaborSettlementGroupReceipt: (receiptId, input) => editLaborSettlementGroupReceipt(db, receiptId, input),
+      editLaborWorkerAdvance: (advanceId, input) => editLaborWorkerAdvance(db, advanceId, input),
+    },
   };
 };

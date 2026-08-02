@@ -9,7 +9,7 @@ const adapter = await readFile(resolve(root, 'src/features/labor-mvp/preview.ts'
 const web = await readFile(resolve(root, 'src/features/labor-mvp/preview.web.ts'), 'utf8');
 const eye = await readFile(resolve(root, 'scripts/rn-web-eye-check.mjs'), 'utf8');
 
-for (const required of ['TodayScreen', 'CalendarScreen', 'HistoryScreen', 'JobScreen', 'PeopleScreen', 'PersonScreen', 'CalendarCell', 'PREFILL INTENT', '7 วัน', '2 วันก่อน', 'ชุดรับเงิน', 'เงินเบิกคงเหลือ']) {
+for (const required of ['TodayScreen', 'CalendarScreen', 'HistoryScreen', 'JobScreen', 'PeopleScreen', 'PersonScreen', 'CalendarCell', 'RecordScreen', 'DatePickerField', '7 วัน', '2 วันก่อน', 'ชุดรับเงิน', 'เงินเบิกคงเหลือ']) {
   assert.ok(source.includes(required), `Labor read UI must include ${required}`);
 }
 for (const forbidden of ['OperationalSliceScreen', 'Activity Capture', 'plot_id']) assert.ok(!source.includes(forbidden), `Labor read UI must not revive legacy ${forbidden}`);

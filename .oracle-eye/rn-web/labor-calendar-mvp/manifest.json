@@ -3,25 +3,18 @@
   "phase": "labor-calendar-mvp",
   "lane": "rn-web-eye",
   "claimLabel": "RN Web Eye Closed",
-  "generatedAt": "2026-08-02T09:36:00+07:00",
+  "generatedAt": "2026-08-02T10:05:00+07:00",
   "viewports": ["390x844", "320x844"],
   "exportDir": ".oracle-eye/rn-web/labor-calendar-mvp/export",
   "artifacts": {
     "exportIndex": ".oracle-eye/rn-web/labor-calendar-mvp/export/index.html",
-    "browserScreenshots": [
-      ".oracle-eye/rn-web/labor-calendar-mvp/browser/today-390x844.png",
-      ".oracle-eye/rn-web/labor-calendar-mvp/browser/calendar-390x844.png",
-      ".oracle-eye/rn-web/labor-calendar-mvp/browser/calendar-320x844.png",
-      ".oracle-eye/rn-web/labor-calendar-mvp/browser/history-390x844.png",
-      ".oracle-eye/rn-web/labor-calendar-mvp/browser/job-detail-390x844.png",
-      ".oracle-eye/rn-web/labor-calendar-mvp/browser/person-detail-390x844.png"
-    ],
-    "browserEvidence": ".oracle-eye/rn-web/labor-calendar-mvp/browser/browser-evidence.json",
+    "phase3BrowserEvidence": ".oracle-eye/rn-web/labor-calendar-mvp/browser/browser-evidence.json",
+    "phase4BrowserEvidence": ".oracle-eye/rn-web/labor-calendar-mvp/phase-4-write-flows/browser-evidence.json",
     "manifest": ".oracle-eye/rn-web/labor-calendar-mvp/manifest.json"
   },
   "notes": [
-    "The export-ready script establishes the artifact sink; Chrome DevTools Protocol capture then closed the rendered RN Web eye for Phase 3.",
-    "All Phase 3 named read surfaces were captured at 390px; Calendar was also checked at 320px. No console errors or failed requests were recorded.",
+    "The export script establishes build readiness. Separate Chrome DevTools Protocol captures close rendered RN Web evidence for Phases 3 and 4.",
+    "The Phase 4 write-flow capture shows the form layout and an explicit read-only web error; web did not claim to persist a false record.",
     "This lane does not close Expo Go Device Eye or Native Eye."
   ]
 }
