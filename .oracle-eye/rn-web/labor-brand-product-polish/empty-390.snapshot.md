@@ -1,0 +1,15 @@
+- generic [ref=e6] [box=0,0,390,844]:
+  - generic [ref=e8] [box=0,0,390,353]:
+    - generic [ref=e9] [box=16,16,358,52]:
+      - generic [ref=e10] [box=32,27,28,30]: ☰
+      - generic [ref=e11] [box=72,28,246,28]: วันนี้
+    - generic [ref=e12] [box=16,84,358,261]:
+      - generic [ref=e15] [box=130,193,129,23]: เริ่มจดงานของสวน
+      - generic [ref=e16] [box=37,224,316,46]: เพิ่มคนทำงานก่อน แล้วจึงบันทึกงาน ค่าแรง และการจ่ายเงินได้จากหน้าเดียว
+      - button "ไปที่บันทึกงาน" [ref=e17] [cursor=pointer] [box=132,278,126,46]
+  - generic [ref=e20] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=e21] [cursor=pointer] [box=23,777,69,44]
+    - tab "งาน" [ref=e23] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึกงาน" [ref=e25] [cursor=pointer] [box=161,777,69,44]
+    - tab "คน" [ref=e27] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=e29] [cursor=pointer] [box=298,777,69,44]

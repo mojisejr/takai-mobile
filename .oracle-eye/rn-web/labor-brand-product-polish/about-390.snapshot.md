@@ -1,0 +1,18 @@
+- generic [ref=e6] [box=0,0,390,844]:
+  - generic [ref=e8] [box=0,0,390,420]:
+    - generic [ref=e9] [box=16,16,358,52]:
+      - generic [ref=e10] [box=32,27,28,30]: ☰
+      - generic [ref=e11] [box=72,28,246,28]: เมนู
+    - generic [ref=e31] [box=16,84,358,206]:
+      - generic [ref=e35] [box=31,171,328,16]: TAKAI
+      - generic [ref=e36] [box=31,193,328,28]: สมุดงานสวน
+      - generic [ref=e37] [box=31,229,328,46]: เก็บงาน ค่าแรง เงินเบิก และประวัติการแก้ไขไว้ในที่เดียว
+    - generic [ref=e38] [box=16,306,358,106]:
+      - generic [ref=e39] [box=31,321,328,22]: เกี่ยวกับสมุดงาน
+      - generic [ref=e40] [box=31,351,328,46]: การเปลี่ยนแปลงทุกครั้งจะมีเหตุผลประกอบ เพื่อย้อนดูประวัติได้ภายหลัง
+  - generic [ref=e20] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=e21] [cursor=pointer] [box=23,777,69,44]
+    - tab "งาน" [ref=e23] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึกงาน" [ref=e25] [cursor=pointer] [box=161,777,69,44]
+    - tab "คน" [ref=e27] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [active] [ref=e29] [cursor=pointer] [box=298,777,69,44]

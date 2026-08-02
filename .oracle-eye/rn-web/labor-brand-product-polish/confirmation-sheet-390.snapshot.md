@@ -1,0 +1,67 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e6]:
+    - generic [ref=f4e8]:
+      - generic [ref=f4e9]:
+        - generic [ref=f4e10]: ☰
+        - generic [ref=f4e11]: วันนี้
+      - generic [ref=f4e12]: ข้อมูลทดสอบ
+      - generic [ref=f4e14]:
+        - generic [ref=f4e15]: 2 ส.ค. 2569 · ภาพรวมงานและเงิน
+        - generic [ref=f4e16]: วันนี้มีงาน 1 รายการ
+        - generic [ref=f4e17]: ยอดงาน 350 บาท · เงินออก/รับวันนี้ 4,475 บาท
+      - generic [ref=f4e18]:
+        - generic [ref=f4e19]:
+          - generic [ref=f4e20]: งานวันนี้
+          - generic [ref=f4e21]: 350 บ.
+        - generic [ref=f4e22]:
+          - generic [ref=f4e23]: จ่ายค่าแรง
+          - generic [ref=f4e24]: 350 บ.
+        - generic [ref=f4e25]:
+          - generic [ref=f4e26]: รับชุดงาน
+          - generic [ref=f4e27]: 4,125 บ.
+      - generic [ref=f4e28]: งานและเหตุการณ์วันนี้
+      - generic [ref=f4e30]:
+        - button "ตัดหญ้ารอบบ้าน" [ref=f4e32] [cursor=pointer]:
+          - generic [ref=f4e33]:
+            - generic [ref=f4e35]:
+              - generic [ref=f4e36]: ตัดหญ้ารอบบ้าน
+              - generic [ref=f4e37]: 2 ส.ค. · พี่สุ
+            - generic [ref=f4e38]:
+              - generic [ref=f4e39]: งาน
+              - generic [ref=f4e41]: 350 บาท
+        - button "จ่ายค่าแรง · พี่สุ" [ref=f4e43] [cursor=pointer]:
+          - generic [ref=f4e44]:
+            - generic [ref=f4e46]:
+              - generic [ref=f4e47]: จ่ายค่าแรง · พี่สุ
+              - generic [ref=f4e48]: 2 ส.ค. · ตัดหญ้ารอบบ้าน
+            - generic [ref=f4e49]:
+              - generic [ref=f4e50]: จ่ายค่าแรง
+              - generic [ref=f4e52]: 350 บาท
+        - button "รับเงินชุดงาน · กรอกถุงเพาะชำ" [ref=f4e54] [cursor=pointer]:
+          - generic [ref=f4e55]:
+            - generic [ref=f4e57]:
+              - generic [ref=f4e58]: รับเงินชุดงาน · กรอกถุงเพาะชำ
+              - generic [ref=f4e59]: 2 ส.ค. · พี่สุรับแทนชุดงาน · ไม่ใช่ค่าแรงรายคน
+            - generic [ref=f4e60]:
+              - generic [ref=f4e61]: รับเงินชุดงาน
+              - generic [ref=f4e63]: 4,125 บาท
+      - generic [ref=f4e64]: ค้างค่าแรง
+      - generic [ref=f4e66]: วันนี้ไม่มีค่าแรงค้างในตัวอย่าง
+      - generic [ref=f4e67]: เงินเบิกคงเหลือ
+      - button "น้าชล 1,000 บาท" [ref=f4e71] [cursor=pointer]:
+        - generic [ref=f4e72]:
+          - generic [ref=f4e73]: น้าชล
+          - generic [ref=f4e75]: 1,000 บาท
+      - button "+ บันทึกงานวันนี้" [ref=f4e77] [cursor=pointer]
+    - generic [ref=f4e80]:
+      - tab "วันนี้" [ref=f4e81] [cursor=pointer]
+      - tab "งาน" [ref=f4e83] [cursor=pointer]
+      - tab "บันทึกงาน" [ref=f4e85] [cursor=pointer]
+      - tab "คน" [ref=f4e87] [cursor=pointer]
+      - tab "เมนู" [ref=f4e89] [cursor=pointer]
+  - dialog [ref=f4e103]:
+    - generic [ref=f4e95]:
+      - generic [ref=f4e97]: ข้อมูลทดสอบ · ยืนยันรายการ
+      - generic [ref=f4e98]: ข้อมูลทดสอบนี้ใช้ตรวจรูปแบบก่อนบันทึกจริง และจะไม่เปลี่ยนข้อมูลใด
+      - button "ตัวอย่างเท่านั้น" [active] [ref=f4e99] [cursor=pointer]
+      - button "ปิดตัวอย่าง" [ref=f4e101] [cursor=pointer]

@@ -1,0 +1,92 @@
+- generic [ref=f1e6] [box=0,0,390,844]:
+  - generic [ref=f1e8] [box=0,0,390,1143]:
+    - generic [ref=f1e9] [box=16,16,358,52]:
+      - generic [ref=f1e10] [box=32,27,28,30]: ☰
+      - generic [ref=f1e11] [box=72,28,246,28]: งาน
+    - generic [ref=f1e35] [box=16,84,91,28]: ข้อมูลทดสอบ
+    - generic [ref=f1e102] [box=16,128,358,52]:
+      - generic [ref=f1e103] [cursor=pointer] [box=21,133,174,42]: ปฏิทิน
+      - generic [ref=f1e105] [cursor=pointer] [box=195,133,174,42]: ประวัติ
+    - generic [ref=f1e107] [box=16,196,358,470]:
+      - generic [ref=f1e108] [box=31,211,328,52]:
+        - generic "เดือนก่อน" [ref=f1e109] [cursor=pointer] [box=31,215,44,44]: ‹
+        - generic [ref=f1e111] [box=75,211,240,52]:
+          - generic [ref=f1e112] [box=133,217,125,28]: สิงหาคม 2569
+          - generic [ref=f1e113] [box=168,245,54,18]: ปฏิทินงาน
+        - generic "เดือนถัดไป" [ref=f1e114] [cursor=pointer] [box=315,215,44,44]: ›
+      - generic [ref=f1e116] [box=31,275,328,16]:
+        - generic [ref=f1e117] [box=31,275,47,16]: อา
+        - generic [ref=f1e118] [box=78,275,47,16]: จ
+        - generic [ref=f1e119] [box=125,275,47,16]: อ
+        - generic [ref=f1e120] [box=172,275,47,16]: พ
+        - generic [ref=f1e121] [box=218,275,47,16]: พฤ
+        - generic [ref=f1e122] [box=265,275,47,16]: ศ
+        - generic [ref=f1e123] [box=312,275,47,16]: ส
+      - generic [ref=f1e124] [box=31,291,328,360]:
+        - generic "1 ส.ค. มีงาน 1 รายการ" [ref=f1e131] [cursor=pointer] [box=312,291,47,60]:
+          - generic [ref=f1e132] [box=317,296,37,16]: "1"
+          - generic [ref=f1e136] [box=317,325,37,13]: งาน1
+        - generic "2 ส.ค. มีงาน 1 รายการ" [ref=f1e137] [cursor=pointer] [box=31,351,47,60]:
+          - generic [ref=f1e138] [box=36,356,37,16]: "2"
+          - generic [ref=f1e142] [box=36,385,37,13]: งาน1
+        - generic "3 ส.ค." [ref=f1e143] [cursor=pointer] [box=78,351,47,60]: "3"
+        - generic "4 ส.ค." [ref=f1e145] [cursor=pointer] [box=125,351,47,60]: "4"
+        - generic "5 ส.ค." [ref=f1e147] [cursor=pointer] [box=172,351,47,60]: "5"
+        - generic "6 ส.ค." [ref=f1e149] [cursor=pointer] [box=218,351,47,60]: "6"
+        - generic "7 ส.ค." [ref=f1e151] [cursor=pointer] [box=265,351,47,60]: "7"
+        - generic "8 ส.ค." [ref=f1e153] [cursor=pointer] [box=312,351,47,60]: "8"
+        - generic "9 ส.ค." [ref=f1e155] [cursor=pointer] [box=31,411,47,60]: "9"
+        - generic "10 ส.ค." [ref=f1e157] [cursor=pointer] [box=78,411,47,60]: "10"
+        - generic "11 ส.ค." [ref=f1e159] [cursor=pointer] [box=125,411,47,60]: "11"
+        - generic "12 ส.ค." [ref=f1e161] [cursor=pointer] [box=172,411,47,60]: "12"
+        - generic "13 ส.ค." [ref=f1e163] [cursor=pointer] [box=218,411,47,60]: "13"
+        - generic "14 ส.ค." [ref=f1e165] [cursor=pointer] [box=265,411,47,60]: "14"
+        - generic "15 ส.ค." [ref=f1e167] [cursor=pointer] [box=312,411,47,60]: "15"
+        - generic "16 ส.ค." [ref=f1e169] [cursor=pointer] [box=31,471,47,60]: "16"
+        - generic "17 ส.ค." [ref=f1e171] [cursor=pointer] [box=78,471,47,60]: "17"
+        - generic "18 ส.ค." [ref=f1e173] [cursor=pointer] [box=125,471,47,60]: "18"
+        - generic "19 ส.ค." [ref=f1e175] [cursor=pointer] [box=172,471,47,60]: "19"
+        - generic "20 ส.ค." [ref=f1e177] [cursor=pointer] [box=218,471,47,60]: "20"
+        - generic "21 ส.ค." [ref=f1e179] [cursor=pointer] [box=265,471,47,60]: "21"
+        - generic "22 ส.ค." [ref=f1e181] [cursor=pointer] [box=312,471,47,60]: "22"
+        - generic "23 ส.ค." [ref=f1e183] [cursor=pointer] [box=31,531,47,60]: "23"
+        - generic "24 ส.ค." [ref=f1e185] [cursor=pointer] [box=78,531,47,60]: "24"
+        - generic "25 ส.ค." [ref=f1e187] [cursor=pointer] [box=125,531,47,60]: "25"
+        - generic "26 ส.ค." [ref=f1e189] [cursor=pointer] [box=172,531,47,60]: "26"
+        - generic "27 ส.ค." [ref=f1e191] [cursor=pointer] [box=218,531,47,60]: "27"
+        - generic "28 ส.ค." [ref=f1e193] [cursor=pointer] [box=265,531,47,60]: "28"
+        - generic "29 ส.ค." [ref=f1e195] [cursor=pointer] [box=312,531,47,60]: "29"
+        - generic "30 ส.ค." [ref=f1e197] [cursor=pointer] [box=31,591,47,60]: "30"
+        - generic "31 ส.ค." [ref=f1e199] [cursor=pointer] [box=78,591,47,60]: "31"
+    - generic [ref=f1e201] [box=16,682,358,18]: จุดเขียว = งาน · จุดน้ำตาล = เงิน · กดวันที่เพื่อดูรายละเอียด
+    - generic [ref=f1e202] [box=16,716,358,36]: 2 ส.ค. 2569 · รายการวันนั้น
+    - generic [ref=f1e204] [box=16,768,358,67]:
+      - generic [ref=f1e205] [box=16,768,114,67]:
+        - generic [ref=f1e206] [box=27,779,92,18]: งาน
+        - generic [ref=f1e207] [box=27,802,92,22]: 350 บ.
+      - generic [ref=f1e208] [box=138,768,114,67]:
+        - generic [ref=f1e209] [box=149,779,92,18]: จ่ายค่าแรง
+        - generic [ref=f1e210] [box=149,802,92,22]: 350 บ.
+      - generic [ref=f1e211] [box=260,768,114,67]:
+        - generic [ref=f1e212] [box=271,779,92,18]: รับชุดงาน
+        - generic [ref=f1e213] [box=271,802,92,22]: 4,125 บ.
+    - generic [ref=f1e214] [box=16,851,358,222]:
+      - button "ตัดหญ้ารอบบ้าน" [ref=f1e216] [cursor=pointer] [box=17,852,356,70]:
+        - generic [ref=f1e217] [box=17,852,356,70]:
+          - generic [ref=f1e219] [box=45,867,226,41]
+          - generic [ref=f1e222] [box=281,862,80,50]
+      - button "จ่ายค่าแรง · พี่สุ" [ref=f1e227] [cursor=pointer] [box=17,923,356,70]:
+        - generic [ref=f1e228] [box=17,923,356,70]:
+          - generic [ref=f1e230] [box=45,938,226,41]
+          - generic [ref=f1e233] [box=281,933,80,50]
+      - button "รับเงินชุดงาน · กรอกถุงเพาะชำ" [ref=f1e238] [cursor=pointer] [box=17,994,356,78]:
+        - generic [ref=f1e239] [box=17,994,356,78]:
+          - generic [ref=f1e241] [box=45,1004,215,58]
+          - generic [ref=f1e244] [box=270,1008,91,50]
+    - button "+ บันทึกงานวันที่ 2 ส.ค." [ref=f1e248] [cursor=pointer] [box=16,1089,358,46]
+  - generic [ref=f1e24] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f1e25] [cursor=pointer] [box=23,777,69,44]
+    - tab "งาน" [active] [ref=f1e27] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึกงาน" [ref=f1e29] [cursor=pointer] [box=161,777,69,44]
+    - tab "คน" [ref=f1e31] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f1e33] [cursor=pointer] [box=298,777,69,44]

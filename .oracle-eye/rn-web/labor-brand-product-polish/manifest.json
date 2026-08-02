@@ -1,0 +1,20 @@
+{
+  "project": "takai-mobile",
+  "phase": "labor-brand-product-polish",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-08-02T13:47:40+07:00",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/labor-brand-product-polish/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/labor-brand-product-polish/export/index.html",
+    "browserScreenshot": ".oracle-eye/rn-web/labor-brand-product-polish/today-390x844.png",
+    "browserEvidence": ".oracle-eye/rn-web/labor-brand-product-polish/browser-evidence.json",
+    "manifest": ".oracle-eye/rn-web/labor-brand-product-polish/manifest.json"
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink only.",
+    "RN Web Eye is closed with named 390x844 and 320x844 screenshots, browser console, and network evidence in this sink.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}
