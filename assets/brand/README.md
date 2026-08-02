@@ -1,9 +1,8 @@
 # TAKAI Brand Assets
 
-Place supplied TAKAI brand images here:
+The canonical supplied TAKAI portrait lives here:
 
-- `takai-mascot.png` - main mascot portrait used by onboarding/profile surfaces.
-- `takai-icon.png` - launcher icon source when ready.
-- `takai-adaptive-foreground.png` - Android adaptive icon foreground when ready.
+- `takai-mascot.png` - immutable source portrait supplied by the owner.
+- `takai-mascot-bust.png` - lightweight derivative for intentional empty/about moments.
 
-Phase 0B intentionally keeps Expo default image files in `assets/` until the real brand assets are supplied.
+Technical launcher, adaptive, splash, and favicon derivatives live in `assets/` and trace back to the canonical portrait. Never overwrite `takai-mascot.png`.

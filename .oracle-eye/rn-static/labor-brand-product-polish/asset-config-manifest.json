@@ -1,0 +1,17 @@
+{
+  "phase": "1",
+  "lane": "rn-static-eye",
+  "status": "hard-gate-closed",
+  "source": "assets/brand/takai-mascot.png",
+  "sourceSha256": "28eaa33708ea8c8ae6ecc29cd76a5ec92b79dac0a34c07e611d339fb59682d90",
+  "derivatives": [
+    "assets/icon.png",
+    "assets/android-icon-foreground.png",
+    "assets/android-icon-background.png",
+    "assets/android-icon-monochrome.png",
+    "assets/splash-icon.png",
+    "assets/favicon.png",
+    "assets/brand/takai-mascot-bust.png"
+  ],
+  "nativeEye": "pending-installed-android-proof"
+}
