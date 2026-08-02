@@ -7,7 +7,7 @@ const main = async (): Promise<void> => {
   const source = await readFile(resolve(root, 'src/features/labor-mvp/LaborMvpApp.tsx'), 'utf8');
   const adapter = await readFile(resolve(root, 'src/features/labor-mvp/preview.ts'), 'utf8');
   const web = await readFile(resolve(root, 'src/features/labor-mvp/preview.web.ts'), 'utf8');
-  for (const required of ['RecordScreen', 'DatePickerField', 'งานรายชิ้นเป็นชุด', 'งานเหมา', 'เต็มวัน', 'ครึ่งวัน', 'จำนวนนาที', 'จ่ายค่าแรงรายคน', 'รับเงินชุดงาน', 'ให้เงินเบิก', 'หักคืนเงินเบิก', 'เหตุผลที่แก้ไข', 'บันทึกสำเร็จแล้ว และรีเฟรชปฏิทิน/ประวัติเรียบร้อย']) {
+  for (const required of ['RecordScreen', 'DatePickerField', 'งานรายชิ้นเป็นชุด', 'งานเหมา', 'เต็มวัน', 'ครึ่งวัน', 'จำนวนนาที', 'จ่ายค่าแรงรายคน', 'รับเงินชุดงาน', 'ให้เงินเบิก', 'หักคืนเงินเบิก', 'เหตุผลที่แก้ไข', 'บันทึกงานแล้ว และรีเฟรชปฏิทิน/ประวัติเรียบร้อย', 'บันทึกรายการการเงินแล้ว แต่รีเฟรชรายการไม่สำเร็จ']) {
     assert.ok(source.includes(required), `Labor write UI must expose ${required}`);
   }
   for (const command of ['createNormalWork', 'createGroupPieceWork', 'createLaborContract', 'addLaborContractProgress', 'completeLaborContractWork', 'postLaborPayment', 'postLaborSettlementGroupReceipt', 'createLaborWorkerAdvance', 'applyLaborAdvanceDeduction', 'editLaborPayment', 'editLaborSettlementGroupReceipt', 'editLaborWorkerAdvance']) {
