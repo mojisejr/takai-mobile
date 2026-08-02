@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { tokens } from '../theme/tokens';
 
-export type BottomTabKey = 'today' | 'plots' | 'activity' | 'cases' | 'menu';
+export type BottomTabKey = 'today' | 'work' | 'record' | 'people' | 'more';
 
 type BottomTabBarProps = {
   activeTab?: BottomTabKey;
@@ -10,10 +10,10 @@ type BottomTabBarProps = {
 
 const tabs: Array<{ key: BottomTabKey; label: string }> = [
   { key: 'today', label: 'วันนี้' },
-  { key: 'plots', label: 'แปลง' },
-  { key: 'activity', label: 'บันทึก' },
-  { key: 'cases', label: 'เคส' },
-  { key: 'menu', label: 'เมนู' },
+  { key: 'work', label: 'งาน' },
+  { key: 'record', label: 'บันทึกงาน' },
+  { key: 'people', label: 'คน' },
+  { key: 'more', label: 'เมนู' },
 ];
 
 export function BottomTabBar({ activeTab = 'today', onTabPress }: BottomTabBarProps) {

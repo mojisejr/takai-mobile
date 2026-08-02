@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'h3-harness-adoption';
+const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'labor-calendar-mvp';
 const sink = join(root, '.oracle-eye', 'rn-web', phase);
 const exportDir = join(sink, 'export');
 const manifestPath = join(sink, 'manifest.json');
@@ -41,7 +41,7 @@ const manifest = {
   exportDir: `.oracle-eye/rn-web/${phase}/export`,
   artifacts: {
     exportIndex: `.oracle-eye/rn-web/${phase}/export/index.html`,
-    browserScreenshot: `.oracle-eye/rn-web/${phase}/browser/takai-mobile-h3-rn-web-390x844.png`,
+    browserScreenshot: `.oracle-eye/rn-web/${phase}/browser/takai-labor-calendar-mvp-390x844.png`,
     browserEvidence: `.oracle-eye/rn-web/${phase}/browser/browser-evidence.json`,
     manifest: `.oracle-eye/rn-web/${phase}/manifest.json`,
   },
