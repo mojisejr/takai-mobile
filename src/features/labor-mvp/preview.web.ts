@@ -41,4 +41,23 @@ export const createWebLaborPreviewAdapter = (): LaborPreviewAdapter => ({
   getHistory: async (input) => structuredClone(history(input)),
   getJobDetail: async (jobId) => structuredClone(LABOR_PREVIEW_WEB_PROJECTIONS.jobs[jobId] ?? null),
   getPersonDetail: async (personId) => structuredClone(LABOR_PREVIEW_WEB_PROJECTIONS.people[personId] ?? null),
+  commands: {
+    createNormalWork: readonlyPreview,
+    createGroupPieceWork: readonlyPreview,
+    createLaborContract: readonlyPreview,
+    createLaborSettlementGroup: readonlyPreview,
+    addLaborContractProgress: readonlyPreview,
+    completeLaborContractWork: readonlyPreview,
+    postLaborPayment: readonlyPreview,
+    postLaborSettlementGroupReceipt: readonlyPreview,
+    createLaborWorkerAdvance: readonlyPreview,
+    applyLaborAdvanceDeduction: readonlyPreview,
+    editLaborPayment: readonlyPreview,
+    editLaborSettlementGroupReceipt: readonlyPreview,
+    editLaborWorkerAdvance: readonlyPreview,
+  },
 });
+
+const readonlyPreview = async (): Promise<never> => {
+  throw new Error('Labor Preview บน web เป็นโหมดอ่านอย่างเดียว: บันทึกจริงได้ใน Expo Go บนอุปกรณ์');
+};
