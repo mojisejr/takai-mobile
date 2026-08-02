@@ -1,0 +1,21 @@
+{
+  "phase": "labor-brand-product-polish-phase-2",
+  "kind": "rn-static-eye",
+  "status": "passed",
+  "evidence": [
+    "npm run validate",
+    "npm run test:labor-notebook-boundary",
+    "npm run test:labor-read-ui",
+    "npm run test:labor-write-ui"
+  ],
+  "claims": [
+    "Normal notebook boot uses the canonical TAKAI database and does not seed proof records.",
+    "Proof fixture remains explicit and is visibly marked only as Thai test data.",
+    "Worker mutations are native-backed; web refuses writes truthfully.",
+    "Archived workers are omitted from new-action pickers and retained in history."
+  ],
+  "pending": [
+    "RN Web visual proof",
+    "Expo Go device proof"
+  ]
+}
