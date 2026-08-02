@@ -9,6 +9,7 @@ import type { SqlExecutor } from '../src/data/migrations';
 import { runMigrations } from '../src/data/migrations';
 import { createLaborPreviewAdapter, LABOR_PREVIEW_FIXTURE, normalizeLaborPreviewReadModel, seedLaborPreviewFixture } from '../src/features/labor-mvp/preview';
 import { LABOR_PREVIEW_WEB_READ_MODEL } from '../src/features/labor-mvp/preview.web.fixture';
+import { getLaborCalendarRange } from '../src/features/labor-mvp/repository';
 
 class NodeSqliteExecutor implements SqlExecutor {
   constructor(private readonly database: DatabaseSync) {}
@@ -41,6 +42,9 @@ const main = async (): Promise<void> => {
     assert.equal(initial.settlementGroups[0]?.remainingSatang, 0, 'group receipt must settle the group without worker shares');
     assert.equal(initial.payments[0]?.totalSatang, 35_000, 'individual payment must remain a person wage payment');
     assert.equal(initial.advances[0]?.remainingSatang, 100_000, 'advance remains person-scoped');
+    const projection = await getLaborCalendarRange(db, { startDate: '2026-08-01', endDate: '2026-08-02' });
+    assert.equal(projection.days[0]?.events.some((event) => event.eventType === 'work' && event.settlementRoute === 'group'), true, 'seeded preview must project group work by work date');
+    assert.deepEqual(projection.days[1]?.events.filter((event) => event.eventType === 'group_receipt').map((event) => event.personIds), [[]], 'seeded preview group receipt must not invent personal cash entries');
     console.log('LABOR_PREVIEW_ADAPTER_PASS: shared repository seed, idempotent web adapter, group receipt, wage payment, and advance truth are aligned');
   } finally {
     connection?.close();

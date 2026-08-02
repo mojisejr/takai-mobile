@@ -354,3 +354,113 @@ export type LaborMvpReadModel = {
   advances: LaborWorkerAdvance[];
   advanceDeductions: LaborAdvanceDeduction[];
 };
+
+/**
+ * A UI-safe ledger event. `effectiveDate` is the business date used by calendar
+ * and history; `recordedAt` is audit context only and must never drive bucketing.
+ */
+export type LaborProjectionEventType =
+  | 'work'
+  | 'contract_start'
+  | 'contract_progress'
+  | 'contract_completion'
+  | 'contract_deadline'
+  | 'individual_payment'
+  | 'group_receipt'
+  | 'advance'
+  | 'advance_recovery';
+
+export type LaborPaymentState = 'paid' | 'partial' | 'unpaid' | 'not_applicable';
+
+export type LaborProjectionEvent = {
+  id: string;
+  eventType: LaborProjectionEventType;
+  effectiveDate: string;
+  recordedAt: string;
+  label: string;
+  detail: string;
+  jobId: string | null;
+  jobIds: string[];
+  personId: string | null;
+  personIds: string[];
+  settlementGroupId: string | null;
+  settlementRoute: LaborSettlementRoute | null;
+  paymentState: LaborPaymentState;
+  /** Cash or recovery movement on this event. It is zero for work/contract markers. */
+  amountSatang: number;
+  /** Work/contract obligation shown as context, deliberately separate from cash. */
+  dueSatang: number;
+  remainingSatang: number;
+};
+
+export type LaborCalendarDaySummary = {
+  date: string;
+  events: LaborProjectionEvent[];
+  workCount: number;
+  workDueSatang: number;
+  individualPaymentSatang: number;
+  groupReceiptSatang: number;
+  advanceIssuedSatang: number;
+  advanceRecoveredSatang: number;
+  contractProgressCount: number;
+  contractCompletionCount: number;
+  contractDeadlineCount: number;
+};
+
+export type LaborCalendarRangeInput = {
+  startDate: string;
+  endDate: string;
+  personId?: string;
+  eventTypes?: LaborProjectionEventType[];
+  paymentState?: LaborPaymentState;
+  settlementRoute?: LaborSettlementRoute;
+  keyword?: string;
+};
+
+export type LaborCalendarRange = {
+  startDate: string;
+  endDate: string;
+  days: LaborCalendarDaySummary[];
+};
+
+export type LaborHistoryInput = LaborCalendarRangeInput & { limit?: number };
+
+export type LaborHistory = {
+  events: LaborProjectionEvent[];
+  total: number;
+};
+
+export type LaborJobDetail = {
+  id: string;
+  title: string;
+  kind: 'normal' | 'contract' | 'legacy_import';
+  workDate: string;
+  note: string;
+  createdAt: string;
+  settlementRoute: LaborSettlementRoute;
+  paymentState: LaborPaymentState;
+  dueSatang: number;
+  cashPaidSatang: number;
+  advanceRecoveredSatang: number;
+  remainingSatang: number;
+  participants: Array<{ personId: string; displayName: string; payType: LaborPayType }>;
+  settlementGroup: LaborSettlementGroup | null;
+  contract: LaborContract | null;
+  workBasisSnapshots: LaborWorkBasisSnapshot[];
+  events: LaborProjectionEvent[];
+};
+
+export type LaborPersonDetail = {
+  person: LaborPersonBalance;
+  wagePayables: LaborPayable[];
+  advances: LaborWorkerAdvance[];
+  advanceDeductions: LaborAdvanceDeduction[];
+  events: LaborProjectionEvent[];
+};
+
+export type LaborTodaySummary = {
+  date: string;
+  day: LaborCalendarDaySummary;
+  unpaidPeople: LaborPersonBalance[];
+  advanceAttentionPeople: LaborPersonBalance[];
+};

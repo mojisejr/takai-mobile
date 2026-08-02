@@ -1,4 +1,5 @@
 import type { SqlExecutor } from '../../data/migrations';
+import { localDateKey } from '../../date';
 import type {
   AddContractProgressInput,
   ApplyLaborAdvanceDeductionInput,
@@ -16,19 +17,30 @@ import type {
   ImportLegacyLaborEntriesInput,
   LaborContract,
   LaborContractProgress,
+  LaborCalendarDaySummary,
+  LaborCalendarRange,
+  LaborCalendarRangeInput,
   LaborAdvanceDeduction,
+  LaborHistory,
+  LaborHistoryInput,
+  LaborJobDetail,
   LegacyCarryForwardBalance,
   LegacyLaborSource,
   LaborMvpReadModel,
   LaborPayable,
   LaborPayment,
+  LaborPaymentState,
+  LaborPersonDetail,
   LaborWorkerAdvance,
+  LaborProjectionEvent,
+  LaborProjectionEventType,
   LaborSettlementGroup,
   LaborSettlementGroupReceipt,
   LaborSettlementRoute,
   LaborWorkBasisSnapshot,
   LaborPersonBalance,
   LaborTimelineEvent,
+  LaborTodaySummary,
   LaborWorker,
   LaborWorkerInput,
   PaymentAllocationInput,
@@ -1390,4 +1402,319 @@ export const getLaborMvpReadModel = async (db: SqlExecutor): Promise<LaborMvpRea
     };
   });
   return { people, payables, payments, timeline, contracts, legacySources, legacyBalances, settlementGroups, workBasisSnapshots, advances, advanceDeductions };
+};
+
+type ProjectionJobRow = {
+  id: string;
+  title: string;
+  work_date: string;
+  note: string;
+  kind: 'normal' | 'contract' | 'legacy_import';
+  created_at: string;
+  starts_on: string | null;
+  deadline_on: string | null;
+  completed_on: string | null;
+  final_total_satang: number | null;
+};
+type ProjectionParticipantRow = { labor_job_id: string; person_id: string; display_name: string; pay_type: 'none' | 'daily' | 'hourly' | 'piece' | 'contract' };
+type ProjectionPaymentRow = { id: string; person_id: string; display_name: string; payment_date: string; total_satang: number; note: string; created_at: string };
+type ProjectionPaymentAllocationRow = { payment_batch_id: string; payable_id: string; labor_job_id: string; amount_satang: number };
+type ProjectionReceiptRow = { id: string; labor_job_id: string; settlement_group_id: string; receipt_date: string; amount_satang: number; note: string; created_at: string; updated_at: string };
+type ProjectionAdvanceRow = { id: string; person_id: string; display_name: string; advance_date: string; amount_satang: number; note: string; created_at: string };
+type ProjectionRecoveryRow = { id: string; labor_worker_advance_id: string; labor_payable_id: string; person_id: string; display_name: string; labor_job_id: string; recovery_date: string; amount_satang: number; note: string; created_at: string };
+type ProjectionProgressRow = { id: string; labor_job_id: string; progress_date: string; note: string; created_at: string };
+
+const assertProjectionRange = (startDate: string, endDate: string): void => {
+  assertDate(startDate, 'projection start date');
+  assertDate(endDate, 'projection end date');
+  if (startDate > endDate) throw new Error('TAKAI projection start date must not be after end date');
+};
+
+const enumerateDates = (startDate: string, endDate: string): string[] => {
+  const dates: string[] = [];
+  const cursor = new Date(`${startDate}T00:00:00.000Z`);
+  const last = new Date(`${endDate}T00:00:00.000Z`);
+  while (cursor <= last) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+};
+
+const paymentStateFor = (dueSatang: number, paidSatang: number, recoveredSatang: number): LaborPaymentState => {
+  if (dueSatang <= 0) return 'not_applicable';
+  const settledSatang = paidSatang + recoveredSatang;
+  if (settledSatang >= dueSatang) return 'paid';
+  return settledSatang > 0 ? 'partial' : 'unpaid';
+};
+
+const eventMatches = (event: LaborProjectionEvent, input: Omit<LaborCalendarRangeInput, 'startDate' | 'endDate'>): boolean => {
+  if (input.personId && event.personId !== input.personId && !event.personIds.includes(input.personId)) return false;
+  if (input.eventTypes?.length && !input.eventTypes.includes(event.eventType)) return false;
+  if (input.paymentState && event.paymentState !== input.paymentState) return false;
+  if (input.settlementRoute && event.settlementRoute !== input.settlementRoute) return false;
+  const keyword = trimmed(input.keyword).toLocaleLowerCase();
+  if (keyword && !`${event.label} ${event.detail}`.toLocaleLowerCase().includes(keyword)) return false;
+  return true;
+};
+
+const summarizeCalendarDay = (date: string, events: LaborProjectionEvent[]): LaborCalendarDaySummary => ({
+  date,
+  events,
+  workCount: events.filter((event) => event.eventType === 'work').length,
+  workDueSatang: events.filter((event) => event.eventType === 'work').reduce((sum, event) => sum + event.dueSatang, 0),
+  individualPaymentSatang: events.filter((event) => event.eventType === 'individual_payment').reduce((sum, event) => sum + event.amountSatang, 0),
+  groupReceiptSatang: events.filter((event) => event.eventType === 'group_receipt').reduce((sum, event) => sum + event.amountSatang, 0),
+  advanceIssuedSatang: events.filter((event) => event.eventType === 'advance').reduce((sum, event) => sum + event.amountSatang, 0),
+  advanceRecoveredSatang: events.filter((event) => event.eventType === 'advance_recovery').reduce((sum, event) => sum + event.amountSatang, 0),
+  contractProgressCount: events.filter((event) => event.eventType === 'contract_progress').length,
+  contractCompletionCount: events.filter((event) => event.eventType === 'contract_completion').length,
+  contractDeadlineCount: events.filter((event) => event.eventType === 'contract_deadline').length,
+});
+
+/** Repository-owned projection: consumers receive typed business events, never timeline JSON. */
+const listLaborProjectionEvents = async (db: SqlExecutor): Promise<LaborProjectionEvent[]> => {
+  const [jobs, participants, payables, groups, snapshots, contracts, paymentRows, paymentAllocations, receipts, advances, recoveries, progress] = await Promise.all([
+    db.getAllAsync<ProjectionJobRow>(
+      `SELECT job.id, job.title, job.work_date, job.note, job.kind, job.created_at,
+              detail.starts_on, detail.deadline_on, detail.completed_on, detail.final_total_satang
+       FROM labor_jobs AS job
+       LEFT JOIN labor_contract_details AS detail ON detail.labor_job_id = job.id
+       WHERE job.status = 'open' ORDER BY job.work_date ASC, job.created_at ASC, job.id ASC`,
+    ),
+    db.getAllAsync<ProjectionParticipantRow>(
+      `SELECT participant.labor_job_id, participant.person_id, person.display_name, participant.pay_type
+       FROM labor_job_participants AS participant JOIN people AS person ON person.id = participant.person_id
+       ORDER BY participant.labor_job_id ASC, participant.sort_order ASC, participant.id ASC`,
+    ),
+    listLaborPayables(db),
+    listLaborSettlementGroups(db),
+    listLaborWorkBasisSnapshots(db),
+    listLaborContracts(db),
+    db.getAllAsync<ProjectionPaymentRow>(
+      `SELECT payment.id, payment.person_id, person.display_name, payment.payment_date, payment.total_satang, payment.note, payment.created_at
+       FROM labor_payment_batches AS payment JOIN people AS person ON person.id = payment.person_id
+       WHERE payment.status IN ('posted', 'revised') ORDER BY payment.payment_date ASC, payment.created_at ASC, payment.id ASC`,
+    ),
+    db.getAllAsync<ProjectionPaymentAllocationRow>(
+      `SELECT allocation.payment_batch_id, allocation.payable_id, payable.labor_job_id, allocation.amount_satang
+       FROM labor_payment_allocations AS allocation
+       JOIN labor_payment_batches AS payment ON payment.id = allocation.payment_batch_id
+       JOIN labor_payables AS payable ON payable.id = allocation.payable_id
+       WHERE payment.status IN ('posted', 'revised') ORDER BY allocation.id ASC`,
+    ),
+    db.getAllAsync<ProjectionReceiptRow>(
+      `SELECT receipt.id, settlement_group.labor_job_id, receipt.settlement_group_id, receipt.receipt_date,
+              receipt.amount_satang, receipt.note, receipt.created_at, receipt.updated_at
+       FROM labor_settlement_group_receipts AS receipt
+       JOIN labor_settlement_groups AS settlement_group ON settlement_group.id = receipt.settlement_group_id
+       WHERE receipt.status IN ('posted', 'revised') ORDER BY receipt.receipt_date ASC, receipt.created_at ASC, receipt.id ASC`,
+    ),
+    db.getAllAsync<ProjectionAdvanceRow>(
+      `SELECT advance.id, advance.person_id, person.display_name, advance.advance_date, advance.amount_satang, advance.note, advance.created_at
+       FROM labor_worker_advances AS advance JOIN people AS person ON person.id = advance.person_id
+       WHERE advance.status IN ('posted', 'revised') ORDER BY advance.advance_date ASC, advance.created_at ASC, advance.id ASC`,
+    ),
+    db.getAllAsync<ProjectionRecoveryRow>(
+      `SELECT deduction.id, deduction.labor_worker_advance_id, deduction.labor_payable_id, deduction.person_id,
+              person.display_name, payable.labor_job_id, deduction.recovery_date, deduction.amount_satang, deduction.note, deduction.created_at
+       FROM labor_advance_deductions AS deduction
+       JOIN people AS person ON person.id = deduction.person_id
+       JOIN labor_payables AS payable ON payable.id = deduction.labor_payable_id
+       ORDER BY deduction.recovery_date ASC, deduction.created_at ASC, deduction.id ASC`,
+    ),
+    db.getAllAsync<ProjectionProgressRow>(
+      `SELECT id, labor_job_id, progress_date, note, created_at FROM labor_job_progress
+       ORDER BY progress_date ASC, created_at ASC, id ASC`,
+    ),
+  ]);
+
+  const participantsByJob = new Map<string, ProjectionParticipantRow[]>();
+  participants.forEach((participant) => participantsByJob.set(participant.labor_job_id, [...(participantsByJob.get(participant.labor_job_id) ?? []), participant]));
+  const payablesByJob = new Map<string, LaborPayable[]>();
+  payables.forEach((payable) => payablesByJob.set(payable.jobId, [...(payablesByJob.get(payable.jobId) ?? []), payable]));
+  const groupByJob = new Map(groups.map((group) => [group.jobId, group]));
+  const routeByJob = new Map<string, LaborSettlementRoute>();
+  snapshots.forEach((snapshot) => routeByJob.set(snapshot.jobId, snapshot.settlementRoute));
+  const completedContractSnapshotByJob = new Map(snapshots.filter((snapshot) => snapshot.basisKind === 'contract' && snapshot.stage === 'completed').map((snapshot) => [snapshot.jobId, snapshot]));
+  groups.forEach((group) => routeByJob.set(group.jobId, 'group'));
+  const contractByJob = new Map(contracts.map((contract) => [contract.id, contract]));
+  const jobById = new Map(jobs.map((job) => [job.id, job]));
+  const allocationsByPayment = new Map<string, ProjectionPaymentAllocationRow[]>();
+  paymentAllocations.forEach((allocation) => allocationsByPayment.set(allocation.payment_batch_id, [...(allocationsByPayment.get(allocation.payment_batch_id) ?? []), allocation]));
+  const events: LaborProjectionEvent[] = [];
+
+  for (const job of jobs) {
+    const jobParticipants = participantsByJob.get(job.id) ?? [];
+    const jobPayables = payablesByJob.get(job.id) ?? [];
+    const group = groupByJob.get(job.id) ?? null;
+    const route = routeByJob.get(job.id) ?? 'individual';
+    const dueSatang = group?.originalDueSatang ?? jobPayables.reduce((sum, payable) => sum + payable.dueSatang, 0);
+    const paidSatang = group?.paidSatang ?? jobPayables.reduce((sum, payable) => sum + payable.paidSatang, 0);
+    const recoveredSatang = group ? 0 : jobPayables.reduce((sum, payable) => sum + payable.recoveredSatang, 0);
+    const remainingSatang = group?.remainingSatang ?? jobPayables.reduce((sum, payable) => sum + payable.remainingSatang, 0);
+    const state = paymentStateFor(dueSatang, paidSatang, recoveredSatang);
+    const participantNames = jobParticipants.map((participant) => participant.display_name).join(' · ');
+    events.push({
+      id: `work:${job.id}`, eventType: 'work', effectiveDate: job.work_date, recordedAt: job.created_at,
+      label: job.title, detail: participantNames, jobId: job.id, jobIds: [job.id], personId: null,
+      personIds: jobParticipants.map((participant) => participant.person_id), settlementGroupId: group?.id ?? null,
+      settlementRoute: route, paymentState: state, amountSatang: 0, dueSatang, remainingSatang,
+    });
+    if (job.kind !== 'contract') continue;
+    const contract = contractByJob.get(job.id);
+    if (job.starts_on) events.push({
+      id: `contract-start:${job.id}`, eventType: 'contract_start', effectiveDate: job.starts_on, recordedAt: job.created_at,
+      label: job.title, detail: 'เริ่มงานเหมา', jobId: job.id, jobIds: [job.id], personId: null,
+      personIds: jobParticipants.map((participant) => participant.person_id), settlementGroupId: group?.id ?? null,
+      settlementRoute: route, paymentState: state, amountSatang: 0, dueSatang: 0, remainingSatang,
+    });
+    if (job.deadline_on) events.push({
+      id: `contract-deadline:${job.id}`, eventType: 'contract_deadline', effectiveDate: job.deadline_on, recordedAt: job.created_at,
+      label: job.title, detail: 'กำหนดส่งงานเหมา', jobId: job.id, jobIds: [job.id], personId: null,
+      personIds: jobParticipants.map((participant) => participant.person_id), settlementGroupId: group?.id ?? null,
+      settlementRoute: route, paymentState: state, amountSatang: 0, dueSatang: 0, remainingSatang,
+    });
+    if (job.completed_on) events.push({
+      id: `contract-completion:${job.id}`, eventType: 'contract_completion', effectiveDate: job.completed_on, recordedAt: completedContractSnapshotByJob.get(job.id)?.createdAt ?? job.created_at,
+      label: job.title, detail: 'สรุปงานเหมา', jobId: job.id, jobIds: [job.id], personId: null,
+      personIds: jobParticipants.map((participant) => participant.person_id), settlementGroupId: group?.id ?? null,
+      settlementRoute: route, paymentState: state, amountSatang: 0, dueSatang: Number(job.final_total_satang ?? contract?.totalSatang ?? 0), remainingSatang,
+    });
+  }
+
+  progress.forEach((item) => {
+    const job = jobById.get(item.labor_job_id);
+    if (!job) return;
+    const group = groupByJob.get(job.id) ?? null;
+    const jobPayables = payablesByJob.get(job.id) ?? [];
+    const route = routeByJob.get(job.id) ?? 'individual';
+    const dueSatang = group?.originalDueSatang ?? jobPayables.reduce((sum, payable) => sum + payable.dueSatang, 0);
+    const paidSatang = group?.paidSatang ?? jobPayables.reduce((sum, payable) => sum + payable.paidSatang, 0);
+    const recoveredSatang = group ? 0 : jobPayables.reduce((sum, payable) => sum + payable.recoveredSatang, 0);
+    events.push({
+      id: `contract-progress:${item.id}`, eventType: 'contract_progress', effectiveDate: item.progress_date, recordedAt: item.created_at,
+      label: job.title, detail: item.note, jobId: job.id, jobIds: [job.id], personId: null,
+      personIds: (participantsByJob.get(job.id) ?? []).map((participant) => participant.person_id), settlementGroupId: group?.id ?? null,
+      settlementRoute: route, paymentState: paymentStateFor(dueSatang, paidSatang, recoveredSatang), amountSatang: 0, dueSatang: 0,
+      remainingSatang: group?.remainingSatang ?? jobPayables.reduce((sum, payable) => sum + payable.remainingSatang, 0),
+    });
+  });
+
+  paymentRows.forEach((payment) => {
+    const allocations = allocationsByPayment.get(payment.id) ?? [];
+    const jobIds = [...new Set(allocations.map((allocation) => allocation.labor_job_id))];
+    const jobTitles = jobIds.map((jobId) => jobById.get(jobId)?.title).filter((title): title is string => Boolean(title));
+    events.push({
+      id: `payment:${payment.id}`, eventType: 'individual_payment', effectiveDate: payment.payment_date, recordedAt: payment.created_at,
+      label: `จ่ายค่าแรง · ${payment.display_name}`, detail: jobTitles.join(' · ') || payment.note, jobId: jobIds.length === 1 ? jobIds[0]! : null,
+      jobIds, personId: payment.person_id, personIds: [payment.person_id], settlementGroupId: null, settlementRoute: 'individual',
+      paymentState: 'not_applicable', amountSatang: Number(payment.total_satang), dueSatang: 0, remainingSatang: 0,
+    });
+  });
+
+  receipts.forEach((receipt) => {
+    const job = jobById.get(receipt.labor_job_id);
+    if (!job) return;
+    const group = groupByJob.get(job.id);
+    events.push({
+      id: `group-receipt:${receipt.id}`, eventType: 'group_receipt', effectiveDate: receipt.receipt_date,
+      recordedAt: receipt.updated_at, label: `รับเงินชุดงาน · ${job.title}`, detail: receipt.note || group?.collectorLabel || '',
+      jobId: job.id, jobIds: [job.id], personId: null, personIds: [], settlementGroupId: receipt.settlement_group_id,
+      settlementRoute: 'group', paymentState: 'not_applicable', amountSatang: Number(receipt.amount_satang), dueSatang: 0,
+      remainingSatang: group?.remainingSatang ?? 0,
+    });
+  });
+
+  advances.forEach((advance) => events.push({
+    id: `advance:${advance.id}`, eventType: 'advance', effectiveDate: advance.advance_date, recordedAt: advance.created_at,
+    label: `เงินเบิก · ${advance.display_name}`, detail: advance.note, jobId: null, jobIds: [], personId: advance.person_id,
+    personIds: [advance.person_id], settlementGroupId: null, settlementRoute: null, paymentState: 'not_applicable',
+    amountSatang: Number(advance.amount_satang), dueSatang: 0, remainingSatang: 0,
+  }));
+  recoveries.forEach((recovery) => {
+    const job = jobById.get(recovery.labor_job_id);
+    events.push({
+      id: `recovery:${recovery.id}`, eventType: 'advance_recovery', effectiveDate: recovery.recovery_date, recordedAt: recovery.created_at,
+      label: `หักคืนเงินเบิก · ${recovery.display_name}`, detail: job?.title ?? recovery.note, jobId: recovery.labor_job_id,
+      jobIds: [recovery.labor_job_id], personId: recovery.person_id, personIds: [recovery.person_id], settlementGroupId: null,
+      settlementRoute: 'individual', paymentState: 'not_applicable', amountSatang: Number(recovery.amount_satang), dueSatang: 0, remainingSatang: 0,
+    });
+  });
+
+  return events.sort((left, right) => `${left.effectiveDate}|${left.recordedAt}|${left.id}`.localeCompare(`${right.effectiveDate}|${right.recordedAt}|${right.id}`));
+};
+
+export const getLaborCalendarRange = async (db: SqlExecutor, input: LaborCalendarRangeInput): Promise<LaborCalendarRange> => {
+  assertProjectionRange(input.startDate, input.endDate);
+  const events = (await listLaborProjectionEvents(db)).filter((event) => event.effectiveDate >= input.startDate && event.effectiveDate <= input.endDate && eventMatches(event, input));
+  return {
+    startDate: input.startDate,
+    endDate: input.endDate,
+    days: enumerateDates(input.startDate, input.endDate).map((date) => summarizeCalendarDay(date, events.filter((event) => event.effectiveDate === date))),
+  };
+};
+
+export const getLaborHistory = async (db: SqlExecutor, input: LaborHistoryInput): Promise<LaborHistory> => {
+  assertProjectionRange(input.startDate, input.endDate);
+  if (input.limit !== undefined && (!Number.isSafeInteger(input.limit) || input.limit <= 0)) throw new Error('TAKAI history limit must be a positive whole number');
+  const all = (await listLaborProjectionEvents(db))
+    .filter((event) => event.effectiveDate >= input.startDate && event.effectiveDate <= input.endDate && eventMatches(event, input))
+    .sort((left, right) => `${right.effectiveDate}|${right.recordedAt}|${right.id}`.localeCompare(`${left.effectiveDate}|${left.recordedAt}|${left.id}`));
+  return { events: input.limit ? all.slice(0, input.limit) : all, total: all.length };
+};
+
+export const getLaborTodaySummary = async (db: SqlExecutor, date = localDateKey()): Promise<LaborTodaySummary> => {
+  assertDate(date, 'today summary date');
+  const [range, read] = await Promise.all([getLaborCalendarRange(db, { startDate: date, endDate: date }), getLaborMvpReadModel(db)]);
+  return {
+    date,
+    day: range.days[0]!,
+    unpaidPeople: read.people.filter((person) => person.wageRemainingSatang > 0),
+    advanceAttentionPeople: read.people.filter((person) => person.advanceRemainingSatang > 0),
+  };
+};
+
+export const getLaborJobDetail = async (db: SqlExecutor, jobId: string): Promise<LaborJobDetail | null> => {
+  const jobs = await db.getAllAsync<ProjectionJobRow>(
+    `SELECT job.id, job.title, job.work_date, job.note, job.kind, job.created_at,
+            detail.starts_on, detail.deadline_on, detail.completed_on, detail.final_total_satang
+     FROM labor_jobs AS job LEFT JOIN labor_contract_details AS detail ON detail.labor_job_id = job.id
+     WHERE job.id = ? AND job.status = 'open' LIMIT 1`, [jobId],
+  );
+  const job = jobs[0];
+  if (!job) return null;
+  const [events, participants, payables, groups, contracts, snapshots] = await Promise.all([
+    listLaborProjectionEvents(db),
+    db.getAllAsync<ProjectionParticipantRow>(
+      `SELECT participant.labor_job_id, participant.person_id, person.display_name, participant.pay_type
+       FROM labor_job_participants AS participant JOIN people AS person ON person.id = participant.person_id
+       WHERE participant.labor_job_id = ? ORDER BY participant.sort_order ASC, participant.id ASC`, [jobId],
+    ),
+    listLaborPayables(db), listLaborSettlementGroups(db, jobId), listLaborContracts(db), listLaborWorkBasisSnapshots(db, jobId),
+  ]);
+  const group = groups[0] ?? null;
+  const jobPayables = payables.filter((payable) => payable.jobId === jobId);
+  const route = group ? 'group' : snapshots[0]?.settlementRoute ?? 'individual';
+  const dueSatang = group?.originalDueSatang ?? jobPayables.reduce((sum, payable) => sum + payable.dueSatang, 0);
+  const cashPaidSatang = group?.paidSatang ?? jobPayables.reduce((sum, payable) => sum + payable.paidSatang, 0);
+  const advanceRecoveredSatang = group ? 0 : jobPayables.reduce((sum, payable) => sum + payable.recoveredSatang, 0);
+  const remainingSatang = group?.remainingSatang ?? jobPayables.reduce((sum, payable) => sum + payable.remainingSatang, 0);
+  return {
+    id: job.id, title: job.title, kind: job.kind, workDate: job.work_date, note: job.note, createdAt: job.created_at,
+    settlementRoute: route, paymentState: paymentStateFor(dueSatang, cashPaidSatang, advanceRecoveredSatang), dueSatang, cashPaidSatang,
+    advanceRecoveredSatang, remainingSatang,
+    participants: participants.map((participant) => ({ personId: participant.person_id, displayName: participant.display_name, payType: participant.pay_type })),
+    settlementGroup: group, contract: contracts.find((contract) => contract.id === jobId) ?? null, workBasisSnapshots: snapshots,
+    events: events.filter((event) => event.jobId === jobId || event.jobIds.includes(jobId)),
+  };
+};
+
+export const getLaborPersonDetail = async (db: SqlExecutor, personId: string): Promise<LaborPersonDetail | null> => {
+  const [read, events, wagePayables, advances, advanceDeductions] = await Promise.all([
+    getLaborMvpReadModel(db), listLaborProjectionEvents(db), listLaborPayables(db, personId), listLaborWorkerAdvances(db, personId), listLaborAdvanceDeductions(db, personId),
+  ]);
+  const person = read.people.find((item) => item.id === personId);
+  if (!person) return null;
+  return { person, wagePayables, advances, advanceDeductions, events: events.filter((event) => event.personId === personId || event.personIds.includes(personId)) };
 };
