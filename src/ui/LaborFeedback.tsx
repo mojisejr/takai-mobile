@@ -15,8 +15,8 @@ export function FormFeedback({ children, kind = 'error' }: { children: ReactNode
 }
 
 /** Consequential actions may use this sheet in a later command phase. Cancel never performs a write. */
-export function ConfirmActionSheet({ cancelLabel = 'กลับไปแก้ไข', confirmLabel, detail, onCancel, onConfirm, title, visible }: { visible: boolean; title: string; detail: string; confirmLabel: string; cancelLabel?: string; onCancel: PressHandler; onConfirm: PressHandler }) {
-  return <Modal animationType="slide" onRequestClose={onCancel} presentationStyle="pageSheet" transparent visible={visible}><View style={styles.backdrop}><View style={styles.sheet}><View style={styles.sheetHandle} /><Text style={styles.sheetTitle}>{title}</Text><Text style={styles.sheetDetail}>{detail}</Text><PrimaryButton label={confirmLabel} onPress={onConfirm} /><PrimaryButton label={cancelLabel} onPress={onCancel} variant="secondary" /></View></View></Modal>;
+export function ConfirmActionSheet({ cancelLabel = 'กลับไปแก้ไข', confirmDisabled = false, confirmLabel, detail, onCancel, onConfirm, title, visible }: { visible: boolean; title: string; detail: string; confirmLabel: string; cancelLabel?: string; confirmDisabled?: boolean; onCancel: PressHandler; onConfirm: PressHandler }) {
+  return <Modal animationType="slide" onRequestClose={onCancel} presentationStyle="pageSheet" transparent visible={visible}><View style={styles.backdrop}><View style={styles.sheet}><View style={styles.sheetHandle} /><Text style={styles.sheetTitle}>{title}</Text><Text style={styles.sheetDetail}>{detail}</Text><PrimaryButton disabled={confirmDisabled} label={confirmLabel} onPress={onConfirm} /><PrimaryButton disabled={confirmDisabled} label={cancelLabel} onPress={onCancel} variant="secondary" /></View></View></Modal>;
 }
 
 export function ScreenSkeleton({ lines = 3 }: { lines?: number }) {
