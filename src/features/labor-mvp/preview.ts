@@ -7,6 +7,7 @@ import {
   createLaborContract,
   createLaborSettlementGroup,
   createLaborWorker,
+  archiveLaborWorker,
   createLaborWorkerAdvance,
   createNormalWork,
   getLaborCalendarRange,
@@ -16,13 +17,14 @@ import {
   getLaborPersonDetail,
   getLaborTodaySummary,
   listLaborWorkers,
+  updateLaborWorker,
   editLaborPayment,
   editLaborSettlementGroupReceipt,
   editLaborWorkerAdvance,
   postLaborPayment,
   postLaborSettlementGroupReceipt,
 } from './repository';
-import type { AddContractProgressInput, ApplyLaborAdvanceDeductionInput, CompleteLaborContractWorkInput, CreateGroupPieceWorkInput, CreateLaborContractInput, CreateLaborSettlementGroupInput, CreateLaborWorkerAdvanceInput, CreateNormalWorkInput, EditLaborPaymentInput, EditLaborSettlementGroupReceiptInput, EditLaborWorkerAdvanceInput, LaborCalendarRange, LaborCalendarRangeInput, LaborHistory, LaborHistoryInput, LaborJobDetail, LaborMvpReadModel, LaborPersonDetail, LaborTodaySummary, PostLaborPaymentInput, PostLaborSettlementGroupReceiptInput } from './types';
+import type { AddContractProgressInput, ApplyLaborAdvanceDeductionInput, CompleteLaborContractWorkInput, CreateGroupPieceWorkInput, CreateLaborContractInput, CreateLaborSettlementGroupInput, CreateLaborWorkerAdvanceInput, CreateNormalWorkInput, EditLaborPaymentInput, EditLaborSettlementGroupReceiptInput, EditLaborWorkerAdvanceInput, LaborCalendarRange, LaborCalendarRangeInput, LaborHistory, LaborHistoryInput, LaborJobDetail, LaborMvpReadModel, LaborPersonDetail, LaborTodaySummary, LaborWorker, LaborWorkerInput, PostLaborPaymentInput, PostLaborSettlementGroupReceiptInput, UpdateLaborWorkerInput } from './types';
 
 export const LABOR_PREVIEW_FIXTURE = {
   version: 'labor-preview-v1',
@@ -35,15 +37,22 @@ export const LABOR_PREVIEW_FIXTURE = {
 } as const;
 
 export type LaborPreviewAdapter = {
-  platform: 'native-preview' | 'web-preview';
-  label: string;
-  fixtureVersion: typeof LABOR_PREVIEW_FIXTURE.version;
+  mode: 'notebook' | 'proof';
+  platform: 'native-notebook' | 'web-notebook' | 'native-preview' | 'web-preview';
+  label?: string;
+  fixtureVersion?: typeof LABOR_PREVIEW_FIXTURE.version;
   getReadModel: () => Promise<LaborMvpReadModel>;
   getTodaySummary: (date?: string) => Promise<LaborTodaySummary>;
   getCalendarRange: (input: LaborCalendarRangeInput) => Promise<LaborCalendarRange>;
   getHistory: (input: LaborHistoryInput) => Promise<LaborHistory>;
   getJobDetail: (jobId: string) => Promise<LaborJobDetail | null>;
   getPersonDetail: (personId: string) => Promise<LaborPersonDetail | null>;
+  workers: {
+    list: (options?: { includeArchived?: boolean }) => Promise<LaborWorker[]>;
+    create: (input: LaborWorkerInput) => Promise<string>;
+    update: (workerId: string, input: UpdateLaborWorkerInput) => Promise<void>;
+    archive: (workerId: string, reason: string) => Promise<void>;
+  };
   /** Native preview writes through the same ledger commands. Web preview is deliberately read-only. */
   commands: {
     createNormalWork: (input: CreateNormalWorkInput) => Promise<{ jobId: string; payableIds: string[] }>;
@@ -129,14 +138,49 @@ export const seedLaborPreviewFixture = async (db: SqlExecutor): Promise<LaborMvp
   return getLaborMvpReadModel(db);
 };
 
+/** Real notebook boundary: migrations may run, but this adapter never seeds proof records. */
+export const createLaborNotebookAdapter = (db: SqlExecutor): LaborPreviewAdapter => ({
+  mode: 'notebook',
+  platform: 'native-notebook',
+  getReadModel: () => getLaborMvpReadModel(db),
+  getTodaySummary: (date) => getLaborTodaySummary(db, date),
+  getCalendarRange: (input) => getLaborCalendarRange(db, input),
+  getHistory: (input) => getLaborHistory(db, input),
+  getJobDetail: (jobId) => getLaborJobDetail(db, jobId),
+  getPersonDetail: (personId) => getLaborPersonDetail(db, personId),
+  workers: {
+    list: ({ includeArchived = false } = {}) => listLaborWorkers(db, includeArchived),
+    create: (input) => createLaborWorker(db, input),
+    update: (workerId, input) => updateLaborWorker(db, workerId, input),
+    archive: (workerId, reason) => archiveLaborWorker(db, workerId, reason),
+  },
+  commands: {
+    createNormalWork: (input) => createNormalWork(db, input),
+    createGroupPieceWork: (input) => createGroupPieceWork(db, input),
+    createLaborContract: (input) => createLaborContract(db, input),
+    createLaborSettlementGroup: (input) => createLaborSettlementGroup(db, input),
+    addLaborContractProgress: (jobId, input) => addLaborContractProgress(db, jobId, input),
+    completeLaborContractWork: (jobId, input) => completeLaborContractWork(db, jobId, input),
+    postLaborPayment: (input) => postLaborPayment(db, input),
+    postLaborSettlementGroupReceipt: (input) => postLaborSettlementGroupReceipt(db, input),
+    createLaborWorkerAdvance: (input) => createLaborWorkerAdvance(db, input),
+    applyLaborAdvanceDeduction: (input) => applyLaborAdvanceDeduction(db, input),
+    editLaborPayment: (paymentId, input) => editLaborPayment(db, paymentId, input),
+    editLaborSettlementGroupReceipt: (receiptId, input) => editLaborSettlementGroupReceipt(db, receiptId, input),
+    editLaborWorkerAdvance: (advanceId, input) => editLaborWorkerAdvance(db, advanceId, input),
+  },
+});
+
 export const createLaborPreviewAdapter = async (
   db: SqlExecutor,
-  platform: LaborPreviewAdapter['platform'],
+  platform: 'native-preview' | 'web-preview',
 ): Promise<LaborPreviewAdapter> => {
   await seedLaborPreviewFixture(db);
   return {
+    ...createLaborNotebookAdapter(db),
+    mode: 'proof',
     platform,
-    label: 'ตัวอย่าง Labor Preview · ข้อมูลจาก Labor ledger',
+    label: 'ข้อมูลทดสอบ',
     fixtureVersion: LABOR_PREVIEW_FIXTURE.version,
     getReadModel: async () => normalizeLaborPreviewReadModel(await getLaborMvpReadModel(db)),
     getTodaySummary: (date) => getLaborTodaySummary(db, date),

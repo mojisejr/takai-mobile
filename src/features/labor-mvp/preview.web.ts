@@ -1,5 +1,5 @@
 import type { LaborPreviewAdapter } from './preview';
-import type { LaborCalendarRangeInput, LaborHistoryInput, LaborProjectionEvent } from './types';
+import type { LaborCalendarDaySummary, LaborCalendarRangeInput, LaborHistoryInput, LaborMvpReadModel, LaborProjectionEvent } from './types';
 import { LABOR_PREVIEW_WEB_PROJECTIONS, LABOR_PREVIEW_WEB_READ_MODEL } from './preview.web.fixture';
 
 const matches = (event: LaborProjectionEvent, input: LaborCalendarRangeInput): boolean => {
@@ -30,8 +30,9 @@ const history = (input: LaborHistoryInput) => {
  * from the same migration + repository command sequence as native preview.
  */
 export const createWebLaborPreviewAdapter = (): LaborPreviewAdapter => ({
+  mode: 'proof',
   platform: 'web-preview',
-  label: 'ตัวอย่าง Labor Preview · ข้อมูลจาก Labor ledger',
+  label: 'ข้อมูลทดสอบ',
   fixtureVersion: 'labor-preview-v1',
   getReadModel: async () => structuredClone(LABOR_PREVIEW_WEB_READ_MODEL),
   getTodaySummary: async (date = '2026-08-02') => date === LABOR_PREVIEW_WEB_PROJECTIONS.today.date
@@ -41,6 +42,14 @@ export const createWebLaborPreviewAdapter = (): LaborPreviewAdapter => ({
   getHistory: async (input) => structuredClone(history(input)),
   getJobDetail: async (jobId) => structuredClone(LABOR_PREVIEW_WEB_PROJECTIONS.jobs[jobId] ?? null),
   getPersonDetail: async (personId) => structuredClone(LABOR_PREVIEW_WEB_PROJECTIONS.people[personId] ?? null),
+  workers: {
+    list: async ({ includeArchived = false } = {}) => structuredClone(LABOR_PREVIEW_WEB_READ_MODEL.people
+      .filter((person) => includeArchived || !person.archivedAt)
+      .map(({ id, displayName, specialty, phone, note, archivedAt }) => ({ id, displayName, specialty, phone, note, archivedAt }))),
+    create: readonlyPreview,
+    update: readonlyPreview,
+    archive: readonlyPreview,
+  },
   commands: {
     createNormalWork: readonlyPreview,
     createGroupPieceWork: readonlyPreview,
@@ -58,6 +67,47 @@ export const createWebLaborPreviewAdapter = (): LaborPreviewAdapter => ({
   },
 });
 
+const emptyModel = (): LaborMvpReadModel => ({
+  people: [], payables: [], payments: [], timeline: [], contracts: [], legacySources: [], legacyBalances: [], settlementGroups: [], workBasisSnapshots: [], advances: [], advanceDeductions: [],
+});
+
+const emptyDay = (date: string): LaborCalendarDaySummary => ({
+  date, events: [], workCount: 0, workDueSatang: 0, individualPaymentSatang: 0, groupReceiptSatang: 0, advanceIssuedSatang: 0, advanceRecoveredSatang: 0, contractProgressCount: 0, contractCompletionCount: 0, contractDeadlineCount: 0,
+});
+
+const daysBetween = (startDate: string, endDate: string): LaborCalendarDaySummary[] => {
+  const days: LaborCalendarDaySummary[] = [];
+  const cursor = new Date(`${startDate}T12:00:00`);
+  const end = new Date(`${endDate}T12:00:00`);
+  while (cursor <= end) {
+    days.push(emptyDay(cursor.toISOString().slice(0, 10)));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+};
+
+/** Web has no SQLite bundle here, so product boot is honestly read-only and empty. */
+export const createWebLaborNotebookAdapter = (): LaborPreviewAdapter => ({
+  mode: 'notebook',
+  platform: 'web-notebook',
+  getReadModel: async () => emptyModel(),
+  getTodaySummary: async (date = new Date().toISOString().slice(0, 10)) => ({ date, day: emptyDay(date), unpaidPeople: [], advanceAttentionPeople: [] }),
+  getCalendarRange: async ({ startDate, endDate }) => ({ startDate, endDate, days: daysBetween(startDate, endDate) }),
+  getHistory: async () => ({ events: [], total: 0 }),
+  getJobDetail: async () => null,
+  getPersonDetail: async () => null,
+  workers: { list: async () => [], create: readonlyNotebook, update: readonlyNotebook, archive: readonlyNotebook },
+  commands: {
+    createNormalWork: readonlyNotebook, createGroupPieceWork: readonlyNotebook, createLaborContract: readonlyNotebook, createLaborSettlementGroup: readonlyNotebook,
+    addLaborContractProgress: readonlyNotebook, completeLaborContractWork: readonlyNotebook, postLaborPayment: readonlyNotebook, postLaborSettlementGroupReceipt: readonlyNotebook,
+    createLaborWorkerAdvance: readonlyNotebook, applyLaborAdvanceDeduction: readonlyNotebook, editLaborPayment: readonlyNotebook, editLaborSettlementGroupReceipt: readonlyNotebook, editLaborWorkerAdvance: readonlyNotebook,
+  },
+});
+
 const readonlyPreview = async (): Promise<never> => {
-  throw new Error('Labor Preview บน web เป็นโหมดอ่านอย่างเดียว: บันทึกจริงได้ใน Expo Go บนอุปกรณ์');
+  throw new Error('ข้อมูลทดสอบบนเว็บเป็นโหมดอ่านอย่างเดียว');
+};
+
+const readonlyNotebook = async (): Promise<never> => {
+  throw new Error('การบันทึกจากเว็บยังไม่รองรับ กรุณาเปิดแอปบนอุปกรณ์เพื่อบันทึกข้อมูล');
 };
