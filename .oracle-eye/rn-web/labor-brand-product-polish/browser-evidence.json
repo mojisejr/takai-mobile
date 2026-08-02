@@ -1,0 +1,70 @@
+{
+  "project": "takai-mobile",
+  "phase": "labor-brand-product-polish",
+  "lane": "rn-web-eye",
+  "targetUrls": [
+    "http://localhost:8081/",
+    "http://localhost:8081/?proof=1",
+    "http://localhost:8081/?proof=1&toast=success",
+    "http://localhost:8081/?proof=1&sheet=confirm"
+  ],
+  "status": "closed",
+  "viewports": [
+    { "width": 390, "height": 844 },
+    { "width": 320, "height": 844 }
+  ],
+  "requiredScreens": [
+    "initial empty mascot at 390x844",
+    "About at 390x844",
+    "Today at 390x844",
+    "selected Calendar day at 390x844",
+    "History at 390x844",
+    "People at 390x844",
+    "long-form validation error at 390x844",
+    "confirmation sheet at 390x844",
+    "success toast at 390x844",
+    "empty/About at 320x844",
+    "densest ledger list or sheet at 320x844"
+  ],
+  "screenshotPaths": [
+    "empty-390x844.png",
+    "about-390x844.png",
+    "today-390x844.png",
+    "calendar-day-390x844.png",
+    "history-390x844.png",
+    "people-390x844.png",
+    "validation-390x844.png",
+    "confirmation-sheet-390x844.png",
+    "success-toast-390x844.png",
+    "empty-320x844.png",
+    "about-320x844.png",
+    "confirmation-sheet-320x844.png"
+  ],
+  "console": {
+    "errors": 0,
+    "warnings": 1,
+    "artifact": "console-errors.log, console-warnings.log",
+    "status": "captured"
+  },
+  "failedNetworkRequests": {
+    "count": 0,
+    "artifact": "network.json",
+    "status": "captured"
+  },
+  "knownWarnings": [
+    "React Native Web reports one existing shadow-style deprecation warning; no console errors were observed."
+  ],
+  "exportReadiness": {
+    "status": "passed",
+    "index": ".oracle-eye/rn-web/labor-brand-product-polish/export/index.html",
+    "bundledMascot": "assets/brand/takai-mascot-bust.cc93072b2a5f1bdf3efbf83bf96623d9.png"
+  },
+  "proofFixtures": {
+    "status": "explicit and non-writing",
+    "marker": "ข้อมูลทดสอบ",
+    "notes": "The populated ledger, toast, and confirmation-sheet captures use ?proof=1 only. The normal URL remains an empty, read-only notebook."
+  },
+  "blocker": null,
+  "claimLabel": "RN Web Eye Closed",
+  "doesNotClose": ["Expo Go Device Eye", "Native Eye", "Android launcher/splash behavior", "native touch and keyboard behavior"]
+}

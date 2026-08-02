@@ -18,32 +18,32 @@ verify_eyes:
     gate: required
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
-    artifact_sink: .oracle-eye/rn-static/labor-calendar-mvp/
-    commands: [npm run test:design-contract, npm run test:labor-read-ui]
+    artifact_sink: .oracle-eye/rn-static/labor-brand-product-polish/
+    commands: [npm run test:design-contract, npm run test:labor-read-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
     gate: required
     sees: [Rendered Expo Web layout, browser console, failed requests, narrow viewport overflow]
     does_not_see: [Expo Go touch, physical safe areas, native packaging]
-    artifact_sink: .oracle-eye/rn-web/labor-calendar-mvp/
+    artifact_sink: .oracle-eye/rn-web/labor-brand-product-polish/
     commands: [npm run eye:rn-web, browser capture at 390x844 and 320px]
     claim_label: RN Web Eye Closed
   - kind: expo-go-device-eye
     gate: manual
     sees: [Android touch, scrolling, keyboard, safe area, operator comprehension]
     does_not_see: [Native build packaging]
-    artifact_sink: .oracle-eye/expo-go/labor-calendar-mvp/
+    artifact_sink: .oracle-eye/expo-go/labor-brand-product-polish/
     commands: [Operator runs Expo Go Android scenarios in Phase 5]
     claim_label: Expo Go Device Eye Closed
 labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, คน, เมนู]
 proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
 ---
 
-# TAKAI Mobile — Labor MVP Design Contract
+# TAKAI Mobile — Labor Notebook Design Contract
 
 ## Product frame
 
-TAKAI Labor MVP is a warm, local-first work-and-payment notebook for a garden owner. Its primary record is a **job**. A calendar and history are derived views over work and money events; neither is a second source of truth.
+TAKAI is a warm, local-first work-and-payment notebook for a garden owner. Its primary record is a **job**. A calendar and history are derived views over work and money events; neither is a second source of truth.
 
 The MVP does not expose the prior garden Activity, plot, hole, case, tracker, or material flows in its primary navigation. Those modules remain preserved in source only. Labor jobs can be general work with no plot.
 
@@ -88,9 +88,9 @@ Adapt/create `LaborMvpApp`, labor-specific status chips, compact calendar event 
 - Calendar keeps seven columns at 320px and 390px. It uses low-density typed markers; the selected-day sheet carries detail.
 - No nested decorative cards, gradients, glass effects, tiny outdoor-only metadata, or color-only state.
 
-## Preview and proof lanes
+## Notebook and proof lanes
 
-`Labor Preview` is visibly labelled and created by migrations, the public Labor repository commands, and the Labor read model. Web may never substitute a hand-shaped garden mock for this preview.
+Normal app boot opens the real local notebook and never creates proof records. Proof fixtures remain explicit test-only data; when they are intentionally shown, the UI uses only the Thai marker `ข้อมูลทดสอบ`. Web must never fabricate a writable local notebook.
 
 | Lane | Required phase | What it proves |
 |---|---:|---|

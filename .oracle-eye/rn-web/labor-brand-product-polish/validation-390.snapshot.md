@@ -1,0 +1,55 @@
+- generic [ref=f1e6] [box=0,0,390,844]:
+  - generic [ref=f1e8] [box=0,-259,390,1085]:
+    - generic [ref=f1e9] [box=16,-243,358,52]:
+      - generic [ref=f1e10] [box=32,-232,28,30]: ☰
+      - generic [ref=f1e11] [box=72,-231,246,28]: บันทึกงาน
+    - generic [ref=f1e35] [box=16,-175,91,28]: ข้อมูลทดสอบ
+    - generic [ref=f1e388] [box=16,-131,358,136]:
+      - generic [ref=f1e389] [box=31,-116,328,18]: บันทึกงาน
+      - generic [ref=f1e390] [box=31,-92,328,28]: งานรายคน
+      - generic [ref=f1e391] [box=31,-56,328,46]: "รายการเงินมีเส้นทางชัดเจน: จ่ายรายคน, รับเงินชุดงาน, และเงินเบิกของคนทำงาน"
+    - generic [ref=f1e392] [box=16,21,358,84]:
+      - generic [ref=f1e393] [cursor=pointer] [box=16,21,84,38]: งานรายคน
+      - generic [ref=f1e395] [cursor=pointer] [box=108,21,82,38]: จ่ายค่าแรง
+      - generic [ref=f1e397] [cursor=pointer] [box=198,21,97,38]: รับเงินชุดงาน
+      - generic [ref=f1e399] [cursor=pointer] [box=16,67,80,38]: ให้เงินเบิก
+      - generic [ref=f1e401] [cursor=pointer] [box=104,67,98,38]: หักคืนเงินเบิก
+      - generic [ref=f1e403] [cursor=pointer] [box=209,67,98,38]: แก้ไขรายการ
+    - generic [ref=f1e405] [box=16,121,358,73]:
+      - generic [ref=f1e406] [box=16,121,358,19]: วันที่ทำงาน
+      - textbox "YYYY-MM-DD" [ref=f1e407] [box=16,146,358,48]: 2026-08-02
+    - generic [ref=f1e447] [box=16,210,358,48]: กรอกชื่องานก่อนบันทึก
+    - generic [ref=f1e408] [box=16,274,358,38]:
+      - generic [ref=f1e409] [cursor=pointer] [box=16,274,84,38]: งานรายคน
+      - generic [ref=f1e411] [cursor=pointer] [box=108,274,121,38]: งานรายชิ้นเป็นชุด
+      - generic [ref=f1e413] [cursor=pointer] [box=237,274,74,38]: งานเหมา
+    - generic [ref=f1e415] [box=16,328,358,72]:
+      - generic [ref=f1e416] [box=16,328,358,18]: ชื่องาน
+      - textbox "ชื่องาน" [ref=f1e417] [box=16,352,358,48]:
+        - /placeholder: เช่น ตัดหญ้ารอบบ้าน
+    - generic [ref=f1e418] [box=16,416,358,56]:
+      - generic [ref=f1e419] [box=16,416,358,18]: คนทำงาน
+      - generic [ref=f1e420] [box=16,434,358,38]:
+        - generic [ref=f1e421] [cursor=pointer] [box=16,434,56,38]: น้าชล
+        - generic [ref=f1e423] [cursor=pointer] [box=80,434,57,38]: พี่พวง
+        - generic [ref=f1e425] [cursor=pointer] [box=145,434,43,38]: พี่สุ
+    - generic [ref=f1e427] [box=16,488,358,38]:
+      - generic [ref=f1e428] [cursor=pointer] [box=16,488,62,38]: รายวัน
+      - generic [ref=f1e430] [cursor=pointer] [box=86,488,82,38]: รายชั่วโมง
+      - generic [ref=f1e432] [cursor=pointer] [box=175,488,63,38]: รายชิ้น
+    - generic [ref=f1e434] [box=16,542,358,38]:
+      - generic [ref=f1e435] [cursor=pointer] [box=16,542,61,38]: เต็มวัน
+      - generic [ref=f1e437] [cursor=pointer] [box=85,542,62,38]: ครึ่งวัน
+    - generic [ref=f1e439] [box=16,596,358,72]:
+      - generic [ref=f1e440] [box=16,596,358,18]: อัตราต่อหน่วย (บาท)
+      - textbox "อัตราต่อหน่วย (บาท)" [ref=f1e441] [box=16,620,358,48]: "350"
+    - generic [ref=f1e442] [box=16,684,358,72]:
+      - generic [ref=f1e443] [box=16,684,358,18]: หมายเหตุ (ไม่บังคับ)
+      - textbox "หมายเหตุ (ไม่บังคับ)" [ref=f1e444] [box=16,708,358,48]
+    - button "บันทึก งานรายคน" [active] [ref=f1e445] [cursor=pointer] [box=16,772,358,46]
+  - generic [ref=f1e24] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f1e25] [cursor=pointer] [box=23,777,69,44]
+    - tab "งาน" [ref=f1e27] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึกงาน" [ref=f1e29] [cursor=pointer] [box=161,777,69,44]
+    - tab "คน" [ref=f1e31] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f1e33] [cursor=pointer] [box=298,777,69,44]

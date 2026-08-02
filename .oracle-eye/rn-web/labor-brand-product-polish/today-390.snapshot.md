@@ -1,0 +1,60 @@
+- generic [ref=f1e6] [box=0,0,390,844]:
+  - generic [ref=f1e8] [box=0,0,390,898]:
+    - generic [ref=f1e9] [box=16,16,358,52]:
+      - generic [ref=f1e10] [box=32,27,28,30]: ☰
+      - generic [ref=f1e11] [box=72,28,246,28]: วันนี้
+    - generic [ref=f1e35] [box=16,84,91,28]: ข้อมูลทดสอบ
+    - generic [ref=f1e37] [box=16,128,358,113]:
+      - generic [ref=f1e38] [box=31,143,328,18]: 2 ส.ค. 2569 · ภาพรวมงานและเงิน
+      - generic [ref=f1e39] [box=31,167,328,28]: วันนี้มีงาน 1 รายการ
+      - generic [ref=f1e40] [box=31,203,328,23]: ยอดงาน 350 บาท · เงินออก/รับวันนี้ 4,475 บาท
+    - generic [ref=f1e41] [box=16,257,358,67]:
+      - generic [ref=f1e42] [box=16,257,114,67]:
+        - generic [ref=f1e43] [box=27,268,92,18]: งานวันนี้
+        - generic [ref=f1e44] [box=27,291,92,22]: 350 บ.
+      - generic [ref=f1e45] [box=138,257,114,67]:
+        - generic [ref=f1e46] [box=149,268,92,18]: จ่ายค่าแรง
+        - generic [ref=f1e47] [box=149,291,92,22]: 350 บ.
+      - generic [ref=f1e48] [box=260,257,114,67]:
+        - generic [ref=f1e49] [box=271,268,92,18]: รับชุดงาน
+        - generic [ref=f1e50] [box=271,291,92,22]: 4,125 บ.
+    - generic [ref=f1e51] [box=16,340,358,36]: งานและเหตุการณ์วันนี้
+    - generic [ref=f1e53] [box=16,392,358,222]:
+      - button "ตัดหญ้ารอบบ้าน" [ref=f1e55] [cursor=pointer] [box=17,393,356,70]:
+        - generic [ref=f1e56] [box=17,393,356,70]:
+          - generic [ref=f1e58] [box=45,408,226,41]:
+            - generic [ref=f1e59] [box=45,408,226,22]: ตัดหญ้ารอบบ้าน
+            - generic [ref=f1e60] [box=45,432,226,17]: 2 ส.ค. · พี่สุ
+          - generic [ref=f1e61] [box=281,403,80,50]:
+            - generic [ref=f1e62] [box=281,403,41,28]: งาน
+            - generic [ref=f1e64] [box=309,435,52,18]: 350 บาท
+      - button "จ่ายค่าแรง · พี่สุ" [ref=f1e66] [cursor=pointer] [box=17,464,356,70]:
+        - generic [ref=f1e67] [box=17,464,356,70]:
+          - generic [ref=f1e69] [box=45,479,226,41]:
+            - generic [ref=f1e70] [box=45,479,226,22]: จ่ายค่าแรง · พี่สุ
+            - generic [ref=f1e71] [box=45,503,226,17]: 2 ส.ค. · ตัดหญ้ารอบบ้าน
+          - generic [ref=f1e72] [box=281,474,80,50]:
+            - generic [ref=f1e73] [box=281,474,76,28]: จ่ายค่าแรง
+            - generic [ref=f1e75] [box=309,506,52,18]: 350 บาท
+      - button "รับเงินชุดงาน · กรอกถุงเพาะชำ" [ref=f1e77] [cursor=pointer] [box=17,535,356,78]:
+        - generic [ref=f1e78] [box=17,535,356,78]:
+          - generic [ref=f1e80] [box=45,545,215,58]:
+            - generic [ref=f1e81] [box=45,545,215,22]: รับเงินชุดงาน · กรอกถุงเพาะชำ
+            - generic [ref=f1e82] [box=45,569,215,34]: 2 ส.ค. · พี่สุรับแทนชุดงาน · ไม่ใช่ค่าแรงรายคน
+          - generic [ref=f1e83] [box=270,549,91,50]:
+            - generic [ref=f1e84] [box=270,549,91,28]: รับเงินชุดงาน
+            - generic [ref=f1e86] [box=295,581,66,18]: 4,125 บาท
+    - generic [ref=f1e87] [box=16,630,358,36]: ค้างค่าแรง
+    - generic [ref=f1e89] [box=16,682,358,18]: วันนี้ไม่มีค่าแรงค้างในตัวอย่าง
+    - generic [ref=f1e90] [box=16,716,358,36]: เงินเบิกคงเหลือ
+    - button "น้าชล 1,000 บาท" [ref=f1e94] [cursor=pointer] [box=17,769,356,58]:
+      - generic [ref=f1e95] [box=17,769,356,58]:
+        - generic [ref=f1e96] [box=29,787,242,22]: น้าชล
+        - generic [ref=f1e98] [box=281,789,80,18]: 1,000 บาท
+    - button "+ บันทึกงานวันนี้" [ref=f1e100] [cursor=pointer] [box=16,844,358,46]
+  - generic [ref=f1e24] [box=16,770,358,58]:
+    - tab "วันนี้" [ref=f1e25] [cursor=pointer] [box=23,777,69,44]
+    - tab "งาน" [ref=f1e27] [cursor=pointer] [box=92,777,69,44]
+    - tab "บันทึกงาน" [ref=f1e29] [cursor=pointer] [box=161,777,69,44]
+    - tab "คน" [ref=f1e31] [cursor=pointer] [box=229,777,69,44]
+    - tab "เมนู" [ref=f1e33] [cursor=pointer] [box=298,777,69,44]
