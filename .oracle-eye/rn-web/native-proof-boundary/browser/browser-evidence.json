@@ -1,0 +1,53 @@
+{
+  "project": "takai-mobile",
+  "phase": "native-proof-boundary",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "controlPlane": "Playwright MCP",
+  "server": "http://127.0.0.1:8082",
+  "observedAt": "2026-08-13T23:08:05.000Z",
+  "screens": [
+    {
+      "url": "http://127.0.0.1:8082/",
+      "viewport": "390x844",
+      "state": "normal notebook",
+      "screenshot": "today-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8082/?proof=1&toast=success",
+      "viewport": "390x844",
+      "state": "read-only proof success toast",
+      "screenshot": "proof-toast-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8082/?proof=1&sheet=confirm",
+      "viewport": "390x844",
+      "state": "read-only proof confirmation sheet",
+      "screenshot": "proof-confirm-390x844.png"
+    },
+    {
+      "url": "http://127.0.0.1:8082/?proof=1&sheet=confirm",
+      "viewport": "320x844",
+      "state": "narrow proof confirmation sheet",
+      "screenshot": "proof-confirm-320x844.png",
+      "horizontalOverflow": false
+    }
+  ],
+  "console": {
+    "errors": 0,
+    "warnings": 1,
+    "knownWarning": "React Native Web shadow style props are deprecated; use boxShadow.",
+    "errorsArtifact": "console-errors.txt",
+    "warningsArtifact": "console-warnings.txt"
+  },
+  "network": {
+    "failedRequests": 0,
+    "observedRequests": 2,
+    "artifact": "network-requests.txt"
+  },
+  "doesNotClaim": [
+    "Android installed APK startup",
+    "Native module behavior",
+    "Physical device touch or safe-area behavior"
+  ]
+}

@@ -1,0 +1,5 @@
+Total messages: 3 (Errors: 0, Warnings: 1)
+
+[WARNING] "shadow*" style props are deprecated. Use "boxShadow". @ http://127.0.0.1:8082/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:23463
+[WARNING] "shadow*" style props are deprecated. Use "boxShadow". @ http://127.0.0.1:8082/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:23463
+[WARNING] "shadow*" style props are deprecated. Use "boxShadow". @ http://127.0.0.1:8082/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:23463

@@ -1,0 +1,34 @@
+{
+  "project": "takai-mobile",
+  "phase": "native-proof-boundary",
+  "lane": "rn-static-eye",
+  "claimLabel": "RN Static Token Gate Closed",
+  "generatedAt": "2026-08-13T22:58:17Z",
+  "status": "passed",
+  "evidence": [
+    "npm test",
+    "npx expo-doctor",
+    "npx expo export --platform android --output-dir /tmp/takai-native-proof-boundary-aTVRqs",
+    "npm run test:design-contract",
+    "npm run test:labor-read-ui",
+    "npm run test:labor-notebook-boundary",
+    "npm run test:labor-list-feedback",
+    "npm run test:labor-web-proof-switch",
+    "npm run test:labor-native-proof-boundary"
+  ],
+  "claims": [
+    "The extensionless proof import remains platform-selected by Metro.",
+    "The native proof selector carries no browser-global access and ignores web proof routes.",
+    "Android Metro export completed with a 640-module Hermes bundle."
+  ],
+  "doesNotClaim": [
+    "Android installed APK startup",
+    "Device safe areas or touch",
+    "Browser-rendered layout, console, or network"
+  ],
+  "androidExport": {
+    "metadata": "/tmp/takai-native-proof-boundary-aTVRqs/metadata.json",
+    "bundle": "_expo/static/js/android/index-5514c52835fcbe188ce9c9b57c581765.hbc",
+    "bundleBytes": 2113487
+  }
+}
