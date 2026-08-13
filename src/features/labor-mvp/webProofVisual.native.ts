@@ -1,4 +1,4 @@
 import type { LaborWebProofVisual } from './webProofVisualQuery';
 
-/** Fallback for non-browser platforms; Metro selects the native/web implementation first. */
+/** Native never reads browser proof routes or renders their non-writing fixtures. */
 export const selectLaborWebProofVisual = (): LaborWebProofVisual => 'none';
