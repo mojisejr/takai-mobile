@@ -49,7 +49,7 @@ const main = async (): Promise<void> => {
     firstConnection = new DatabaseSync(databasePath);
     const db = new NodeSqliteExecutor(firstConnection);
     await applyThroughTwelve(db);
-    assert.deepEqual(await runMigrations(db), [13, 14, 15], 'schema-12 upgrade must add immutable work-basis, hourly-duration, and advance-recovery surfaces');
+    assert.deepEqual(await runMigrations(db), [13, 14, 15, 16], 'schema-12 upgrade must add immutable work-basis, hourly-duration, advance-recovery, and payment-session surfaces');
     const su = await createLaborWorker(db, { id: 'worker-su', displayName: 'สุ' });
     const phuang = await createLaborWorker(db, { id: 'worker-phuang', displayName: 'พ่วง' });
 

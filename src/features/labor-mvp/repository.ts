@@ -30,6 +30,8 @@ import type {
   LaborPayable,
   LaborPayType,
   LaborPayment,
+  LaborPaymentSession,
+  LaborPaymentSessionSettlement,
   LaborPaymentState,
   LaborPersonDetail,
   LaborWorkerAdvance,
@@ -45,6 +47,9 @@ import type {
   LaborWorker,
   LaborWorkerInput,
   PaymentAllocationInput,
+  PaymentSessionAdvanceRecoveryInput,
+  PostLaborPaymentSessionInput,
+  CorrectLaborPaymentSessionInput,
   PostLaborPaymentInput,
   PostLaborSettlementGroupReceiptInput,
   RecordedLaborWorkItem,
@@ -65,6 +70,10 @@ type SettlementGroupReceiptRow = { id: string; settlement_group_id: string; rece
 type WorkBasisSnapshotRow = { id: string; labor_job_id: string; settlement_route: LaborSettlementRoute; basis_kind: 'daily' | 'hourly' | 'piece' | 'contract'; stage: 'recorded' | 'started' | 'progress' | 'completed'; person_id: string | null; rate_satang: number | null; quantity_milli: number | null; duration_minutes: number | null; unit_label: string; total_satang: number | null; note: string; created_at: string };
 type AdvanceRow = { id: string; person_id: string; advance_date: string; amount_satang: number; method: string; note: string; current_revision: number; status: 'posted' | 'revised' | 'cancelled'; recovered_satang: number };
 type AdvanceDeductionRow = { id: string; labor_worker_advance_id: string; labor_payable_id: string; person_id: string; recovery_date: string; amount_satang: number; note: string };
+type PaymentSessionRow = { id: string; payment_date: string; method: string; note: string; cash_paid_satang: number; current_revision: number; status: 'posted' | 'revised' | 'cancelled'; created_at: string };
+type PaymentSessionSettlementRow = { id: string; payment_session_id: string; recipient_type: 'person' | 'group'; person_id: string | null; settlement_group_id: string | null; wage_satang: number; bonus_satang: number; advance_recovered_satang: number; cash_paid_satang: number };
+type PaymentSessionWageAllocationRow = { id: string; settlement_id: string; labor_payable_id: string; amount_satang: number };
+type PaymentSessionAdvanceRecoveryRow = { id: string; settlement_id: string; labor_worker_advance_id: string; labor_payable_id: string; amount_satang: number };
 
 const timestamp = (): string => new Date().toISOString();
 const generatedId = (prefix: string): string => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -149,7 +158,12 @@ const advanceRows = async (db: SqlExecutor, personId?: string): Promise<AdvanceR
           advance.current_revision, advance.status,
           COALESCE((SELECT SUM(deduction.amount_satang)
             FROM labor_advance_deductions AS deduction
-            WHERE deduction.labor_worker_advance_id = advance.id), 0) AS recovered_satang
+            WHERE deduction.labor_worker_advance_id = advance.id), 0)
+          + COALESCE((SELECT SUM(recovery.amount_satang)
+            FROM labor_payment_session_advance_recoveries AS recovery
+            JOIN labor_payment_session_settlements AS settlement ON settlement.id = recovery.settlement_id
+            JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+            WHERE recovery.labor_worker_advance_id = advance.id AND session.status IN ('posted', 'revised')), 0) AS recovered_satang
    FROM labor_worker_advances AS advance
    WHERE advance.status IN ('posted', 'revised') ${personId ? 'AND advance.person_id = ?' : ''}
    ORDER BY advance.advance_date DESC, advance.created_at DESC, advance.id DESC`,
@@ -181,10 +195,25 @@ const payableRows = async (db: SqlExecutor, allocations: PaymentAllocationInput[
        COALESCE((SELECT SUM(allocation.amount_satang)
         FROM labor_payment_allocations AS allocation
         JOIN labor_payment_batches AS batch ON batch.id = allocation.payment_batch_id
-        WHERE allocation.payable_id = payable.id AND batch.status = 'posted'), 0) AS paid_satang,
+        WHERE allocation.payable_id = payable.id AND batch.status = 'posted'), 0)
+       + COALESCE((SELECT SUM(session_allocation.amount_satang)
+        FROM labor_payment_session_wage_allocations AS session_allocation
+       JOIN labor_payment_session_settlements AS settlement ON settlement.id = session_allocation.settlement_id
+       JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+        WHERE session_allocation.labor_payable_id = payable.id AND session.status IN ('posted', 'revised')), 0)
+       - COALESCE((SELECT SUM(recovery.amount_satang)
+        FROM labor_payment_session_advance_recoveries AS recovery
+        JOIN labor_payment_session_settlements AS settlement ON settlement.id = recovery.settlement_id
+        JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+        WHERE recovery.labor_payable_id = payable.id AND session.status IN ('posted', 'revised')), 0) AS paid_satang,
        COALESCE((SELECT SUM(deduction.amount_satang)
         FROM labor_advance_deductions AS deduction
-        WHERE deduction.labor_payable_id = payable.id), 0) AS recovered_satang
+        WHERE deduction.labor_payable_id = payable.id), 0)
+       + COALESCE((SELECT SUM(recovery.amount_satang)
+        FROM labor_payment_session_advance_recoveries AS recovery
+        JOIN labor_payment_session_settlements AS settlement ON settlement.id = recovery.settlement_id
+        JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+        WHERE recovery.labor_payable_id = payable.id AND session.status IN ('posted', 'revised')), 0) AS recovered_satang
      FROM labor_payables AS payable
      JOIN labor_jobs AS job ON job.id = payable.labor_job_id
      WHERE payable.id IN (${placeholders}) AND payable.status = 'open' AND job.status = 'open'
@@ -276,7 +305,13 @@ const paymentSnapshot = async (db: SqlExecutor, paymentId: string): Promise<{ pa
 const settlementGroupRows = async (db: SqlExecutor, jobId?: string): Promise<SettlementGroupRow[]> => db.getAllAsync<SettlementGroupRow>(
   `SELECT settlement_group.id, settlement_group.labor_job_id, settlement_group.original_due_satang, settlement_group.status,
      settlement_group.collector_person_id, settlement_group.collector_label,
-     COALESCE(SUM(CASE WHEN receipt.status IN ('posted', 'revised') THEN receipt.amount_satang ELSE 0 END), 0) AS paid_satang
+     COALESCE(SUM(CASE WHEN receipt.status IN ('posted', 'revised') THEN receipt.amount_satang ELSE 0 END), 0)
+     + COALESCE((SELECT SUM(session_settlement.wage_satang)
+        FROM labor_payment_session_settlements AS session_settlement
+        JOIN labor_payment_sessions AS session ON session.id = session_settlement.payment_session_id
+        WHERE session_settlement.settlement_group_id = settlement_group.id
+          AND session_settlement.recipient_type = 'group'
+          AND session.status IN ('posted', 'revised')), 0) AS paid_satang
    FROM labor_settlement_groups AS settlement_group
    LEFT JOIN labor_settlement_group_receipts AS receipt ON receipt.settlement_group_id = settlement_group.id
    ${jobId ? 'WHERE settlement_group.labor_job_id = ?' : ''}
@@ -1004,6 +1039,239 @@ export const createManualOpeningBalance = async (db: SqlExecutor, input: CreateM
   return payableId;
 };
 
+const assertNonNegativeSatang = (value: number, label: string): void => {
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`TAKAI ${label} must be a non-negative INTEGER satang amount`);
+};
+
+const paymentSessionSnapshot = async (db: SqlExecutor, paymentSessionId: string): Promise<LaborPaymentSession> => {
+  const session = (await db.getAllAsync<PaymentSessionRow>(
+    `SELECT id, payment_date, method, note, cash_paid_satang, current_revision, status, created_at
+     FROM labor_payment_sessions WHERE id = ? AND status IN ('posted', 'revised') LIMIT 1`,
+    [paymentSessionId],
+  ))[0];
+  if (!session) throw new Error(`TAKAI payment session is unavailable: ${paymentSessionId}`);
+  const settlements = await db.getAllAsync<PaymentSessionSettlementRow>(
+    `SELECT id, payment_session_id, recipient_type, person_id, settlement_group_id, wage_satang, bonus_satang,
+            advance_recovered_satang, cash_paid_satang
+     FROM labor_payment_session_settlements WHERE payment_session_id = ? ORDER BY id ASC`,
+    [paymentSessionId],
+  );
+  const settlementIds = settlements.map((settlement) => settlement.id);
+  const [allocations, recoveries] = settlementIds.length ? await Promise.all([
+    db.getAllAsync<PaymentSessionWageAllocationRow>(
+      `SELECT id, settlement_id, labor_payable_id, amount_satang
+       FROM labor_payment_session_wage_allocations
+       WHERE settlement_id IN (${settlementIds.map(() => '?').join(', ')}) ORDER BY id ASC`, settlementIds,
+    ),
+    db.getAllAsync<PaymentSessionAdvanceRecoveryRow>(
+      `SELECT id, settlement_id, labor_worker_advance_id, labor_payable_id, amount_satang
+       FROM labor_payment_session_advance_recoveries
+       WHERE settlement_id IN (${settlementIds.map(() => '?').join(', ')}) ORDER BY id ASC`, settlementIds,
+    ),
+  ]) : [[], []] as [PaymentSessionWageAllocationRow[], PaymentSessionAdvanceRecoveryRow[]];
+  return {
+    id: session.id, paymentDate: session.payment_date, method: session.method, note: session.note,
+    cashPaidSatang: Number(session.cash_paid_satang), currentRevision: Number(session.current_revision), status: session.status, createdAt: session.created_at,
+    settlements: settlements.map((settlement): LaborPaymentSessionSettlement => ({
+      id: settlement.id, recipientType: settlement.recipient_type, personId: settlement.person_id,
+      settlementGroupId: settlement.settlement_group_id, wageSatang: Number(settlement.wage_satang),
+      bonusSatang: Number(settlement.bonus_satang), advanceRecoveredSatang: Number(settlement.advance_recovered_satang),
+      cashPaidSatang: Number(settlement.cash_paid_satang),
+      wageAllocations: allocations.filter((allocation) => allocation.settlement_id === settlement.id).map((allocation) => ({
+        id: allocation.id, payableId: allocation.labor_payable_id, amountSatang: Number(allocation.amount_satang),
+      })),
+      advanceRecoveries: recoveries.filter((recovery) => recovery.settlement_id === settlement.id).map((recovery) => ({
+        id: recovery.id, advanceId: recovery.labor_worker_advance_id, payableId: recovery.labor_payable_id,
+        amountSatang: Number(recovery.amount_satang),
+      })),
+    })),
+  };
+};
+
+type PreparedPaymentSessionSettlement =
+  | {
+    recipientType: 'person'; id: string; personId: string; wageRows: Array<PayableRow & { allocation: PaymentAllocationInput }>;
+    bonusSatang: number; recoveries: PaymentSessionAdvanceRecoveryInput[]; wageSatang: number; recoverySatang: number; cashPaidSatang: number;
+  }
+  | {
+    recipientType: 'group'; id: string; settlementGroupId: string; group: LaborSettlementGroup;
+    bonusSatang: number; wageSatang: number; recoverySatang: 0; cashPaidSatang: number;
+  };
+
+const preparePaymentSession = async (db: SqlExecutor, input: Omit<PostLaborPaymentSessionInput, 'id'>, sessionId: string): Promise<PreparedPaymentSessionSettlement[]> => {
+  assertDate(input.paymentDate, 'payment session date');
+  if (!input.settlements.length) throw new Error('TAKAI payment session requires at least one recipient settlement');
+  const recipients = new Set<string>();
+  const prepared: PreparedPaymentSessionSettlement[] = [];
+  for (const [index, settlement] of input.settlements.entries()) {
+    const settlementId = settlement.id ?? `${sessionId}-settlement-${index + 1}`;
+    const recipientKey = settlement.recipientType === 'person' ? `person:${trimmed(settlement.personId)}` : `group:${trimmed(settlement.settlementGroupId)}`;
+    if (!recipientKey || recipientKey.endsWith(':') || recipients.has(recipientKey)) throw new Error('TAKAI payment session recipients must be distinct');
+    recipients.add(recipientKey);
+    const bonusSatang = settlement.bonusSatang ?? 0;
+    assertNonNegativeSatang(bonusSatang, 'payment session bonus');
+    if (settlement.recipientType === 'group') {
+      if ('advanceRecoveries' in settlement && Array.isArray((settlement as { advanceRecoveries?: unknown }).advanceRecoveries) && (settlement as { advanceRecoveries: unknown[] }).advanceRecoveries.length) {
+        throw new Error('TAKAI group payment session cannot recover a person advance');
+      }
+      assertPositiveSatang(settlement.wageSatang, 'group payment session wage');
+      const group = await settlementGroupSnapshot(db, settlement.settlementGroupId);
+      if (settlement.wageSatang > group.remainingSatang) throw new Error('TAKAI group payment session wage cannot exceed remaining balance');
+      const cashPaidSatang = settlement.wageSatang + bonusSatang;
+      if (!Number.isSafeInteger(cashPaidSatang)) throw new Error('TAKAI payment session cash exceeds safe satang range');
+      prepared.push({ recipientType: 'group', id: settlementId, settlementGroupId: group.id, group, bonusSatang, wageSatang: settlement.wageSatang, recoverySatang: 0, cashPaidSatang });
+      continue;
+    }
+    const worker = await activeWorker(db, settlement.personId);
+    const wageRows = await payableRows(db, settlement.wageAllocations);
+    await assertContractPayablesReadyForSettlement(db, wageRows);
+    for (const row of wageRows) {
+      if (row.person_id !== worker.id) throw new Error('TAKAI payment session person settlement must match every wage payable');
+      const remainingSatang = Number(row.due_satang) - Number(row.paid_satang) - Number(row.recovered_satang);
+      if (row.allocation.amountSatang > remainingSatang) throw new Error('TAKAI payment session wage allocation cannot exceed payable remaining balance');
+    }
+    const byPayable = new Map(wageRows.map((row) => [row.id, row.allocation.amountSatang]));
+    const recoveredByPayable = new Map<string, number>();
+    const recoveredByAdvance = new Map<string, number>();
+    const recoveryKeys = new Set<string>();
+    const recoveries = settlement.advanceRecoveries ?? [];
+    for (const recovery of recoveries) {
+      assertPositiveSatang(recovery.amountSatang, 'payment session advance recovery');
+      const key = `${trimmed(recovery.advanceId)}|${trimmed(recovery.payableId)}`;
+      if (!trimmed(recovery.advanceId) || !trimmed(recovery.payableId) || recoveryKeys.has(key)) throw new Error('TAKAI payment session advance recoveries must be distinct');
+      recoveryKeys.add(key);
+      const allocatedWageSatang = byPayable.get(recovery.payableId);
+      if (allocatedWageSatang === undefined) throw new Error('TAKAI payment session advance recovery must use a selected wage payable');
+      const recoveredOnPayable = (recoveredByPayable.get(recovery.payableId) ?? 0) + recovery.amountSatang;
+      if (recoveredOnPayable > allocatedWageSatang) throw new Error('TAKAI payment session advance recovery cannot exceed selected wage allocation');
+      recoveredByPayable.set(recovery.payableId, recoveredOnPayable);
+      const advance = await advanceSnapshot(db, recovery.advanceId);
+      if (advance.personId !== worker.id) throw new Error('TAKAI payment session advance recovery must belong to the same worker');
+      const recoveredOnAdvance = (recoveredByAdvance.get(advance.id) ?? 0) + recovery.amountSatang;
+      if (recoveredOnAdvance > advance.remainingSatang) throw new Error('TAKAI payment session advance recovery cannot exceed advance remaining balance');
+      recoveredByAdvance.set(advance.id, recoveredOnAdvance);
+    }
+    const wageSatang = wageRows.reduce((sum, row) => sum + row.allocation.amountSatang, 0);
+    const recoverySatang = recoveries.reduce((sum, recovery) => sum + recovery.amountSatang, 0);
+    const cashPaidSatang = wageSatang + bonusSatang - recoverySatang;
+    if (!Number.isSafeInteger(cashPaidSatang) || cashPaidSatang < 0) throw new Error('TAKAI payment session cash must reconcile to a non-negative safe satang amount');
+    prepared.push({ recipientType: 'person', id: settlementId, personId: worker.id, wageRows, bonusSatang, recoveries, wageSatang, recoverySatang, cashPaidSatang });
+  }
+  return prepared;
+};
+
+const persistPaymentSession = async (
+  db: SqlExecutor,
+  sessionId: string,
+  input: Omit<PostLaborPaymentSessionInput, 'id'>,
+  settlements: PreparedPaymentSessionSettlement[],
+  now: string,
+  revision: number,
+  status: 'posted' | 'revised',
+): Promise<void> => {
+  const cashPaidSatang = settlements.reduce((sum, settlement) => sum + settlement.cashPaidSatang, 0);
+  if (!Number.isSafeInteger(cashPaidSatang)) throw new Error('TAKAI payment session total cash exceeds safe satang range');
+  if (revision === 1) {
+    await db.runAsync(
+      `INSERT INTO labor_payment_sessions
+       (id, payment_date, method, note, cash_paid_satang, current_revision, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [sessionId, input.paymentDate, trimmed(input.method), trimmed(input.note), cashPaidSatang, revision, status, now, now],
+    );
+  } else {
+    await db.runAsync(
+      `UPDATE labor_payment_sessions
+       SET payment_date = ?, method = ?, note = ?, cash_paid_satang = ?, current_revision = ?, status = ?, updated_at = ?
+       WHERE id = ?`,
+      [input.paymentDate, trimmed(input.method), trimmed(input.note), cashPaidSatang, revision, status, now, sessionId],
+    );
+  }
+  for (const settlement of settlements) {
+    await db.runAsync(
+      `INSERT INTO labor_payment_session_settlements
+       (id, payment_session_id, recipient_type, person_id, settlement_group_id, wage_satang, bonus_satang, advance_recovered_satang, cash_paid_satang)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [settlement.id, sessionId, settlement.recipientType, settlement.recipientType === 'person' ? settlement.personId : null,
+        settlement.recipientType === 'group' ? settlement.settlementGroupId : null, settlement.wageSatang, settlement.bonusSatang,
+        settlement.recoverySatang, settlement.cashPaidSatang],
+    );
+    if (settlement.recipientType === 'person') {
+      for (const [index, row] of settlement.wageRows.entries()) {
+        await db.runAsync(
+          `INSERT INTO labor_payment_session_wage_allocations (id, settlement_id, labor_payable_id, amount_satang)
+           VALUES (?, ?, ?, ?)`,
+          [row.allocation.id ?? `${settlement.id}-wage-${index + 1}`, settlement.id, row.id, row.allocation.amountSatang],
+        );
+      }
+      for (const [index, recovery] of settlement.recoveries.entries()) {
+        await db.runAsync(
+          `INSERT INTO labor_payment_session_advance_recoveries
+           (id, settlement_id, labor_worker_advance_id, labor_payable_id, amount_satang)
+           VALUES (?, ?, ?, ?, ?)`,
+          [recovery.id ?? `${settlement.id}-recovery-${index + 1}`, settlement.id, recovery.advanceId, recovery.payableId, recovery.amountSatang],
+        );
+      }
+    }
+  }
+  for (const settlement of settlements) {
+    if (settlement.recipientType !== 'group') continue;
+    const after = await settlementGroupSnapshot(db, settlement.settlementGroupId);
+    await db.runAsync('UPDATE labor_settlement_groups SET status = ?, updated_at = ? WHERE id = ?', [after.remainingSatang === 0 ? 'settled' : 'open', now, settlement.settlementGroupId]);
+  }
+};
+
+const appendPaymentSessionTimeline = async (
+  db: SqlExecutor, session: LaborPaymentSession, action: 'payment_session_posted' | 'payment_session_corrected', now: string, reason: string | null, before: LaborPaymentSession | null,
+): Promise<void> => {
+  await appendTimeline(db, { entityType: 'labor_payment', entityId: session.id, action, occurredAt: now, reason, before, after: session, personId: null, laborJobId: null });
+  for (const settlement of session.settlements) {
+    if (settlement.recipientType === 'person' && settlement.personId) {
+      await appendTimeline(db, {
+        entityType: 'person', entityId: settlement.personId, action, occurredAt: now, reason,
+        before: null, after: { paymentSessionId: session.id, settlement }, personId: settlement.personId, laborJobId: null,
+      });
+    }
+    if (settlement.recipientType === 'group' && settlement.settlementGroupId) {
+      const group = await settlementGroupSnapshot(db, settlement.settlementGroupId);
+      await appendTimeline(db, {
+        entityType: 'labor_job', entityId: group.jobId, action, occurredAt: now, reason,
+        before: null, after: { paymentSessionId: session.id, settlement, group }, personId: null, laborJobId: group.jobId,
+      });
+    }
+  }
+};
+
+/** One cash event may settle several people and/or group lump sums; callers may prefill by work or by person. */
+export const postLaborPaymentSession = async (db: SqlExecutor, input: PostLaborPaymentSessionInput, now = timestamp()): Promise<string> => {
+  const sessionId = input.id ?? generatedId('payment-session');
+  return withTransaction(db, async () => {
+    const settlements = await preparePaymentSession(db, input, sessionId);
+    await persistPaymentSession(db, sessionId, input, settlements, now, 1, 'posted');
+    const session = await paymentSessionSnapshot(db, sessionId);
+    await appendPaymentSessionTimeline(db, session, 'payment_session_posted', now, null, null);
+    return sessionId;
+  });
+};
+
+/** Corrections retain the immutable timeline and require a human reason; historic rows are never rewritten. */
+export const correctLaborPaymentSession = async (db: SqlExecutor, sessionId: string, input: CorrectLaborPaymentSessionInput, now = timestamp()): Promise<void> => {
+  const reason = trimmed(input.reason);
+  if (!reason) throw new Error('TAKAI payment session correction requires a reason');
+  return withTransaction(db, async () => {
+    const before = await paymentSessionSnapshot(db, sessionId);
+    await db.runAsync("UPDATE labor_payment_sessions SET status = 'cancelled', updated_at = ? WHERE id = ?", [now, sessionId]);
+    await db.runAsync('DELETE FROM labor_payment_session_settlements WHERE payment_session_id = ?', [sessionId]);
+    for (const groupId of before.settlements.filter((settlement) => settlement.recipientType === 'group').map((settlement) => settlement.settlementGroupId).filter((groupId): groupId is string => Boolean(groupId))) {
+      const group = await settlementGroupSnapshot(db, groupId);
+      await db.runAsync('UPDATE labor_settlement_groups SET status = ?, updated_at = ? WHERE id = ?', [group.remainingSatang === 0 ? 'settled' : 'open', now, groupId]);
+    }
+    const settlements = await preparePaymentSession(db, input, sessionId);
+    await persistPaymentSession(db, sessionId, input, settlements, now, before.currentRevision + 1, 'revised');
+    const after = await paymentSessionSnapshot(db, sessionId);
+    await appendPaymentSessionTimeline(db, after, 'payment_session_corrected', now, reason, before);
+  });
+};
+
 export const postLaborPayment = async (db: SqlExecutor, input: PostLaborPaymentInput, now = timestamp()): Promise<string> => {
   assertDate(input.paymentDate, 'payment date');
   await activeWorker(db, input.personId);
@@ -1301,10 +1569,25 @@ export const listLaborPayables = async (db: SqlExecutor, personId?: string): Pro
        COALESCE((SELECT SUM(allocation.amount_satang)
         FROM labor_payment_allocations AS allocation
         JOIN labor_payment_batches AS batch ON batch.id = allocation.payment_batch_id
-        WHERE allocation.payable_id = payable.id AND batch.status = 'posted'), 0) AS paid_satang,
+        WHERE allocation.payable_id = payable.id AND batch.status = 'posted'), 0)
+       + COALESCE((SELECT SUM(session_allocation.amount_satang)
+        FROM labor_payment_session_wage_allocations AS session_allocation
+       JOIN labor_payment_session_settlements AS settlement ON settlement.id = session_allocation.settlement_id
+       JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+        WHERE session_allocation.labor_payable_id = payable.id AND session.status IN ('posted', 'revised')), 0)
+       - COALESCE((SELECT SUM(recovery.amount_satang)
+        FROM labor_payment_session_advance_recoveries AS recovery
+        JOIN labor_payment_session_settlements AS settlement ON settlement.id = recovery.settlement_id
+        JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+        WHERE recovery.labor_payable_id = payable.id AND session.status IN ('posted', 'revised')), 0) AS paid_satang,
        COALESCE((SELECT SUM(deduction.amount_satang)
         FROM labor_advance_deductions AS deduction
-        WHERE deduction.labor_payable_id = payable.id), 0) AS recovered_satang
+        WHERE deduction.labor_payable_id = payable.id), 0)
+       + COALESCE((SELECT SUM(recovery.amount_satang)
+        FROM labor_payment_session_advance_recoveries AS recovery
+        JOIN labor_payment_session_settlements AS settlement ON settlement.id = recovery.settlement_id
+        JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+        WHERE recovery.labor_payable_id = payable.id AND session.status IN ('posted', 'revised')), 0) AS recovered_satang
      FROM labor_payables AS payable
      JOIN labor_jobs AS job ON job.id = payable.labor_job_id
      WHERE payable.status = 'open' AND job.status = 'open' ${personId ? 'AND payable.person_id = ?' : ''}
@@ -1348,6 +1631,16 @@ export const listLaborPayments = async (db: SqlExecutor, personId?: string): Pro
     personId ? [personId] : [],
   );
   return Promise.all(rows.map(async (row) => ({ ...(await paymentSnapshot(db, row.id)).payment })));
+};
+
+/** Unified new-ledger read model; old payment batches and group receipts remain available through their existing readers. */
+export const listLaborPaymentSessions = async (db: SqlExecutor): Promise<LaborPaymentSession[]> => {
+  const rows = await db.getAllAsync<PaymentSessionRow>(
+    `SELECT id, payment_date, method, note, cash_paid_satang, current_revision, status, created_at
+     FROM labor_payment_sessions WHERE status IN ('posted', 'revised')
+     ORDER BY payment_date DESC, created_at DESC, id DESC`,
+  );
+  return Promise.all(rows.map((row) => paymentSessionSnapshot(db, row.id)));
 };
 
 export const listLaborContracts = async (db: SqlExecutor): Promise<LaborContract[]> => {
@@ -1457,8 +1750,8 @@ export const listLaborTimeline = async (db: SqlExecutor, entityId?: string): Pro
 };
 
 export const getLaborMvpReadModel = async (db: SqlExecutor): Promise<LaborMvpReadModel> => {
-  const [workers, payables, payments, timeline, contracts, legacySources, legacyBalances, settlementGroups, workBasisSnapshots, advances, advanceDeductions] = await Promise.all([
-    listLaborWorkers(db, true), listLaborPayables(db), listLaborPayments(db), listLaborTimeline(db),
+  const [workers, payables, payments, paymentSessions, timeline, contracts, legacySources, legacyBalances, settlementGroups, workBasisSnapshots, advances, advanceDeductions] = await Promise.all([
+    listLaborWorkers(db, true), listLaborPayables(db), listLaborPayments(db), listLaborPaymentSessions(db), listLaborTimeline(db),
     listLaborContracts(db), listLegacyLaborSources(db), listLegacyCarryForwardBalances(db), listLaborSettlementGroups(db), listLaborWorkBasisSnapshots(db),
     listLaborWorkerAdvances(db), listLaborAdvanceDeductions(db),
   ]);
@@ -1476,7 +1769,7 @@ export const getLaborMvpReadModel = async (db: SqlExecutor): Promise<LaborMvpRea
       grossEarnedSatang, cashPaidSatang, wageRemainingSatang, advanceIssuedSatang, advanceRecoveredSatang, advanceRemainingSatang,
     };
   });
-  return { people, payables, payments, timeline, contracts, legacySources, legacyBalances, settlementGroups, workBasisSnapshots, advances, advanceDeductions };
+  return { people, payables, payments, paymentSessions, timeline, contracts, legacySources, legacyBalances, settlementGroups, workBasisSnapshots, advances, advanceDeductions };
 };
 
 type ProjectionJobRow = {
@@ -1539,6 +1832,7 @@ const summarizeCalendarDay = (date: string, events: LaborProjectionEvent[]): Lab
   workCount: events.filter((event) => event.eventType === 'work').length,
   workDueSatang: events.filter((event) => event.eventType === 'work').reduce((sum, event) => sum + event.dueSatang, 0),
   individualPaymentSatang: events.filter((event) => event.eventType === 'individual_payment').reduce((sum, event) => sum + event.amountSatang, 0),
+  paymentSessionCashSatang: events.filter((event) => event.eventType === 'payment_session').reduce((sum, event) => sum + event.amountSatang, 0),
   groupReceiptSatang: events.filter((event) => event.eventType === 'group_receipt').reduce((sum, event) => sum + event.amountSatang, 0),
   advanceIssuedSatang: events.filter((event) => event.eventType === 'advance').reduce((sum, event) => sum + event.amountSatang, 0),
   advanceRecoveredSatang: events.filter((event) => event.eventType === 'advance_recovery').reduce((sum, event) => sum + event.amountSatang, 0),
@@ -1549,7 +1843,7 @@ const summarizeCalendarDay = (date: string, events: LaborProjectionEvent[]): Lab
 
 /** Repository-owned projection: consumers receive typed business events, never timeline JSON. */
 const listLaborProjectionEvents = async (db: SqlExecutor): Promise<LaborProjectionEvent[]> => {
-  const [jobs, participants, payables, groups, snapshots, contracts, paymentRows, paymentAllocations, receipts, advances, recoveries, progress] = await Promise.all([
+  const [jobs, participants, payables, groups, snapshots, contracts, paymentRows, paymentAllocations, paymentSessions, receipts, advances, recoveries, progress] = await Promise.all([
     db.getAllAsync<ProjectionJobRow>(
       `SELECT job.id, job.title, job.work_date, job.note, job.kind, job.created_at,
               detail.starts_on, detail.deadline_on, detail.completed_on, detail.final_total_satang
@@ -1578,6 +1872,7 @@ const listLaborProjectionEvents = async (db: SqlExecutor): Promise<LaborProjecti
        JOIN labor_payables AS payable ON payable.id = allocation.payable_id
        WHERE payment.status IN ('posted', 'revised') ORDER BY allocation.id ASC`,
     ),
+    listLaborPaymentSessions(db),
     db.getAllAsync<ProjectionReceiptRow>(
       `SELECT receipt.id, settlement_group.labor_job_id, receipt.settlement_group_id, receipt.receipt_date,
               receipt.amount_satang, receipt.note, receipt.created_at, receipt.updated_at
@@ -1615,6 +1910,7 @@ const listLaborProjectionEvents = async (db: SqlExecutor): Promise<LaborProjecti
   groups.forEach((group) => routeByJob.set(group.jobId, 'group'));
   const contractByJob = new Map(contracts.map((contract) => [contract.id, contract]));
   const jobById = new Map(jobs.map((job) => [job.id, job]));
+  const payableById = new Map(payables.map((payable) => [payable.id, payable]));
   const allocationsByPayment = new Map<string, ProjectionPaymentAllocationRow[]>();
   paymentAllocations.forEach((allocation) => allocationsByPayment.set(allocation.payment_batch_id, [...(allocationsByPayment.get(allocation.payment_batch_id) ?? []), allocation]));
   const events: LaborProjectionEvent[] = [];
@@ -1685,6 +1981,24 @@ const listLaborProjectionEvents = async (db: SqlExecutor): Promise<LaborProjecti
       label: `จ่ายค่าแรง · ${payment.display_name}`, detail: jobTitles.join(' · ') || payment.note, jobId: jobIds.length === 1 ? jobIds[0]! : null,
       jobIds, personId: payment.person_id, personIds: [payment.person_id], settlementGroupId: null, settlementRoute: 'individual',
       paymentState: 'not_applicable', amountSatang: Number(payment.total_satang), dueSatang: 0, remainingSatang: 0,
+    });
+  });
+
+  paymentSessions.forEach((session) => {
+    const personIds = session.settlements.flatMap((settlement) => settlement.personId ? [settlement.personId] : []);
+    const groupSettlements = session.settlements.filter((settlement) => settlement.settlementGroupId);
+    const jobIds = [...new Set([
+      ...session.settlements.flatMap((settlement) => settlement.wageAllocations.map((allocation) => payableById.get(allocation.payableId)?.jobId).filter((jobId): jobId is string => Boolean(jobId))),
+      ...groupSettlements.map((settlement) => groups.find((group) => group.id === settlement.settlementGroupId)?.jobId).filter((jobId): jobId is string => Boolean(jobId)),
+    ])];
+    const routeValues = new Set(session.settlements.map((settlement) => settlement.recipientType));
+    events.push({
+      id: `payment-session:${session.id}`, eventType: 'payment_session', effectiveDate: session.paymentDate, recordedAt: session.createdAt,
+      label: `จ่ายเงิน ${session.settlements.length} รายการ`, detail: session.note, jobId: jobIds.length === 1 ? jobIds[0]! : null,
+      jobIds, personId: personIds.length === 1 ? personIds[0]! : null, personIds,
+      settlementGroupId: groupSettlements.length === 1 ? groupSettlements[0]!.settlementGroupId : null,
+      settlementRoute: routeValues.size === 1 ? [...routeValues][0] === 'person' ? 'individual' : 'group' : null,
+      paymentState: 'not_applicable', amountSatang: session.cashPaidSatang, dueSatang: 0, remainingSatang: 0,
     });
   });
 

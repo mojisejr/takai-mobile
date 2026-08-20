@@ -519,4 +519,66 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         BEGIN SELECT RAISE(ABORT, 'labor advance deductions are immutable'); END`,
     ],
   },
+  {
+    id: 16,
+    name: 'labor_payment_session_multi_recipient_ledger',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_payment_sessions (
+        id TEXT PRIMARY KEY,
+        payment_date TEXT NOT NULL,
+        method TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        cash_paid_satang INTEGER NOT NULL CHECK (typeof(cash_paid_satang) = 'integer' AND cash_paid_satang >= 0),
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        status TEXT NOT NULL DEFAULT 'posted' CHECK (status IN ('posted', 'revised', 'cancelled')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_session_settlements (
+        id TEXT PRIMARY KEY,
+        payment_session_id TEXT NOT NULL REFERENCES labor_payment_sessions(id) ON DELETE CASCADE,
+        recipient_type TEXT NOT NULL CHECK (recipient_type IN ('person', 'group')),
+        person_id TEXT REFERENCES people(id),
+        settlement_group_id TEXT REFERENCES labor_settlement_groups(id),
+        wage_satang INTEGER NOT NULL CHECK (typeof(wage_satang) = 'integer' AND wage_satang >= 0),
+        bonus_satang INTEGER NOT NULL DEFAULT 0 CHECK (typeof(bonus_satang) = 'integer' AND bonus_satang >= 0),
+        advance_recovered_satang INTEGER NOT NULL DEFAULT 0 CHECK (typeof(advance_recovered_satang) = 'integer' AND advance_recovered_satang >= 0),
+        cash_paid_satang INTEGER NOT NULL CHECK (typeof(cash_paid_satang) = 'integer' AND cash_paid_satang >= 0),
+        CHECK (
+          (recipient_type = 'person' AND person_id IS NOT NULL AND settlement_group_id IS NULL)
+          OR (recipient_type = 'group' AND person_id IS NULL AND settlement_group_id IS NOT NULL)
+        ),
+        CHECK (cash_paid_satang = wage_satang + bonus_satang - advance_recovered_satang)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_session_wage_allocations (
+        id TEXT PRIMARY KEY,
+        settlement_id TEXT NOT NULL REFERENCES labor_payment_session_settlements(id) ON DELETE CASCADE,
+        labor_payable_id TEXT NOT NULL REFERENCES labor_payables(id) ON DELETE RESTRICT,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        UNIQUE(settlement_id, labor_payable_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_session_advance_recoveries (
+        id TEXT PRIMARY KEY,
+        settlement_id TEXT NOT NULL REFERENCES labor_payment_session_settlements(id) ON DELETE CASCADE,
+        labor_worker_advance_id TEXT NOT NULL REFERENCES labor_worker_advances(id) ON DELETE RESTRICT,
+        labor_payable_id TEXT NOT NULL REFERENCES labor_payables(id) ON DELETE RESTRICT,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        UNIQUE(settlement_id, labor_worker_advance_id, labor_payable_id)
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_labor_payment_session_person_recipient
+        ON labor_payment_session_settlements(payment_session_id, person_id) WHERE person_id IS NOT NULL`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_labor_payment_session_group_recipient
+        ON labor_payment_session_settlements(payment_session_id, settlement_group_id) WHERE settlement_group_id IS NOT NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_sessions_date
+        ON labor_payment_sessions(payment_date DESC, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_settlements_session
+        ON labor_payment_session_settlements(payment_session_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_wage_payable
+        ON labor_payment_session_wage_allocations(labor_payable_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_recovery_advance
+        ON labor_payment_session_advance_recoveries(labor_worker_advance_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_recovery_payable
+        ON labor_payment_session_advance_recoveries(labor_payable_id)`,
+    ],
+  },
 ];

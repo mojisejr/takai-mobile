@@ -174,9 +174,9 @@ const main = async (): Promise<void> => {
   const seedDb = new SeedFakeSqlite();
   await seedDemoGarden(seedDb);
 
-  assert.deepEqual(firstRun, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'empty database should apply every ordered migration');
+  assert.deepEqual(firstRun, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], 'empty database should apply every ordered migration');
   assert.deepEqual(secondRun, [], 'rerunning migrations should be idempotent');
-  assert.deepEqual(upgradeRun, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'a migration 1 database must upgrade without replaying its original schema');
+  assert.deepEqual(upgradeRun, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], 'a migration 1 database must upgrade without replaying its original schema');
   assert.ok(seedDb.insertedTables.includes('cases'), 'demo seed must include the case timeline record');
   assert.ok(seedDb.insertedTables.includes('plot_trackers'), 'demo seed must include per-plot tracker defaults');
   assert.ok(
@@ -208,6 +208,10 @@ const main = async (): Promise<void> => {
   assert.ok(
     TAKAI_MIGRATIONS.find((migration) => migration.id === 15)?.statements.some((statement) => statement.includes('CREATE TABLE IF NOT EXISTS labor_worker_advances')),
     'migration 15 must add person-scoped advances without rewriting wage or group ledgers',
+  );
+  assert.ok(
+    TAKAI_MIGRATIONS.find((migration) => migration.id === 16)?.statements.some((statement) => statement.includes('CREATE TABLE IF NOT EXISTS labor_payment_sessions')),
+    'migration 16 must add multi-recipient payment sessions without rewriting historic payment ledgers',
   );
   assert.ok(
     TAKAI_MIGRATIONS[1]?.statements.some((statement) => statement.includes('CREATE TABLE IF NOT EXISTS plot_trackers')),

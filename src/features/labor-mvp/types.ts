@@ -203,6 +203,48 @@ export type ApplyLaborAdvanceDeductionInput = {
   note?: string;
 };
 
+export type PaymentSessionAdvanceRecoveryInput = {
+  id?: string;
+  advanceId: string;
+  payableId: string;
+  amountSatang: number;
+};
+
+export type PaymentSessionPersonSettlementInput = {
+  id?: string;
+  recipientType: 'person';
+  personId: string;
+  wageAllocations: PaymentAllocationInput[];
+  bonusSatang?: number;
+  advanceRecoveries?: PaymentSessionAdvanceRecoveryInput[];
+};
+
+export type PaymentSessionGroupSettlementInput = {
+  id?: string;
+  recipientType: 'group';
+  settlementGroupId: string;
+  wageSatang: number;
+  bonusSatang?: number;
+};
+
+export type PaymentSessionSettlementInput = PaymentSessionPersonSettlementInput | PaymentSessionGroupSettlementInput;
+
+/**
+ * Both pay-by-work and pay-by-person use this same command. Their route only
+ * decides how the caller preselects recipient rows; it does not alter ledger truth.
+ */
+export type PostLaborPaymentSessionInput = {
+  id?: string;
+  paymentDate: string;
+  method?: string;
+  note?: string;
+  settlements: PaymentSessionSettlementInput[];
+};
+
+export type CorrectLaborPaymentSessionInput = Omit<PostLaborPaymentSessionInput, 'id'> & {
+  reason: string;
+};
+
 export type LaborWorker = {
   id: string;
   displayName: string;
@@ -257,6 +299,38 @@ export type LaborPayment = {
   totalSatang: number;
   currentRevision: number;
   allocations: Array<{ id: string; payableId: string; amountSatang: number }>;
+};
+
+export type LaborPaymentSessionAdvanceRecovery = {
+  id: string;
+  advanceId: string;
+  payableId: string;
+  amountSatang: number;
+};
+
+export type LaborPaymentSessionSettlement = {
+  id: string;
+  recipientType: 'person' | 'group';
+  personId: string | null;
+  settlementGroupId: string | null;
+  wageSatang: number;
+  bonusSatang: number;
+  advanceRecoveredSatang: number;
+  cashPaidSatang: number;
+  wageAllocations: Array<{ id: string; payableId: string; amountSatang: number }>;
+  advanceRecoveries: LaborPaymentSessionAdvanceRecovery[];
+};
+
+export type LaborPaymentSession = {
+  id: string;
+  paymentDate: string;
+  method: string;
+  note: string;
+  cashPaidSatang: number;
+  currentRevision: number;
+  status: 'posted' | 'revised' | 'cancelled';
+  createdAt: string;
+  settlements: LaborPaymentSessionSettlement[];
 };
 
 export type LaborSettlementGroupReceipt = {
@@ -368,6 +442,8 @@ export type LaborMvpReadModel = {
   people: LaborPersonBalance[];
   payables: LaborPayable[];
   payments: LaborPayment[];
+  /** Additive payment-session surface; legacy fixtures may omit it until Phase 4 UI adoption. */
+  paymentSessions?: LaborPaymentSession[];
   timeline: LaborTimelineEvent[];
   contracts: LaborContract[];
   legacySources: LegacyLaborSource[];
@@ -389,6 +465,7 @@ export type LaborProjectionEventType =
   | 'contract_completion'
   | 'contract_deadline'
   | 'individual_payment'
+  | 'payment_session'
   | 'group_receipt'
   | 'advance'
   | 'advance_recovery';
@@ -422,6 +499,8 @@ export type LaborCalendarDaySummary = {
   workCount: number;
   workDueSatang: number;
   individualPaymentSatang: number;
+  /** Additive cash total for modern multi-recipient sessions. */
+  paymentSessionCashSatang?: number;
   groupReceiptSatang: number;
   advanceIssuedSatang: number;
   advanceRecoveredSatang: number;

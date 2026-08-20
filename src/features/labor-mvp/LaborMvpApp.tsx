@@ -27,7 +27,7 @@ const MONTH_END = new Date(Number(PREVIEW_DATE.slice(0, 4)), Number(PREVIEW_DATE
 const tabTitles: Record<MainScreen, string> = { today: 'วันนี้', work: 'งาน', record: 'บันทึกงาน', people: 'คน', more: 'เมนู' };
 const eventLabels: Record<LaborProjectionEventType, string> = {
   work: 'งาน', contract_start: 'เริ่มงานเหมา', contract_progress: 'ความคืบหน้า', contract_completion: 'จบงานเหมา', contract_deadline: 'ครบกำหนด',
-  individual_payment: 'จ่ายค่าแรง', group_receipt: 'รับเงินชุดงาน', advance: 'เงินเบิก', advance_recovery: 'หักคืนเงินเบิก',
+  individual_payment: 'จ่ายค่าแรง', payment_session: 'จ่ายเงิน', group_receipt: 'รับเงินชุดงาน', advance: 'เงินเบิก', advance_recovery: 'หักคืนเงินเบิก',
 };
 
 const thaiDate = (date: string, includeYear = false): string => new Intl.DateTimeFormat('th-TH', {
