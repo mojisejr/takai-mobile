@@ -1,0 +1,30 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-payment-ia",
+  "lane": "rn-web-eye",
+  "targetUrl": "http://localhost:8093/?proof=1",
+  "capturedAt": "2026-08-20T13:15:13.877Z",
+  "viewports": [
+    {
+      "size": "390x844",
+      "screens": ["Today", "Work filter sheet", "worker multi-select sheet", "payment confirmation"],
+      "horizontalOverflow": false
+    },
+    {
+      "size": "320x844",
+      "screens": ["Today", "Work filter sheet", "worker multi-select sheet", "payment confirmation"],
+      "horizontalOverflow": false
+    }
+  ],
+  "console": {
+    "errorCount": 0,
+    "warningCount": 1,
+    "knownWarnings": ["shadow* style props are deprecated. Use boxShadow."]
+  },
+  "network": {
+    "failedRequestCount": 0,
+    "requestLog": ".oracle-eye/rn-web/takai-payment-ia/browser/network-requests.txt"
+  },
+  "claimLabel": "RN Web Eye Closed",
+  "doesNotProve": ["Android touch", "physical safe areas", "native Modal behaviour", "native packaging"]
+}

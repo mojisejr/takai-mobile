@@ -18,24 +18,24 @@ verify_eyes:
     gate: required
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
-    artifact_sink: .oracle-eye/rn-static/labor-brand-product-polish/
-    commands: [npm run test:design-contract, npm run test:labor-read-ui, npm run test:labor-notebook-boundary]
+    artifact_sink: .oracle-eye/rn-static/takai-payment-ia/
+    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-read-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
     gate: required
     sees: [Rendered Expo Web layout, browser console, failed requests, narrow viewport overflow]
     does_not_see: [Expo Go touch, physical safe areas, native packaging]
-    artifact_sink: .oracle-eye/rn-web/labor-brand-product-polish/
+    artifact_sink: .oracle-eye/rn-web/takai-payment-ia/
     commands: [npm run eye:rn-web, browser capture at 390x844 and 320px]
     claim_label: RN Web Eye Closed
   - kind: expo-go-device-eye
     gate: manual
     sees: [Android touch, scrolling, keyboard, safe area, operator comprehension]
     does_not_see: [Native build packaging]
-    artifact_sink: .oracle-eye/expo-go/labor-brand-product-polish/
+    artifact_sink: .oracle-eye/expo-go/takai-payment-ia/
     commands: [Operator runs Expo Go Android scenarios in Phase 5]
     claim_label: Expo Go Device Eye Closed
-labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, คน, เมนู]
+labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, จ่ายเงิน, คน]
 proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
 ---
 
@@ -54,10 +54,12 @@ Bottom navigation is exactly:
 1. `วันนี้` — operational work and money attention.
 2. `งาน` — calendar, selected-day ledger, and history.
 3. `บันทึกงาน` — focused job capture.
-4. `คน` — people, wage balance, advance balance, and person history.
-5. `เมนู` — secondary settings and records.
+4. `จ่ายเงิน` — payment, group receipt, advance, recovery, and correction entry.
+5. `คน` — people, wage balance, advance balance, and person history.
 
-Payment is contextual from Today, Job Detail, Person Detail, or history. It is not a bottom tab.
+Payment is also contextual from Today, Job Detail, Person Detail, or history; every route opens the same payment entry state. `เมนู` and its hamburger affordance are retired from the Labor MVP.
+
+The header always carries the TAKAI mascot and brand with the current screen as its subtitle. Detail screens provide a back action; the `i` action opens an in-app help sheet. Meaningful choices use picker/search sheets, including work kind, settlement route, people, and history filters. Compact chips are reserved for short states such as `ค้างจ่าย`, `จ่ายแล้ว`, and `ครึ่งวัน`.
 
 ## Ledger meaning that UI must preserve
 

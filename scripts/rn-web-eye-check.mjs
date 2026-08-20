@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'labor-brand-product-polish';
+const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'takai-payment-ia';
 const sink = join(root, '.oracle-eye', 'rn-web', phase);
 const exportDir = join(sink, 'export');
 const manifestPath = join(sink, 'manifest.json');

@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { tokens } from '../theme/tokens';
 
-export type BottomTabKey = 'today' | 'work' | 'record' | 'people' | 'more';
+/** `more` remains an internal compatibility key for the preserved legacy surface; it is not rendered in TAKAI Labor navigation. */
+export type BottomTabKey = 'today' | 'work' | 'record' | 'payment' | 'people' | 'more';
 
 type BottomTabBarProps = {
   activeTab?: BottomTabKey;
@@ -12,8 +13,8 @@ const tabs: Array<{ key: BottomTabKey; label: string }> = [
   { key: 'today', label: 'วันนี้' },
   { key: 'work', label: 'งาน' },
   { key: 'record', label: 'บันทึกงาน' },
+  { key: 'payment', label: 'จ่ายเงิน' },
   { key: 'people', label: 'คน' },
-  { key: 'more', label: 'เมนู' },
 ];
 
 export function BottomTabBar({ activeTab = 'today', onTabPress }: BottomTabBarProps) {
