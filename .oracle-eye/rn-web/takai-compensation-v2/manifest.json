@@ -1,0 +1,42 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-compensation-v2",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-08-20T23:58:06.815Z",
+  "viewports": [
+    "390x844",
+    "320x844"
+  ],
+  "exportDir": ".oracle-eye/rn-web/takai-compensation-v2/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/takai-compensation-v2/export/index.html",
+    "manifest": ".oracle-eye/rn-web/takai-compensation-v2/manifest.json",
+    "today390": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/today-390.png",
+    "today320": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/today-320.png",
+    "recordDaily390": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/record-daily-three-task-390.png",
+    "recordDaily320": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/record-daily-three-task-320.png",
+    "recordContract390": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/record-open-contract-390.png",
+    "recordContract320": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/record-open-contract-320.png",
+    "payment390": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/payment-selection-390.png",
+    "payment320": ".oracle-eye/rn-web/takai-compensation-v2/screenshots/payment-selection-320.png"
+  },
+  "browserEvidence": {
+    "screens": [
+      "Today",
+      "Record daily-three-task",
+      "Record open contract batch",
+      "V2 payment selection"
+    ],
+    "consoleErrorCount": 0,
+    "failedRequestCount": 0,
+    "horizontalOverflow": "none observed: CDP viewport capture kept all five tabs within 390px (last right=367) and 320px (last right=297)",
+    "knownWarnings": [
+      "Chrome headless emitted allocator multiple-load warning; no app console error or failed request was observed."
+    ]
+  },
+  "notes": [
+    "RN Web proof only: it does not prove Expo Go touch, safe areas, SQLite persistence, or native Modal behavior.",
+    "Expo Go Device Eye Pending; Native Eye Pending."
+  ]
+}

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { join } from 'node:path';
 
 const root = process.cwd();
-const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'takai-payment-ia';
+const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'takai-compensation-v2';
 const sink = join(root, '.oracle-eye', 'rn-web', phase);
 const exportDir = join(sink, 'export');
 const manifestPath = join(sink, 'manifest.json');
@@ -51,6 +51,7 @@ const manifest = {
     exportIndex: `.oracle-eye/rn-web/${phase}/export/index.html`,
     manifest: `.oracle-eye/rn-web/${phase}/manifest.json`,
   },
+  ...(existingManifest?.browserEvidence ? { browserEvidence: existingManifest.browserEvidence } : {}),
   notes: previousBrowserClaimClosed ? existingManifest.notes : [
     'This script closes RN Web export readiness and records the artifact sink only.',
     'RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.',

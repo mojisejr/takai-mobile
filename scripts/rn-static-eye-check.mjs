@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const phase = process.env.TAKAI_RN_STATIC_EYE_PHASE || 'takai-payment-ia';
+const phase = process.env.TAKAI_RN_STATIC_EYE_PHASE || 'takai-compensation-v2';
 const sink = join(root, '.oracle-eye', 'rn-static', phase);
 const manifestPath = join(sink, 'manifest.json');
 const checks = ['test:design-contract', 'test:labor-navigation-ui', 'test:labor-read-ui', 'test:labor-notebook-boundary'];

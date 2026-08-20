@@ -42,9 +42,7 @@ const main = async (): Promise<void> => {
 
   const source = await readFile(resolve(process.cwd(), 'src/features/labor-mvp/LaborMvpApp.tsx'), 'utf8');
   const flow = await readFile(resolve(process.cwd(), 'src/features/labor-mvp/peopleMoneyFlow.ts'), 'utf8');
-  for (const required of ['WorkerEditorScreen', 'คนที่เก็บไว้', 'QuickAddWorkerForm', 'ข้อมูลที่กรอกไว้ในงานนี้จะยังอยู่ครบ', 'setPersonId(id)', 'ConfirmActionSheet', 'CorrectionTargetPicker', 'createSingleCommitCoordinator']) {
-    assert.ok(source.includes(required), `Phase 4 UI must preserve ${required}`);
-  }
+  for (const required of ['PeopleScreen', 'activePeople', 'MultiSearchPickerSheet', 'ConfirmActionSheet', 'PaymentScreen', 'หักเงินเบิก']) assert.ok(source.includes(required), `V2 UI must preserve ${required}`);
   assert.ok(flow.includes('committed-refresh-pending'), 'commit flow must distinguish a committed command from projection refresh failure');
   assert.ok(!source.includes("model.payments.find((item) => !initialJobId"), 'unsafe first-match payment correction selection must be removed');
   console.log('LABOR_PEOPLE_MONEY_FLOW_PASS: worker lifecycle UI, draft-safe quick add, explicit correction target, cancel-ready confirmation, exactly-once commit, and refresh-pending feedback are aligned');

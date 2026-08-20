@@ -18,21 +18,21 @@ verify_eyes:
     gate: required
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
-    artifact_sink: .oracle-eye/rn-static/takai-payment-ia/
+    artifact_sink: .oracle-eye/rn-static/takai-compensation-v2/
     commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-read-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
     gate: required
     sees: [Rendered Expo Web layout, browser console, failed requests, narrow viewport overflow]
     does_not_see: [Expo Go touch, physical safe areas, native packaging]
-    artifact_sink: .oracle-eye/rn-web/takai-payment-ia/
+    artifact_sink: .oracle-eye/rn-web/takai-compensation-v2/
     commands: [npm run eye:rn-web, browser capture at 390x844 and 320px]
     claim_label: RN Web Eye Closed
   - kind: expo-go-device-eye
     gate: manual
     sees: [Android touch, scrolling, keyboard, safe area, operator comprehension]
     does_not_see: [Native build packaging]
-    artifact_sink: .oracle-eye/expo-go/takai-payment-ia/
+    artifact_sink: .oracle-eye/expo-go/takai-compensation-v2/
     commands: [Operator runs Expo Go Android scenarios in Phase 5]
     claim_label: Expo Go Device Eye Closed
 labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, จ่ายเงิน, คน]
@@ -43,7 +43,7 @@ proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
 
 ## Product frame
 
-TAKAI is a warm, local-first work-and-payment notebook for a garden owner. Its primary record is a **job**. A calendar and history are derived views over work and money events; neither is a second source of truth.
+TAKAI is a warm, local-first work-and-payment notebook for a garden owner. Its primary work record is a **task**; money is a separate **compensation unit** and its resulting obligation. A calendar/history derives from tasks, while money views derive from obligations and payments; neither is a second source of truth.
 
 The MVP does not expose the prior garden Activity, plot, hole, case, tracker, or material flows in its primary navigation. Those modules remain preserved in source only. Labor jobs can be general work with no plot.
 
@@ -53,8 +53,8 @@ Bottom navigation is exactly:
 
 1. `วันนี้` — operational work and money attention.
 2. `งาน` — calendar, selected-day ledger, and history.
-3. `บันทึกงาน` — focused job capture.
-4. `จ่ายเงิน` — payment, group receipt, advance, recovery, and correction entry.
+3. `บันทึกงาน` — task capture plus daily/hourly/open-contract compensation units.
+4. `จ่ายเงิน` — obligation payment, bonus, person-only advance recovery, and reasoned correction entry.
 5. `คน` — people, wage balance, advance balance, and person history.
 
 Payment is also contextual from Today, Job Detail, Person Detail, or history; every route opens the same payment entry state. `เมนู` and its hamburger affordance are retired from the Labor MVP.
@@ -63,11 +63,11 @@ The header always carries the TAKAI mascot and brand with the current screen as 
 
 ## Ledger meaning that UI must preserve
 
-- A job has a work date. Payments, group receipts, advances, recoveries, contract progress, completion, and deadline each retain their own effective dates.
+- A task has a work date; it does not itself create money. Payments, advances, recoveries, contract progress, completion, and deadline retain their own effective dates.
 - Calendar groups typed events by effective business date. It must never use audit `occurredAt` as the effective date.
 - Daily work is only full day or half day. Other duration is hourly minutes. A person may have multiple jobs in one date.
-- Individual work creates person-scoped wage payables. An early payment is wage payment, never an advance.
-- Group work owns one settlement group and one lump receipt route. Participant names evidence the work; UI must not invent personal shares or show group cash as a member wage payment.
+- Daily work creates one person-scoped unit per worker/date; hourly work creates person/shift units. An early payment is wage payment, never an advance.
+- Contract work owns one batch and later one lump group obligation. Participant names evidence the work; UI must not invent personal shares or show group cash as a member wage payment.
 - Advances and recoveries are person-scoped. A person view separates gross wage, cash paid, wage remaining, advance recovered, and advance remaining.
 
 ## Visual theme
@@ -97,8 +97,8 @@ Normal app boot opens the real local notebook and never creates proof records. P
 | Lane | Required phase | What it proves |
 |---|---:|---|
 | Deterministic | every phase | ledger, adapter, and projection correctness |
-| RN Static | phases 1–4 | contract, tokens, imports, primitive/route presence |
-| RN Web | phases 3–4 | rendered layout, browser console/network issues |
+| RN Static | phase 3 | V2 contract, tokens, imports, primitive/route presence |
+| RN Web | phase 3 | rendered layout, browser console/network issues |
 | Expo Go device | phase 5 | Android touch, scrolling, safe area, keyboard, comprehension |
 
 RN Web and static proof do not claim native device usability. Expo Go operator acceptance remains the gate of record.

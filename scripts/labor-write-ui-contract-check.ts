@@ -5,16 +5,16 @@ import { resolve } from 'node:path';
 const main = async (): Promise<void> => {
   const root = process.cwd();
   const source = await readFile(resolve(root, 'src/features/labor-mvp/LaborMvpApp.tsx'), 'utf8');
-  const adapter = await readFile(resolve(root, 'src/features/labor-mvp/preview.ts'), 'utf8');
-  const web = await readFile(resolve(root, 'src/features/labor-mvp/preview.web.ts'), 'utf8');
-  for (const required of ['RecordScreen', 'DatePickerField', 'งานรายชิ้นเป็นชุด', 'งานเหมา', 'เต็มวัน', 'ครึ่งวัน', 'จำนวนนาที', 'จ่ายค่าแรงรายคน', 'รับเงินชุดงาน', 'ให้เงินเบิก', 'หักคืนเงินเบิก', 'เหตุผลที่แก้ไข', 'บันทึกงานแล้ว และรีเฟรชปฏิทิน/ประวัติเรียบร้อย', 'บันทึกรายการการเงินแล้ว แต่รีเฟรชรายการไม่สำเร็จ']) {
+  const adapter = await readFile(resolve(root, 'src/features/labor-mvp/previewV2Adapter.ts'), 'utf8');
+  const web = await readFile(resolve(root, 'src/features/labor-mvp/previewV2.web.ts'), 'utf8');
+  for (const required of ['RecordScreen', 'DatePickerField', 'TaskListEditor', 'units', 'recordDay', 'startContract', 'งานเหมา', 'รายวัน', 'รายชั่วโมง', 'PaymentScreen', 'หักเงินเบิก', 'ยืนยันการจ่ายเงิน']) {
     assert.ok(source.includes(required), `Labor write UI must expose ${required}`);
   }
-  for (const command of ['createNormalWork', 'createGroupPieceWork', 'createLaborContract', 'addLaborContractProgress', 'completeLaborContractWork', 'postLaborPayment', 'postLaborSettlementGroupReceipt', 'createLaborWorkerAdvance', 'applyLaborAdvanceDeduction', 'editLaborPayment', 'editLaborSettlementGroupReceipt', 'editLaborWorkerAdvance']) {
+  for (const command of ['recordLaborDayV2', 'startLaborContractBatchV2', 'recordLaborContractProgressV2', 'finalizeLaborContractBatchV2', 'postLaborV2PaymentSession', 'correctLaborV2PaymentSession']) {
     assert.ok(adapter.includes(command), `native adapter must route ${command} to repository truth`);
-    assert.ok(web.includes(command), `web adapter must explicitly cover ${command}`);
   }
-  assert.ok(web.includes('โหมดอ่านอย่างเดียว'), 'web writes must fail honestly rather than append false history');
+  for (const command of ['recordDay', 'startContract', 'progressContract', 'finalizeContract', 'postPayment', 'correctPayment']) assert.ok(web.includes(command), `web adapter must explicitly cover ${command}`);
+  assert.ok(web.includes('ยังไม่รองรับ'), 'web writes must fail honestly rather than append false history');
   assert.ok(!source.includes('generic fractional'), 'UI must not expose generic fractional-day semantics');
   console.log('LABOR_WRITE_UI_CONTRACT_PASS: typed write routes, person-only advance recovery, reasoned revisions, and honest web failure are present');
 };

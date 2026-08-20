@@ -14,8 +14,8 @@ const uiIndexSource = read('src/ui/index.ts');
 const appSource = read('App.tsx');
 const tabSource = read('src/ui/BottomTabBar.tsx');
 const webPreviewSource = read('src/data/index.web.ts');
-const webFixtureGeneratorSource = read('scripts/generate-labor-preview-web-fixture.ts');
-const laborPreviewSource = read('src/features/labor-mvp/preview.ts');
+const webFixtureGeneratorSource = read('scripts/generate-labor-v2-preview-web-fixture.ts');
+const laborPreviewSource = read('src/features/labor-mvp/previewV2.ts');
 
 if (!design.includes('design_md_version: 2')) fail('DESIGN.md must declare Labor MVP design contract v2');
 for (const lane of ['kind: rn-static-eye', 'kind: rn-web-eye', 'kind: expo-go-device-eye']) {
@@ -29,8 +29,8 @@ for (const forbidden of ["'plots'", "'activity'", "'cases'"]) {
   if (tabSource.includes(forbidden)) fail(`legacy tab key remains in BottomTabBar: ${forbidden}`);
 }
 if (!appSource.includes('LaborMvpApp') || appSource.includes('OperationalSliceScreen')) fail('App must mount LaborMvpApp only');
-if (!webPreviewSource.includes('createWebLaborPreviewAdapter') || !webFixtureGeneratorSource.includes('runMigrations') || !webFixtureGeneratorSource.includes('createLaborPreviewAdapter') || !laborPreviewSource.includes('seedLaborPreviewFixture')) {
-  fail('web preview must use the repository-generated Labor fixture adapter');
+if (!webPreviewSource.includes('createWebLaborV2PreviewAdapter') || !webFixtureGeneratorSource.includes('runMigrations') || !webFixtureGeneratorSource.includes('buildLaborV2PreviewFixture') || !laborPreviewSource.includes('buildLaborV2PreviewFixture')) {
+  fail('web preview must use the repository-generated V2 fixture adapter');
 }
 
 const expectedTokens = {
@@ -55,7 +55,7 @@ for (const [name, relativePath] of [
   if (!uiIndexSource.includes(`export { ${name} }`)) fail(`primitive ${name} is not exported from src/ui/index.ts`);
 }
 requireFile('src/features/labor-mvp/LaborMvpApp.tsx');
-requireFile('src/features/labor-mvp/preview.ts');
+requireFile('src/features/labor-mvp/previewV2.ts');
 
 if (process.exitCode) process.exit(process.exitCode);
 console.log('DESIGN_CONTRACT_PASS: Labor MVP v2 navigation, route, preview adapter, tokens, and primitives are aligned');

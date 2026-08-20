@@ -55,8 +55,8 @@ if (!webOperations.includes('export const getCaseList') || !webOperations.includ
   fail('RN Web preview adapter must expose case list and menu dashboard read models');
 }
 
-if (!webData.includes('initializeTakaiLaborPreview') || !webData.includes('createWebLaborPreviewAdapter')) {
-  fail('Labor MVP web preview must use the Labor preview adapter');
+if (!webData.includes('initializeTakaiLaborPreview') || !webData.includes('createWebLaborV2PreviewAdapter')) {
+  fail('Labor MVP web preview must use the V2 preview adapter');
 }
 
 console.log('MENU_CASE_CONTRACT_PASS: preserved legacy menu/case contracts coexist with Labor MVP web preview cutover');

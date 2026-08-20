@@ -4,3 +4,4 @@ export * from './compensationV2';
 export * from './types';
 export * from './preview';
 export * from './previewV2';
+export * from './previewV2Adapter';
