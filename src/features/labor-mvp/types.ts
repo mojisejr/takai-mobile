@@ -88,6 +88,29 @@ export type CreateGroupPieceWorkInput = {
   collectorLabel?: string;
 };
 
+/**
+ * One row from the work-record notebook.  The enclosing command supplies the
+ * shared effective work date; every row still becomes its own labor job.
+ */
+export type RecordIndividualLaborWorkItemInput = Omit<CreateNormalWorkInput, 'workDate'> & {
+  settlementRoute: 'individual';
+};
+
+export type RecordGroupPieceLaborWorkItemInput = Omit<CreateGroupPieceWorkInput, 'workDate'> & {
+  settlementRoute: 'group';
+};
+
+export type RecordLaborWorkItemInput = RecordIndividualLaborWorkItemInput | RecordGroupPieceLaborWorkItemInput;
+
+export type RecordLaborWorkItemsInput = {
+  workDate: string;
+  items: RecordLaborWorkItemInput[];
+};
+
+export type RecordedLaborWorkItem =
+  | { settlementRoute: 'individual'; jobId: string; payableIds: string[] }
+  | { settlementRoute: 'group'; jobId: string; settlementGroupId: string };
+
 export type ContractShareInput = {
   personId: string;
   amountSatang: number;

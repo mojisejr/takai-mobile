@@ -28,6 +28,7 @@ import type {
   LegacyLaborSource,
   LaborMvpReadModel,
   LaborPayable,
+  LaborPayType,
   LaborPayment,
   LaborPaymentState,
   LaborPersonDetail,
@@ -46,6 +47,8 @@ import type {
   PaymentAllocationInput,
   PostLaborPaymentInput,
   PostLaborSettlementGroupReceiptInput,
+  RecordedLaborWorkItem,
+  RecordLaborWorkItemsInput,
   ReconcileContractSharesInput,
   UpdateLaborWorkerInput,
 } from './types';
@@ -482,7 +485,20 @@ export const archiveLaborWorker = async (db: SqlExecutor, workerId: string, reas
   });
 };
 
-export const createNormalWork = async (db: SqlExecutor, input: CreateNormalWorkInput, now = timestamp()): Promise<{ jobId: string; payableIds: string[] }> => {
+type PreparedNormalWork = {
+  input: CreateNormalWorkInput;
+  jobId: string;
+  prepared: Array<{
+    participant: CreateNormalWorkInput['participants'][number];
+    person: PersonRow;
+    index: number;
+    dueSatang: number;
+    payType: Exclude<LaborPayType, 'none' | 'contract'> | 'none';
+    basis: { rateSatang: number; quantityMilli: number | null; durationMinutes: number | null; unitLabel: string } | null;
+  }>;
+};
+
+const prepareNormalWork = async (db: SqlExecutor, input: CreateNormalWorkInput): Promise<PreparedNormalWork> => {
   const title = trimmed(input.title);
   if (!title) throw new Error('TAKAI normal work requires a title');
   assertDate(input.workDate, 'work date');
@@ -533,58 +549,77 @@ export const createNormalWork = async (db: SqlExecutor, input: CreateNormalWorkI
     }
     return { participant, person, index, dueSatang: participant.dueSatang, payType, basis: null };
   }));
-  return withTransaction(db, async () => {
-    await db.runAsync(
-      `INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at)
-       VALUES (?, ?, ?, NULL, ?, 'normal', 'open', ?, ?)`,
-      [jobId, title, input.workDate, trimmed(input.note), now, now],
-    );
-    const payableIds: string[] = [];
-    for (const item of prepared) {
-      const participantId = item.participant.participantId ?? `${jobId}-participant-${item.index + 1}`;
-      await db.runAsync(
-        `INSERT INTO labor_job_participants (id, labor_job_id, person_id, pay_type, sort_order, note)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [participantId, jobId, item.person.id, item.payType, item.index, trimmed(item.participant.note)],
-      );
-      if (item.dueSatang > 0) {
-        const payableId = item.participant.payableId ?? `${jobId}-payable-${item.index + 1}`;
-        await db.runAsync(
-          `INSERT INTO labor_payables (id, labor_job_id, participant_id, person_id, due_satang, status, created_at)
-           VALUES (?, ?, ?, ?, ?, 'open', ?)`,
-          [payableId, jobId, participantId, item.person.id, item.dueSatang, now],
-        );
-        payableIds.push(payableId);
-      }
-      if (item.basis) {
-        await appendWorkBasisSnapshot(db, {
-          id: `${jobId}-basis-${item.index + 1}`,
-          jobId,
-          settlementRoute: 'individual',
-          basisKind: item.payType === 'piece' ? 'piece' : item.payType === 'hourly' ? 'hourly' : 'daily',
-          stage: 'recorded',
-          personId: item.person.id,
-          rateSatang: item.basis.rateSatang,
-          quantityMilli: item.basis.quantityMilli,
-          durationMinutes: item.basis.durationMinutes,
-          unitLabel: item.basis.unitLabel,
-          totalSatang: item.dueSatang,
-          note: trimmed(item.participant.note),
-          createdAt: now,
-        });
-      }
-    }
-    await appendTimeline(db, {
-      entityType: 'labor_job', entityId: jobId, action: 'normal_work_created', occurredAt: now, reason: null,
-      before: null,
-      after: { id: jobId, title, workDate: input.workDate, plotId: null, kind: 'normal', participants: prepared.map((item) => ({ personId: item.person.id, dueSatang: item.dueSatang, payType: item.payType })) },
-      personId: null, laborJobId: jobId,
-    });
-    return { jobId, payableIds };
-  });
+  return { input: { ...input, title }, jobId, prepared };
 };
 
-export const createGroupPieceWork = async (db: SqlExecutor, input: CreateGroupPieceWorkInput, now = timestamp()): Promise<{ jobId: string; settlementGroupId: string }> => {
+const persistNormalWork = async (db: SqlExecutor, work: PreparedNormalWork, now: string): Promise<{ jobId: string; payableIds: string[] }> => {
+  const { input, jobId, prepared } = work;
+  await db.runAsync(
+    `INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at)
+     VALUES (?, ?, ?, NULL, ?, 'normal', 'open', ?, ?)`,
+    [jobId, input.title, input.workDate, trimmed(input.note), now, now],
+  );
+  const payableIds: string[] = [];
+  for (const item of prepared) {
+    const participantId = item.participant.participantId ?? `${jobId}-participant-${item.index + 1}`;
+    await db.runAsync(
+      `INSERT INTO labor_job_participants (id, labor_job_id, person_id, pay_type, sort_order, note)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [participantId, jobId, item.person.id, item.payType, item.index, trimmed(item.participant.note)],
+    );
+    if (item.dueSatang > 0) {
+      const payableId = item.participant.payableId ?? `${jobId}-payable-${item.index + 1}`;
+      await db.runAsync(
+        `INSERT INTO labor_payables (id, labor_job_id, participant_id, person_id, due_satang, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'open', ?)`,
+        [payableId, jobId, participantId, item.person.id, item.dueSatang, now],
+      );
+      payableIds.push(payableId);
+    }
+    if (item.basis) {
+      await appendWorkBasisSnapshot(db, {
+        id: `${jobId}-basis-${item.index + 1}`,
+        jobId,
+        settlementRoute: 'individual',
+        basisKind: item.payType === 'piece' ? 'piece' : item.payType === 'hourly' ? 'hourly' : 'daily',
+        stage: 'recorded',
+        personId: item.person.id,
+        rateSatang: item.basis.rateSatang,
+        quantityMilli: item.basis.quantityMilli,
+        durationMinutes: item.basis.durationMinutes,
+        unitLabel: item.basis.unitLabel,
+        totalSatang: item.dueSatang,
+        note: trimmed(item.participant.note),
+        createdAt: now,
+      });
+    }
+  }
+  await appendTimeline(db, {
+    entityType: 'labor_job', entityId: jobId, action: 'normal_work_created', occurredAt: now, reason: null,
+    before: null,
+    after: { id: jobId, title: input.title, workDate: input.workDate, plotId: null, kind: 'normal', participants: prepared.map((item) => ({ personId: item.person.id, dueSatang: item.dueSatang, payType: item.payType })) },
+    personId: null, laborJobId: jobId,
+  });
+  return { jobId, payableIds };
+};
+
+export const createNormalWork = async (db: SqlExecutor, input: CreateNormalWorkInput, now = timestamp()): Promise<{ jobId: string; payableIds: string[] }> => {
+  const prepared = await prepareNormalWork(db, input);
+  return withTransaction(db, () => persistNormalWork(db, prepared, now));
+};
+
+type PreparedGroupPieceWork = {
+  input: CreateGroupPieceWorkInput;
+  jobId: string;
+  settlementGroupId: string;
+  memberPersonIds: string[];
+  collectorPersonId: string | null;
+  collectorLabel: string;
+  originalDueSatang: number;
+  unitLabel: string;
+};
+
+const prepareGroupPieceWork = async (db: SqlExecutor, input: CreateGroupPieceWorkInput): Promise<PreparedGroupPieceWork> => {
   const title = trimmed(input.title);
   const memberPersonIds = input.memberPersonIds.map((personId) => trimmed(personId));
   if (!title) throw new Error('TAKAI group piece work requires a title');
@@ -599,52 +634,92 @@ export const createGroupPieceWork = async (db: SqlExecutor, input: CreateGroupPi
   const settlementGroupId = input.settlementGroupId ?? `${jobId}-settlement-group`;
   const collectorPersonId = trimmed(input.collectorPersonId) || null;
   const collectorLabel = trimmed(input.collectorLabel);
-  await withTransaction(db, async () => {
-    if (collectorPersonId) await activeWorker(db, collectorPersonId);
+  if (collectorPersonId) await activeWorker(db, collectorPersonId);
+  for (const personId of memberPersonIds) await activeWorker(db, personId);
+  return { input: { ...input, title }, jobId, settlementGroupId, memberPersonIds, collectorPersonId, collectorLabel, originalDueSatang, unitLabel };
+};
+
+const persistGroupPieceWork = async (db: SqlExecutor, work: PreparedGroupPieceWork, now: string): Promise<{ jobId: string; settlementGroupId: string }> => {
+  const { input, jobId, settlementGroupId, memberPersonIds, collectorPersonId, collectorLabel, originalDueSatang, unitLabel } = work;
+  await db.runAsync(
+    `INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at)
+     VALUES (?, ?, ?, NULL, ?, 'normal', 'open', ?, ?)`,
+    [jobId, input.title, input.workDate, trimmed(input.note), now, now],
+  );
+  for (const [index, personId] of memberPersonIds.entries()) {
     await db.runAsync(
-      `INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at)
-       VALUES (?, ?, ?, NULL, ?, 'normal', 'open', ?, ?)`,
-      [jobId, title, input.workDate, trimmed(input.note), now, now],
+      `INSERT INTO labor_job_participants (id, labor_job_id, person_id, pay_type, sort_order, note)
+       VALUES (?, ?, ?, 'piece', ?, '')`,
+      [`${jobId}-participant-${index + 1}`, jobId, personId, index],
     );
-    for (const [index, personId] of memberPersonIds.entries()) {
-      await activeWorker(db, personId);
-      await db.runAsync(
-        `INSERT INTO labor_job_participants (id, labor_job_id, person_id, pay_type, sort_order, note)
-         VALUES (?, ?, ?, 'piece', ?, '')`,
-        [`${jobId}-participant-${index + 1}`, jobId, personId, index],
-      );
-    }
+  }
+  await db.runAsync(
+    `INSERT INTO labor_settlement_groups
+     (id, labor_job_id, original_due_satang, status, collector_person_id, collector_label, created_at, updated_at)
+     VALUES (?, ?, ?, 'open', ?, ?, ?, ?)`,
+    [settlementGroupId, jobId, originalDueSatang, collectorPersonId, collectorLabel, now, now],
+  );
+  for (const [index] of memberPersonIds.entries()) {
     await db.runAsync(
-      `INSERT INTO labor_settlement_groups
-       (id, labor_job_id, original_due_satang, status, collector_person_id, collector_label, created_at, updated_at)
-       VALUES (?, ?, ?, 'open', ?, ?, ?, ?)`,
-      [settlementGroupId, jobId, originalDueSatang, collectorPersonId, collectorLabel, now, now],
+      `INSERT INTO labor_settlement_group_members (id, settlement_group_id, participant_id, sort_order, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [`${settlementGroupId}-member-${index + 1}`, settlementGroupId, `${jobId}-participant-${index + 1}`, index, now],
     );
-    for (const [index] of memberPersonIds.entries()) {
-      await db.runAsync(
-        `INSERT INTO labor_settlement_group_members (id, settlement_group_id, participant_id, sort_order, created_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [`${settlementGroupId}-member-${index + 1}`, settlementGroupId, `${jobId}-participant-${index + 1}`, index, now],
-      );
-    }
-    await appendWorkBasisSnapshot(db, {
-      id: `${jobId}-basis-1`, jobId, settlementRoute: 'group', basisKind: 'piece', stage: 'recorded', personId: null,
-      rateSatang: input.rateSatang, quantityMilli: input.quantityMilli, durationMinutes: null, unitLabel, totalSatang: originalDueSatang, note: trimmed(input.note), createdAt: now,
-    });
-    const group = await settlementGroupSnapshot(db, settlementGroupId);
-    await appendTimeline(db, {
-      entityType: 'labor_job', entityId: jobId, action: 'settlement_group_created', occurredAt: now, reason: null,
-      before: null, after: group, personId: null, laborJobId: jobId,
-    });
-    await appendTimeline(db, {
-      entityType: 'labor_job', entityId: jobId, action: 'group_piece_work_recorded', occurredAt: now, reason: null, before: null,
-      after: { title, workDate: input.workDate, settlementRoute: 'group', quantityMilli: input.quantityMilli, unitLabel, rateSatang: input.rateSatang, originalDueSatang, group },
-      personId: null, laborJobId: jobId,
-    });
+  }
+  await appendWorkBasisSnapshot(db, {
+    id: `${jobId}-basis-1`, jobId, settlementRoute: 'group', basisKind: 'piece', stage: 'recorded', personId: null,
+    rateSatang: input.rateSatang, quantityMilli: input.quantityMilli, durationMinutes: null, unitLabel, totalSatang: originalDueSatang, note: trimmed(input.note), createdAt: now,
+  });
+  const group = await settlementGroupSnapshot(db, settlementGroupId);
+  await appendTimeline(db, {
+    entityType: 'labor_job', entityId: jobId, action: 'settlement_group_created', occurredAt: now, reason: null,
+    before: null, after: group, personId: null, laborJobId: jobId,
+  });
+  await appendTimeline(db, {
+    entityType: 'labor_job', entityId: jobId, action: 'group_piece_work_recorded', occurredAt: now, reason: null, before: null,
+    after: { title: input.title, workDate: input.workDate, settlementRoute: 'group', quantityMilli: input.quantityMilli, unitLabel, rateSatang: input.rateSatang, originalDueSatang, group },
+    personId: null, laborJobId: jobId,
   });
   return { jobId, settlementGroupId };
 };
 
+export const createGroupPieceWork = async (db: SqlExecutor, input: CreateGroupPieceWorkInput, now = timestamp()): Promise<{ jobId: string; settlementGroupId: string }> => {
+  const prepared = await prepareGroupPieceWork(db, input);
+  return withTransaction(db, () => persistGroupPieceWork(db, prepared, now));
+};
+
+/**
+ * Records a single notebook submission as several queryable jobs.  All rows
+ * share one work date, but group work remains a single settlement due and is
+ * never expanded into inferred member payables.
+ */
+export const recordLaborWorkItems = async (db: SqlExecutor, input: RecordLaborWorkItemsInput, now = timestamp()): Promise<RecordedLaborWorkItem[]> => {
+  assertDate(input.workDate, 'work date');
+  if (!input.items.length) throw new Error('TAKAI work record requires at least one work item');
+  return withTransaction(db, async () => {
+    const recorded: RecordedLaborWorkItem[] = [];
+    for (const item of input.items) {
+      if (item.settlementRoute === 'individual') {
+        const { settlementRoute: _settlementRoute, ...normalInput } = item;
+        const prepared = await prepareNormalWork(db, { ...normalInput, workDate: input.workDate });
+        const result = await persistNormalWork(db, prepared, now);
+        recorded.push({ settlementRoute: 'individual', ...result });
+      } else {
+        const { settlementRoute: _settlementRoute, ...groupInput } = item;
+        const prepared = await prepareGroupPieceWork(db, { ...groupInput, workDate: input.workDate });
+        const result = await persistGroupPieceWork(db, prepared, now);
+        recorded.push({ settlementRoute: 'group', ...result });
+      }
+    }
+    return recorded;
+  });
+};
+
+/*
+ * The lower-level commands above retain their single-job public contracts.
+ * recordLaborWorkItems is the only transaction-level entry point for a
+ * multi-row work-record submission.
+ */
 export const createLaborContract = async (db: SqlExecutor, input: CreateLaborContractInput, now = timestamp()): Promise<string> => {
   const title = trimmed(input.title);
   if (!title) throw new Error('TAKAI contract requires a title');
