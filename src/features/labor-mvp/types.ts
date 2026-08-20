@@ -399,6 +399,99 @@ export type LaborPersonBalance = LaborWorker & {
   advanceRemainingSatang: number;
 };
 
+/**
+ * V2 deliberately separates the record of work from the amount owed.  These
+ * facts are parallel to the v1 job/payable ledger; they never reinterpret it.
+ */
+export type LaborV2TaskFact = {
+  id: string;
+  workDate: string;
+  title: string;
+  note?: string;
+  assigneePersonIds: string[];
+};
+
+export type LaborV2DailyIntent = {
+  id: string;
+  personId: string;
+  workDate: string;
+  rateSatang: number;
+  quantityMilli: 500 | 1000;
+  taskIds: string[];
+};
+
+export type LaborV2HourlyTimeIntent = {
+  id: string;
+  taskId: string;
+  personId: string;
+  workDate: string;
+  rateSatang: number;
+  shiftKey?: string;
+  durationMinutes: number;
+};
+
+export type LaborV2HourlyShiftIntent = {
+  id: string;
+  personId: string;
+  workDate: string;
+  rateSatang: number;
+  shiftKey: string;
+  durationMinutes: number;
+  totalSatang: number;
+  taskTimeEntryIds: string[];
+};
+
+export type LaborV2ContractBatchIntent = {
+  id: string;
+  title: string;
+  startsOn: string;
+  memberPersonIds: string[];
+  taskIds?: string[];
+  deadlineOn?: string;
+  finalization?:
+    | { kind: 'quantity_rate'; quantityMilli: number; rateSatang: number; unitLabel: string }
+    | { kind: 'lump_total'; finalTotalSatang: number };
+};
+
+export type LaborV2ObligationIntent = {
+  id: string;
+  sourceKind: 'daily' | 'hourly' | 'contract';
+  sourceUnitId: string;
+  recipientKind: 'person' | 'group';
+  personId: string | null;
+  dueSatang: number;
+};
+
+/** V2 payment settlement facts remain separate from both v1 payment batches and work tasks. */
+export type LaborV2PaymentRecipientSettlement = {
+  id: string;
+  paymentSessionId: string;
+  obligationId: string;
+  recipientKind: 'person' | 'group';
+  personId: string | null;
+  wageSatang: number;
+  bonusSatang: number;
+  advanceRecoveredSatang: number;
+  cashPaidSatang: number;
+};
+
+/** Recovery remains person-only by command validation in Phase 2; this row keeps its audit links now. */
+export type LaborV2PaymentAdvanceRecovery = {
+  id: string;
+  recipientSettlementId: string;
+  advanceId: string;
+  obligationId: string;
+  personId: string;
+  amountSatang: number;
+};
+
+export type LaborV2CompensationPlan = {
+  dailyUnits: Array<LaborV2DailyIntent & { dueSatang: number }>;
+  hourlyShifts: LaborV2HourlyShiftIntent[];
+  contractBatches: Array<LaborV2ContractBatchIntent & { status: 'open' | 'finalized'; dueSatang: number | null }>;
+  obligations: LaborV2ObligationIntent[];
+};
+
 export type LaborContractProgress = {
   id: string;
   progressDate: string;

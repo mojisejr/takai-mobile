@@ -116,7 +116,7 @@ const createInput = (id: string) => ({
 
 const main = async (): Promise<void> => {
   const migrationDb = new MigrationContractDb();
-  assert.deepEqual(await runMigrations(migrationDb), [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], 'an existing migration 2 database must receive only later additive migrations');
+  assert.deepEqual(await runMigrations(migrationDb), [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], 'an existing migration 2 database must receive only later additive migrations');
   assert.deepEqual(migrationDb.legacyMaterial, { id: 'legacy-material', unit: 'cc' }, 'migration must not rewrite existing material data');
   assert.deepEqual(migrationDb.legacyUsage, { id: 'legacy-usage', material_id: 'legacy-material', amount: 20, unit: 'cc' }, 'migration must not lose historical usage data');
   assert.equal(migrationDb.statements.some((statement) => /DROP TABLE|DELETE FROM/i.test(statement)), false, 'migration 3 must be additive');
