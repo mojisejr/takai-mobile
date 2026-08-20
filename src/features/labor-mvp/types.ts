@@ -492,6 +492,40 @@ export type LaborV2CompensationPlan = {
   obligations: LaborV2ObligationIntent[];
 };
 
+export type RecordLaborDayV2Input = {
+  workDate: string;
+  tasks: Array<{ id?: string; title: string; note?: string; assigneePersonIds: string[] }>;
+  daily?: Array<{ id?: string; personId: string; rateSatang: number; quantityMilli: 500 | 1000; taskIds: string[] }>;
+  hourly?: Array<{ id?: string; taskId: string; personId: string; rateSatang: number; shiftKey?: string; durationMinutes: number; note?: string }>;
+};
+
+export type StartLaborContractBatchV2Input = { id?: string; title: string; startsOn: string; deadlineOn?: string; note?: string; memberPersonIds: string[]; taskIds?: string[] };
+export type RecordLaborContractProgressV2Input = { id?: string; progressDate: string; note?: string; quantityMilli?: number; unitLabel?: string };
+export type FinalizeLaborContractBatchV2Input = { finalizedAt: string; finalization: NonNullable<LaborV2ContractBatchIntent['finalization']> };
+export type PostLaborV2PaymentSessionInput = {
+  id?: string; paymentDate: string; method?: string; note?: string;
+  settlements: Array<{ id?: string; obligationId: string; wageSatang: number; bonusSatang?: number; advanceRecoveries?: Array<{ id?: string; advanceId: string; amountSatang: number }> }>;
+};
+export type CorrectLaborV2PaymentSessionInput = { reason: string; method?: string; note?: string };
+export type LaborV2ReadModel = {
+  sourceVersion: 'v2';
+  tasks: Array<{ id: string; workDate: string; title: string; assigneePersonIds: string[] }>;
+  obligations: Array<LaborV2ObligationIntent & { paidSatang: number; remainingSatang: number; status: 'open' | 'settled' }>;
+  payments: Array<{ id: string; paymentDate: string; method: string; cashPaidSatang: number; currentRevision: number }>;
+  events: Array<{ id: string; entityType: string; entityId: string; action: string; reason: string | null; occurredAt: string }>;
+};
+
+/** V2-only projections.  They deliberately cannot mix the legacy payable ledger. */
+export type LaborV2CalendarDay = { workDate: string; taskCount: number; taskIds: string[] };
+export type LaborV2PersonProjection = {
+  sourceVersion: 'v2';
+  personId: string;
+  tasks: LaborV2ReadModel['tasks'];
+  obligations: LaborV2ReadModel['obligations'];
+  payments: LaborV2ReadModel['payments'];
+  events: LaborV2ReadModel['events'];
+};
+
 export type LaborContractProgress = {
   id: string;
   progressDate: string;
