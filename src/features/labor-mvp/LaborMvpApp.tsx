@@ -121,12 +121,12 @@ export function LaborMvpApp() {
       {preview.status === 'ready' ? (
         <>
           {preview.adapter.mode === 'proof' ? <StatusChip label="ข้อมูลทดสอบ" variant="offline" /> : null}
-          {screen.kind === 'main' && screen.tab === 'today' ? <TodayScreen today={preview.today} model={preview.model} onJob={openJob} onPerson={openPerson} onRecord={() => startRecord(preview.today.date)} /> : null}
+          {screen.kind === 'main' && screen.tab === 'today' ? <TodayScreen today={preview.today} model={preview.model} onJob={openJob} onPerson={openPerson} onRecord={() => startRecord(preview.today.date)} onPay={() => startAction('payment')} /> : null}
           {screen.kind === 'main' && screen.tab === 'work' ? (
             <WorkScreen calendar={preview.calendar} history={preview.history} people={preview.model.people} mode={workMode} onChangeMode={setWorkMode} onJob={openJob} onPerson={openPerson} onRecord={startRecord} selectedDate={selectedDate} onSelectDate={setSelectedDate} onMonth={changeMonth} monthLoading={monthLoading} />
           ) : null}
-          {screen.kind === 'main' && screen.tab === 'record' ? <RecordScreen adapter={preview.adapter} model={preview.model} date={recordDate ?? preview.today.date} action={recordAction} initialPersonId={recordPersonId} initialJobId={recordJobId} onRefresh={refreshPreview} onToast={setToast} /> : null}
-          {screen.kind === 'main' && screen.tab === 'payment' ? <RecordScreen adapter={preview.adapter} model={preview.model} date={recordDate ?? preview.today.date} action="payment" initialPersonId={recordPersonId} initialJobId={recordJobId} onRefresh={refreshPreview} onToast={setToast} /> : null}
+          {screen.kind === 'main' && screen.tab === 'record' ? <FocusedRecordScreen adapter={preview.adapter} model={preview.model} date={recordDate ?? preview.today.date} onPay={(jobId) => startAction('payment', { jobId })} onRefresh={refreshPreview} onToast={setToast} /> : null}
+          {screen.kind === 'main' && screen.tab === 'payment' ? <PaymentWorkspace adapter={preview.adapter} model={preview.model} date={recordDate ?? preview.today.date} initialPersonId={recordPersonId} initialJobId={recordJobId} onRefresh={refreshPreview} onToast={setToast} /> : null}
           {screen.kind === 'main' && screen.tab === 'people' ? <PeopleScreen model={preview.model} onPerson={openPerson} onAdd={() => openWorkerEditor()} /> : null}
           {screen.kind === 'job' ? <JobScreen adapter={preview.adapter} jobId={screen.id} onPerson={openPerson} onAction={startAction} /> : null}
           {screen.kind === 'person' ? <PersonScreen adapter={preview.adapter} personId={screen.id} onJob={openJob} onAction={startAction} onEdit={() => openWorkerEditor(screen.id)} onRefresh={refreshPreview} onToast={setToast} /> : null}
@@ -143,16 +143,17 @@ export function LaborMvpApp() {
 
 function Loading() { return <ScreenSkeleton lines={3} />; }
 
-function TodayScreen({ today, model, onJob, onPerson, onRecord }: { today: LaborTodaySummary; model: LaborMvpReadModel; onJob: (id: string) => void; onPerson: (id: string) => void; onRecord: () => void }) {
+function TodayScreen({ today, model, onJob, onPerson, onRecord, onPay }: { today: LaborTodaySummary; model: LaborMvpReadModel; onJob: (id: string) => void; onPerson: (id: string) => void; onRecord: () => void; onPay: () => void }) {
   if (!model.people.length) return <NotebookEmptyState onRecord={onRecord} />;
   return <>
-    <FieldCard variant="raised"><Text style={styles.eyebrow}>{thaiDate(today.date, true)} · ภาพรวมงานและเงิน</Text><Text style={styles.title}>วันนี้มีงาน {today.day.workCount} รายการ</Text><Text style={styles.muted}>ยอดงาน {money(today.day.workDueSatang)} · เงินออก/รับวันนี้ {money(today.day.individualPaymentSatang + today.day.groupReceiptSatang)}</Text></FieldCard>
-    <AmountStrip items={[['งานวันนี้', today.day.workDueSatang], ['จ่ายค่าแรง', today.day.individualPaymentSatang], ['รับชุดงาน', today.day.groupReceiptSatang]]} />
-    <SectionHeader title="งานและเหตุการณ์วันนี้" />
-    {today.day.events.length ? <LedgerListCard>{today.day.events.map((event) => <LaborRow key={event.id} event={event} onJob={onJob} onPerson={onPerson} />)}</LedgerListCard> : <Empty label="ยังไม่มีงานหรือรายการเงินในวันนี้" />}
+    <FieldCard variant="raised"><Text style={styles.eyebrow}>{thaiDate(today.date, true)} · ภาพรวมวันนี้</Text><Text style={styles.title}>วันนี้มีงาน {today.day.workCount} รายการ</Text><Text style={styles.muted}>ดูงานก่อน แล้วค่อยไปจัดการเงินในแท็บจ่ายเงิน</Text></FieldCard>
+    <AmountStrip items={[["ค่าแรงที่เกิด", today.day.workDueSatang], ["จ่ายแล้ว", today.day.individualPaymentSatang + (today.day.paymentSessionCashSatang ?? 0)], ["ค้างค่าแรง", today.unpaidPeople.reduce((sum, person) => sum + person.wageRemainingSatang, 0)]]} />
+    <SectionHeader title="งานที่บันทึกวันนี้" />
+    {today.day.events.filter((event) => event.eventType === 'work').length ? <LedgerListCard>{today.day.events.filter((event) => event.eventType === 'work').map((event) => <LaborRow key={event.id} event={event} onJob={onJob} onPerson={onPerson} />)}</LedgerListCard> : <Empty label="ยังไม่มีงานในวันนี้" />}
     <Attention title="ค้างค่าแรง" people={today.unpaidPeople.filter((person) => person.wageRemainingSatang > 0)} amount={(person) => person.wageRemainingSatang} onPerson={onPerson} empty="วันนี้ไม่มีค่าแรงค้างในตัวอย่าง" />
     <Attention title="เงินเบิกคงเหลือ" people={today.advanceAttentionPeople} amount={(person) => person.advanceRemainingSatang} onPerson={onPerson} empty="ไม่มีเงินเบิกคงเหลือ" />
     <PrimaryButton label="+ บันทึกงานวันนี้" onPress={onRecord} />
+    <PrimaryButton label="ไปที่จ่ายเงิน" onPress={onPay} variant="secondary" />
   </>;
 }
 
@@ -170,17 +171,17 @@ function CalendarScreen({ days, selected, onSelect, day, onJob, onPerson, onReco
   const padding = Array.from({ length: new Date(`${firstDate}T12:00:00`).getDay() }, (_, index) => `pad-${index}`);
   return <>
     <FieldCard variant="raised"><View style={styles.monthHeader}><Pressable accessibilityLabel="เดือนก่อน" onPress={() => onMonth(-1)} style={styles.monthNav}><Text style={styles.monthNavText}>‹</Text></Pressable><View style={styles.monthTitle}><Text style={styles.title}>{new Intl.DateTimeFormat('th-TH', { month: 'long', year: 'numeric' }).format(new Date(`${firstDate}T12:00:00`))}</Text><Text style={styles.caption}>ปฏิทินงาน</Text></View><Pressable accessibilityLabel="เดือนถัดไป" onPress={() => onMonth(1)} style={styles.monthNav}><Text style={styles.monthNavText}>›</Text></Pressable></View><View style={styles.week}>{['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((label) => <Text key={label} style={styles.weekday}>{label}</Text>)}</View><View style={styles.grid}>{padding.map((key) => <View key={key} style={styles.blankCell} />)}{days.map((item) => <CalendarCell key={item.date} day={item} selected={item.date === selected} onPress={() => onSelect(item.date)} />)}</View></FieldCard>
-    <Text style={styles.caption}>จุดเขียว = งาน · จุดน้ำตาล = เงิน · กดวันที่เพื่อดูรายละเอียด</Text>
+    <Text style={styles.caption}>จุดเขียว = มีงาน · กดวันที่เพื่อดูรายละเอียดงาน</Text>
     <SectionHeader title={`${thaiDate(day.date, true)} · รายการวันนั้น`} />
-    <AmountStrip items={[['งาน', day.workDueSatang], ['จ่ายค่าแรง', day.individualPaymentSatang], ['รับชุดงาน', day.groupReceiptSatang]]} />
-    {day.events.length ? <LedgerListCard>{day.events.map((event) => <LaborRow key={event.id} event={event} onJob={onJob} onPerson={onPerson} />)}</LedgerListCard> : <Empty label="ยังไม่มีรายการในวันที่เลือก" />}
+    <AmountStrip items={[['งาน', day.workDueSatang], ['จำนวนงาน', day.workCount], ['ค้างงานนี้', day.events.filter((event) => event.eventType === 'work').reduce((sum, event) => sum + event.remainingSatang, 0)]]} />
+    {day.events.filter((event) => event.eventType === 'work').length ? <LedgerListCard>{day.events.filter((event) => event.eventType === 'work').map((event) => <LaborRow key={event.id} event={event} onJob={onJob} onPerson={onPerson} />)}</LedgerListCard> : <Empty label="ยังไม่มีงานในวันที่เลือก" />}
     <PrimaryButton label={`+ บันทึกงานวันที่ ${thaiDate(day.date)}`} onPress={() => onRecord(day.date)} />
   </>;
 }
 
 function CalendarCell({ day, selected, onPress }: { day: LaborCalendarDaySummary; selected: boolean; onPress: () => void }) {
-  const work = day.workCount > 0; const finance = day.individualPaymentSatang + day.groupReceiptSatang + day.advanceIssuedSatang + day.advanceRecoveredSatang > 0;
-  return <Pressable accessibilityLabel={`${thaiDate(day.date)}${work ? ` มีงาน ${day.workCount} รายการ` : ''}`} onPress={onPress} style={[styles.calendarCell, selected && styles.calendarSelected]}><Text style={[styles.dayNumber, selected && styles.selectedText]}>{Number(day.date.slice(-2))}</Text><View style={styles.markerLine}>{work ? <View style={styles.workMarker} /> : null}{finance ? <View style={styles.moneyMarker} /> : null}</View>{(work || finance) ? <Text numberOfLines={1} style={[styles.markerText, selected && styles.selectedText]}>{work ? `งาน${day.workCount}` : 'เงิน'}</Text> : null}</Pressable>;
+  const work = day.workCount > 0;
+  return <Pressable accessibilityLabel={`${thaiDate(day.date)}${work ? ` มีงาน ${day.workCount} รายการ` : ''}`} onPress={onPress} style={[styles.calendarCell, selected && styles.calendarSelected]}><Text style={[styles.dayNumber, selected && styles.selectedText]}>{Number(day.date.slice(-2))}</Text><View style={styles.markerLine}>{work ? <View style={styles.workMarker} /> : null}</View>{work ? <Text numberOfLines={1} style={[styles.markerText, selected && styles.selectedText]}>{`งาน${day.workCount}`}</Text> : null}</Pressable>;
 }
 
 function HistoryScreen({ history, people, onJob, onPerson }: { history: LaborHistory; people: LaborMvpReadModel['people']; onJob: (id: string) => void; onPerson: (id: string) => void }) {
@@ -223,11 +224,16 @@ function JobScreen({ adapter, jobId, onPerson, onAction }: { adapter: LaborPrevi
   <PrimaryButton label="แก้ไขรายการการเงิน (ต้องใส่เหตุผล)" onPress={() => onAction('correction', { jobId })} variant="secondary" />
   </>; }
 
+function PersonWorkCalendar({ events }: { events: LaborProjectionEvent[] }) {
+  const workDates = Array.from(new Set(events.filter((event) => event.eventType === 'work').map((event) => event.effectiveDate))).sort().slice(-14);
+  return <FieldCard><Text style={styles.caption}>เฉพาะวันที่มีงานของคนนี้</Text><View style={styles.personCalendar}>{workDates.length ? workDates.map((date) => <View key={date} style={styles.personCalendarDay}><Text style={styles.dayNumber}>{new Date(`${date}T12:00:00`).getDate()}</Text><View style={styles.workMarker} /></View>) : <Text style={styles.caption}>ยังไม่มีวันทำงาน</Text>}</View></FieldCard>;
+}
+
 function PersonScreen({ adapter, personId, onJob, onAction, onEdit, onRefresh, onToast }: { adapter: LaborPreviewAdapter; personId: string; onJob: (id: string) => void; onAction: (action: RecordAction, options?: { personId?: string; jobId?: string }) => void; onEdit: () => void; onRefresh: () => Promise<void>; onToast: (message: string) => void }) { const [detail, setDetail] = useState<LaborPersonDetail | null | undefined>(undefined); const [error, setError] = useState<string | null>(null); const [retry, setRetry] = useState(0); const [archiveReason, setArchiveReason] = useState(''); const [archiveOpen, setArchiveOpen] = useState(false); const [archiveBusy, setArchiveBusy] = useState(false); const [archiveFeedback, setArchiveFeedback] = useState<string | null>(null); useEffect(() => { let active = true; setDetail(undefined); setError(null); void adapter.getPersonDetail(personId).then((value) => { if (active) setDetail(value); }).catch(() => { if (active) setError('เปิดข้อมูลคนทำงานไม่สำเร็จ'); }); return () => { active = false; }; }, [adapter, personId, retry]); if (error) return <RetryState label={error} onRetry={() => setRetry((value) => value + 1)} />; if (detail === undefined) return <Loading />; if (!detail) return <Empty label="ไม่พบคนทำงานนี้" />; const { person } = detail; const archive = async () => { const message = workerDraftError({ displayName: person.displayName, reason: archiveReason }, 'archive'); if (message) { setArchiveFeedback(message); return; } setArchiveBusy(true); try { await adapter.workers.archive(person.id, archiveReason); try { await onRefresh(); onToast('เก็บรายชื่อแล้ว ประวัติเดิมยังดูได้'); } catch { onToast('เก็บรายชื่อแล้ว แต่รีเฟรชรายการไม่สำเร็จ กดลองรีเฟรชอีกครั้ง'); } setArchiveOpen(false); } catch (cause) { setArchiveFeedback(cause instanceof Error ? cause.message : 'เก็บรายชื่อไม่สำเร็จ'); } finally { setArchiveBusy(false); } }; return <>
   <FieldCard variant="raised"><Text style={styles.eyebrow}>คนทำงาน</Text><Text style={styles.title}>{person.displayName}</Text><Text style={styles.muted}>{person.specialty || 'ยังไม่ได้ระบุงานที่ถนัด'}</Text></FieldCard>
   <SectionHeader title="ค่าแรง" /><AmountStrip items={[['ค่าแรงรวม', person.grossEarnedSatang], ['จ่ายแล้ว', person.cashPaidSatang], ['ค้างค่าแรง', person.wageRemainingSatang]]} />
   <SectionHeader title="เงินเบิก" /><AmountStrip items={[['เบิกแล้ว', person.advanceIssuedSatang], ['หักคืนแล้ว', person.advanceRecoveredSatang], ['เบิกคงเหลือ', person.advanceRemainingSatang]]} />
-  <SectionHeader title="ประวัติ" />{detail.events.length ? <LedgerListCard>{detail.events.map((event) => <LaborRow key={event.id} event={event} onJob={onJob} onPerson={() => undefined} />)}</LedgerListCard> : <Empty label="ยังไม่มีประวัติ" />}
+  <SectionHeader title="ปฏิทินงานของคนนี้" /><PersonWorkCalendar events={detail.events} /><SectionHeader title="ประวัติ" />{detail.events.filter((event) => event.eventType === 'work').length ? <LedgerListCard>{detail.events.filter((event) => event.eventType === 'work').map((event) => <LaborRow key={event.id} event={event} onJob={onJob} onPerson={() => undefined} />)}</LedgerListCard> : <Empty label="ยังไม่มีประวัติงาน" />}
   <PrimaryButton label="จ่ายค่าแรงรายคน" onPress={() => onAction('payment', { personId })} />
   <PrimaryButton label="ให้เงินเบิก" onPress={() => onAction('advance', { personId })} variant="secondary" />
   <PrimaryButton label="หักคืนจากค่าแรง" onPress={() => onAction('recovery', { personId })} variant="secondary" />
@@ -239,6 +245,103 @@ function WorkerEditorScreen({ adapter, worker, onDone, onRefresh, onToast }: { a
   useEffect(() => { setDisplayName(worker?.displayName ?? ''); setSpecialty(worker?.specialty ?? ''); setPhone(worker?.phone ?? ''); setNote(worker?.note ?? ''); setReason(''); setFeedback(null); }, [worker?.id]);
   const save = async () => { const message = workerDraftError({ displayName, reason }, worker ? 'edit' : 'create'); if (message) { setFeedback(message); return; } setBusy(true); setFeedback(null); try { if (worker) await adapter.workers.update(worker.id, { displayName, specialty, phone, note, reason }); else await adapter.workers.create({ displayName, specialty, phone, note }); try { await onRefresh(); onToast(worker ? 'แก้ไขข้อมูลคนทำงานแล้ว' : 'เพิ่มคนทำงานแล้ว'); } catch { onToast(worker ? 'แก้ไขข้อมูลแล้ว แต่รีเฟรชรายการไม่สำเร็จ' : 'เพิ่มคนทำงานแล้ว แต่รีเฟรชรายการไม่สำเร็จ'); } onDone(); } catch (cause) { setFeedback(cause instanceof Error ? cause.message : 'บันทึกข้อมูลคนทำงานไม่สำเร็จ'); } finally { setBusy(false); } };
   return <><FieldCard variant="raised"><Text style={styles.eyebrow}>คนทำงาน</Text><Text style={styles.title}>{worker ? 'แก้ไขข้อมูลคนทำงาน' : 'เพิ่มคนทำงาน'}</Text><Text style={styles.muted}>ชื่อใช้เลือกบันทึกงานใหม่ได้ทันที ส่วนข้อมูลอื่นใส่เมื่อสะดวก</Text></FieldCard><TextField label="ชื่อคนทำงาน" value={displayName} onChange={setDisplayName} placeholder="เช่น พี่สุ" /><TextField label="งานที่ถนัด (ไม่บังคับ)" value={specialty} onChange={setSpecialty} /><TextField label="เบอร์โทร (ไม่บังคับ)" value={phone} onChange={setPhone} keyboard="number-pad" /><TextField label="หมายเหตุ (ไม่บังคับ)" value={note} onChange={setNote} />{worker ? <TextField label="เหตุผลที่แก้ไข" value={reason} onChange={setReason} placeholder="เช่น เปลี่ยนเบอร์โทร" /> : null}{feedback ? <FormFeedback>{feedback}</FormFeedback> : null}<PrimaryButton disabled={busy} label={busy ? 'กำลังบันทึก…' : worker ? 'บันทึกการแก้ไข' : 'เพิ่มคนทำงาน'} onPress={save} /></>;
+}
+
+type FocusedWorkDraft = { id: string; title: string; route: 'individual' | 'group'; personIds: string[]; basis: 'daily' | 'hourly' | 'piece'; rate: string; quantity: string; minutes: string; dayPart: '500' | '1000'; unit: string; note: string };
+
+const newFocusedDraft = (people: LaborMvpReadModel['people']): FocusedWorkDraft => ({ id: `draft-${Date.now()}`, title: '', route: 'individual', personIds: people[0] ? [people[0].id] : [], basis: 'daily', rate: '350', quantity: '1', minutes: '60', dayPart: '1000', unit: 'ชิ้น', note: '' });
+const focusedBaht = (value: string): number => Math.round(Number(value) * 100);
+const focusedDue = (draft: FocusedWorkDraft): number => {
+  const rate = focusedBaht(draft.rate);
+  if (draft.route === 'group') return Math.round(rate * Number(draft.quantity));
+  if (draft.basis === 'daily') return Math.round(rate * Number(draft.dayPart) / 1000);
+  if (draft.basis === 'hourly') return Math.round(rate * Number(draft.minutes) / 60);
+  return Math.round(rate * Number(draft.quantity));
+};
+
+/** Work capture intentionally stops before money. Each card becomes one atomic job. */
+function FocusedRecordScreen({ adapter, model, date: initialDate, onPay, onRefresh, onToast }: { adapter: LaborPreviewAdapter; model: LaborMvpReadModel; date: string; onPay: (jobId: string) => void; onRefresh: () => Promise<void>; onToast: (message: string) => void }) {
+  const people = model.people.filter((person) => !person.archivedAt);
+  const [date, setDate] = useState(initialDate);
+  const [items, setItems] = useState<FocusedWorkDraft[]>(() => [newFocusedDraft(people)]);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const update = (id: string, patch: Partial<FocusedWorkDraft>) => setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item));
+  const togglePerson = (id: string, personId: string) => setItems((current) => current.map((item) => item.id !== id ? item : { ...item, personIds: item.personIds.includes(personId) ? item.personIds.filter((value) => value !== personId) : [...item.personIds, personId] }));
+  const save = async (payAfter: boolean) => {
+    if (busy) return;
+    try {
+      if (!items.length) throw new Error('เพิ่มงานอย่างน้อย 1 รายการ');
+      const input = items.map((item) => {
+        if (!item.title.trim() || !item.personIds.length) throw new Error('กรอกชื่องานและเลือกคนทำงานให้ครบ');
+        const rateSatang = focusedBaht(item.rate);
+        if (!Number.isSafeInteger(rateSatang) || rateSatang <= 0) throw new Error('อัตราค่าแรงต้องมากกว่า 0');
+        if (item.route === 'group') return { settlementRoute: 'group' as const, title: item.title, note: item.note, memberPersonIds: item.personIds, quantityMilli: Math.round(Number(item.quantity) * 1000), rateSatang, unitLabel: item.unit || 'ชิ้น', collectorPersonId: item.personIds[0], collectorLabel: 'ผู้รับเงินสดแทนชุดงาน' };
+        const participant = (personId: string) => item.basis === 'daily'
+          ? { personId, payType: 'daily' as const, rateSatang, quantityMilli: Number(item.dayPart), dueSatang: focusedDue(item), unitLabel: 'วัน' }
+          : item.basis === 'hourly'
+            ? { personId, payType: 'hourly' as const, rateSatang, durationMinutes: Number(item.minutes), dueSatang: focusedDue(item), unitLabel: 'ชั่วโมง' }
+            : { personId, payType: 'piece' as const, rateSatang, quantityMilli: Math.round(Number(item.quantity) * 1000), dueSatang: focusedDue(item), unitLabel: item.unit || 'ชิ้น' };
+        return { settlementRoute: 'individual' as const, title: item.title, note: item.note, participants: item.personIds.map(participant) };
+      });
+      setBusy(true); setFeedback(null);
+      const recorded = await adapter.commands.recordLaborWorkItems({ workDate: date, items: input });
+      await onRefresh();
+      onToast('บันทึกงานแล้ว และรีเฟรชปฏิทิน/ประวัติเรียบร้อย');
+      setItems([newFocusedDraft(people)]);
+      if (payAfter && recorded[0]) onPay(recorded[0].jobId);
+    } catch (error) { setFeedback(error instanceof Error ? error.message : 'บันทึกงานไม่สำเร็จ'); } finally { setBusy(false); }
+  };
+  return <>
+    <FieldCard variant="raised"><Text style={styles.eyebrow}>บันทึกงาน</Text><Text style={styles.title}>จดงานให้จบก่อน</Text><Text style={styles.muted}>หนึ่งบัตรคือหนึ่งงานจริง ระบบจะบันทึกพร้อมกัน และการเงินอยู่ในแท็บจ่ายเงิน</Text></FieldCard>
+    <DatePickerField label="วันที่ทำงาน" value={date} onChange={setDate} />
+    {items.map((item, index) => <FieldCard key={item.id} variant="raised"><Text style={styles.formLabel}>งานที่ {index + 1}</Text><TextField label="ชื่องาน" value={item.title} onChange={(title) => update(item.id, { title })} placeholder="เช่น ตัดหญ้ารอบบ้าน" />
+      <ChoicePicker label="รูปแบบรับเงิน" options={[{ id: 'individual', label: 'รายคน' }, { id: 'group', label: 'ชุดรับเงินรวม' }]} selected={item.route} onSelect={(route) => update(item.id, { route: route as FocusedWorkDraft['route'] })} />
+      <MultiPersonPicker people={people} selected={item.personIds} onToggle={(personId) => togglePerson(item.id, personId)} />
+      {item.route === 'individual' ? <ChoicePicker label="วิธีคิดค่าแรง" options={[{ id: 'daily', label: 'รายวัน' }, { id: 'hourly', label: 'รายชั่วโมง' }, { id: 'piece', label: 'รายชิ้น' }]} selected={item.basis} onSelect={(basis) => update(item.id, { basis: basis as FocusedWorkDraft['basis'] })} /> : null}
+      {item.basis === 'daily' && item.route === 'individual' ? <ChoicePicker label="จำนวนวัน" options={[{ id: '1000', label: 'เต็มวัน' }, { id: '500', label: 'ครึ่งวัน' }]} selected={item.dayPart} onSelect={(dayPart) => update(item.id, { dayPart: dayPart as '500' | '1000' })} /> : null}
+      <TextField label={item.basis === 'hourly' ? 'อัตราต่อชั่วโมง (บาท)' : 'อัตราต่อหน่วย (บาท)'} value={item.rate} onChange={(rate) => update(item.id, { rate })} keyboard="decimal-pad" />
+      {item.basis === 'hourly' ? <TextField label="จำนวนนาที" value={item.minutes} onChange={(minutes) => update(item.id, { minutes })} keyboard="number-pad" /> : item.basis === 'piece' || item.route === 'group' ? <><TextField label="จำนวน" value={item.quantity} onChange={(quantity) => update(item.id, { quantity })} keyboard="decimal-pad" /><TextField label="หน่วย" value={item.unit} onChange={(unit) => update(item.id, { unit })} /></> : null}
+      <Text style={styles.muted}>{item.route === 'group' ? `ยอดชุดรับเงิน ${money(focusedDue(item))}` : `แต่ละคนได้ ${money(focusedDue(item))}`}</Text><TextField label="หมายเหตุ (ไม่บังคับ)" value={item.note} onChange={(note) => update(item.id, { note })} />
+      {items.length > 1 ? <PrimaryButton label="ลบงานนี้" onPress={() => setItems((current) => current.filter((value) => value.id !== item.id))} variant="secondary" /> : null}
+    </FieldCard>)}
+    {feedback ? <FormFeedback>{feedback}</FormFeedback> : null}<PrimaryButton label="+ เพิ่มงานอีกรายการ" onPress={() => setItems((current) => [...current, newFocusedDraft(people)])} variant="secondary" />
+    <PrimaryButton disabled={busy} label={busy ? 'กำลังบันทึก…' : 'บันทึกงาน'} onPress={() => void save(false)} />
+    <PrimaryButton disabled={busy} label="บันทึกแล้วไปจ่ายเงิน" onPress={() => void save(true)} variant="secondary" />
+  </>;
+}
+
+/** Both entry routes build exactly one payment-session command. */
+function PaymentWorkspace({ adapter, model, date: initialDate, initialPersonId, initialJobId, onRefresh, onToast }: { adapter: LaborPreviewAdapter; model: LaborMvpReadModel; date: string; initialPersonId: string | null; initialJobId: string | null; onRefresh: () => Promise<void>; onToast: (message: string) => void }) {
+  const people = model.people.filter((person) => !person.archivedAt);
+  const [route, setRoute] = useState<'work' | 'person'>(initialJobId ? 'work' : 'person');
+  const [personId, setPersonId] = useState(initialPersonId ?? people[0]?.id ?? '');
+  const [jobId, setJobId] = useState(initialJobId ?? '');
+  const [groupId, setGroupId] = useState('');
+  const [date, setDate] = useState(initialDate);
+  const [bonus, setBonus] = useState('0'); const [recovery, setRecovery] = useState('0'); const [note, setNote] = useState('');
+  const [confirm, setConfirm] = useState(false); const [busy, setBusy] = useState(false); const [feedback, setFeedback] = useState<string | null>(null);
+  const selectedPayables = model.payables.filter((payable) => payable.remainingSatang > 0 && (!personId || payable.personId === personId) && (!jobId || payable.jobId === jobId));
+  const selectedGroup = model.settlementGroups.find((group) => group.id === groupId || group.jobId === jobId);
+  const selectedAdvance = model.advances.find((advance) => advance.personId === personId && advance.remainingSatang > 0);
+  const wage = selectedPayables.reduce((sum, payable) => sum + payable.remainingSatang, 0);
+  const bonusSatang = focusedBaht(bonus) || 0; const recoverySatang = Math.min(focusedBaht(recovery) || 0, selectedAdvance?.remainingSatang ?? 0, wage); const groupWage = selectedGroup?.remainingSatang ?? 0;
+  const cash = (selectedGroup ? groupWage : wage) + bonusSatang - (selectedGroup ? 0 : recoverySatang);
+  const post = async () => { try { setBusy(true); setFeedback(null); const settlements = selectedGroup ? [{ recipientType: 'group' as const, settlementGroupId: selectedGroup.id, wageSatang: groupWage, bonusSatang }] : selectedPayables.length ? [{ recipientType: 'person' as const, personId, wageAllocations: selectedPayables.map((payable) => ({ payableId: payable.id, amountSatang: payable.remainingSatang })), bonusSatang, advanceRecoveries: recoverySatang && selectedAdvance ? [{ advanceId: selectedAdvance.id, payableId: selectedPayables[0]!.id, amountSatang: recoverySatang }] : [] }] : [];
+    if (!settlements.length || cash <= 0) throw new Error('เลือกงานหรือคนที่มีค่าแรงค้างก่อน');
+    await adapter.commands.postLaborPaymentSession({ paymentDate: date, method: 'cash', note, settlements }); await onRefresh(); onToast('บันทึกการจ่ายเงินแล้ว'); setConfirm(false);
+  } catch (error) { setFeedback(error instanceof Error ? error.message : 'บันทึกการจ่ายเงินไม่สำเร็จ'); } finally { setBusy(false); } };
+  return <>
+    <FieldCard variant="raised"><Text style={styles.eyebrow}>จ่ายเงิน</Text><Text style={styles.title}>เลือกสิ่งที่จะจ่าย</Text><Text style={styles.muted}>ค่าแรง เงินแถม และเงินเบิกแยกกันชัดเจน</Text></FieldCard>
+    <View style={styles.segment}><Segment label="เลือกจากงาน" active={route === 'work'} onPress={() => setRoute('work')} /><Segment label="เลือกจากคน" active={route === 'person'} onPress={() => setRoute('person')} /></View>
+    <DatePickerField label="วันที่จ่าย" value={date} onChange={setDate} />
+    {route === 'work' ? <><ChoicePicker label="งานที่มีค่าแรงค้าง" options={Array.from(new Map(model.payables.filter((payable) => payable.remainingSatang > 0).map((payable) => [payable.jobId, { id: payable.jobId, label: payable.jobTitle, meta: `ค้าง ${money(payable.remainingSatang)}` }])).values())} selected={jobId} onSelect={(value) => { setJobId(value); setGroupId(''); }} /><ChoicePicker label="หรือชุดรับเงิน" options={model.settlementGroups.filter((group) => group.remainingSatang > 0).map((group) => ({ id: group.id, label: `ชุดรับเงิน · ${money(group.remainingSatang)}`, meta: group.collectorLabel }))} selected={groupId} onSelect={(value) => { setGroupId(value); setJobId(''); }} /></> : <PersonPicker people={people} selected={personId} onSelect={setPersonId} />}
+    {!selectedGroup ? <><TextField label="เงินแถม (บาท)" value={bonus} onChange={setBonus} keyboard="decimal-pad" /><TextField label="หักเงินเบิก (บาท)" value={recovery} onChange={setRecovery} keyboard="decimal-pad" />{selectedAdvance ? <Text style={styles.caption}>เงินเบิกคงเหลือ {money(selectedAdvance.remainingSatang)} — หักได้เฉพาะคนนี้</Text> : null}</> : <Text style={styles.caption}>ชุดรับเงินเป็นยอดก้อนเดียว จึงไม่มีการแบ่งหรือหักเงินเบิกรายคน</Text>}
+    <TextField label="หมายเหตุ (ไม่บังคับ)" value={note} onChange={setNote} />
+    <AmountStrip items={[["ค่าแรง", selectedGroup ? groupWage : wage], ["เงินแถม", bonusSatang], ["เงินสดจ่าย", cash]]} />
+    {feedback ? <FormFeedback>{feedback}</FormFeedback> : null}<PrimaryButton disabled={busy || cash <= 0} label="ตรวจยอดก่อนจ่าย" onPress={() => setConfirm(true)} />
+    <ConfirmActionSheet cancelLabel="กลับไปแก้" confirmDisabled={busy} confirmLabel={busy ? 'กำลังบันทึก…' : `ยืนยันจ่าย ${money(cash)}`} detail={`ค่าแรง ${money(selectedGroup ? groupWage : wage)} · เงินแถม ${money(bonusSatang)}${recoverySatang ? ` · หักเงินเบิก ${money(recoverySatang)}` : ''}`} onCancel={() => setConfirm(false)} onConfirm={() => void post()} title="ยืนยันการจ่ายเงิน" visible={confirm} />
+  </>;
 }
 
 function RecordScreen({ adapter, model, date: initialDate, action: initialAction, initialPersonId, initialJobId, onRefresh, onToast }: { adapter: LaborPreviewAdapter; model: LaborMvpReadModel; date: string; action: RecordAction; initialPersonId: string | null; initialJobId: string | null; onRefresh: () => Promise<void>; onToast: (message: string) => void }) {
@@ -336,4 +439,5 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, filterChip: { backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.chip, borderWidth: 1, minHeight: 38, paddingHorizontal: 12, justifyContent: 'center' }, filterChipActive: { backgroundColor: '#EAF4EA', borderColor: tokens.color.primary.green }, filterLabel: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size, fontWeight: '700' }, filterLabelActive: { color: tokens.color.primary.green }, formLabel: { color: tokens.color.text.primary, fontSize: tokens.typography.caption.size, fontWeight: '700' }, field: { gap: 6 }, input: { backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.button, borderWidth: 1, color: tokens.color.text.primary, fontSize: tokens.typography.body.size, minHeight: 48, paddingHorizontal: 12 }, error: { color: tokens.color.state.danger, fontSize: tokens.typography.body.size, fontWeight: '700' }, success: { color: tokens.color.primary.green, fontSize: tokens.typography.body.size, fontWeight: '700' }, search: { color: tokens.color.text.primary, fontSize: tokens.typography.body.size, marginTop: 6, minHeight: 40, paddingVertical: 6 },
   eventDot: { borderRadius: 5, height: 10, width: 10 }, rowTitle: { color: tokens.color.text.primary, fontSize: tokens.typography.body.size, fontWeight: '700' }, rowMeta: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size, lineHeight: 17, marginTop: 2 }, money: { color: tokens.color.primary.green, fontSize: tokens.typography.caption.size, fontVariant: ['tabular-nums'], fontWeight: '700', textAlign: 'right' },
   historyGroup: { gap: 6 }, groupDate: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size, fontWeight: '700', paddingTop: 6 }, avatar: { alignItems: 'center', backgroundColor: '#EAF4EA', borderRadius: 20, height: 40, justifyContent: 'center', width: 40 }, avatarText: { color: tokens.color.primary.green, fontSize: tokens.typography.body.size, fontWeight: '700' },
+  personCalendar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }, personCalendarDay: { alignItems: 'center', borderColor: tokens.color.border.soft, borderRadius: 8, borderWidth: 1, gap: 4, minHeight: 44, padding: 7, width: 42 },
 });

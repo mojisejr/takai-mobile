@@ -22,10 +22,11 @@ import {
   editLaborSettlementGroupReceipt,
   editLaborWorkerAdvance,
   postLaborPayment,
+  postLaborPaymentSession,
   postLaborSettlementGroupReceipt,
   recordLaborWorkItems,
 } from './repository';
-import type { AddContractProgressInput, ApplyLaborAdvanceDeductionInput, CompleteLaborContractWorkInput, CreateGroupPieceWorkInput, CreateLaborContractInput, CreateLaborSettlementGroupInput, CreateLaborWorkerAdvanceInput, CreateNormalWorkInput, EditLaborPaymentInput, EditLaborSettlementGroupReceiptInput, EditLaborWorkerAdvanceInput, LaborCalendarRange, LaborCalendarRangeInput, LaborHistory, LaborHistoryInput, LaborJobDetail, LaborMvpReadModel, LaborPersonDetail, LaborTodaySummary, LaborWorker, LaborWorkerInput, PostLaborPaymentInput, PostLaborSettlementGroupReceiptInput, RecordedLaborWorkItem, RecordLaborWorkItemsInput, UpdateLaborWorkerInput } from './types';
+import type { AddContractProgressInput, ApplyLaborAdvanceDeductionInput, CompleteLaborContractWorkInput, CreateGroupPieceWorkInput, CreateLaborContractInput, CreateLaborSettlementGroupInput, CreateLaborWorkerAdvanceInput, CreateNormalWorkInput, EditLaborPaymentInput, EditLaborSettlementGroupReceiptInput, EditLaborWorkerAdvanceInput, LaborCalendarRange, LaborCalendarRangeInput, LaborHistory, LaborHistoryInput, LaborJobDetail, LaborMvpReadModel, LaborPersonDetail, LaborTodaySummary, LaborWorker, LaborWorkerInput, PostLaborPaymentInput, PostLaborPaymentSessionInput, PostLaborSettlementGroupReceiptInput, RecordedLaborWorkItem, RecordLaborWorkItemsInput, UpdateLaborWorkerInput } from './types';
 
 export const LABOR_PREVIEW_FIXTURE = {
   version: 'labor-preview-v1',
@@ -59,6 +60,7 @@ export type LaborPreviewAdapter = {
     createNormalWork: (input: CreateNormalWorkInput) => Promise<{ jobId: string; payableIds: string[] }>;
     createGroupPieceWork: (input: CreateGroupPieceWorkInput) => Promise<{ jobId: string; settlementGroupId: string }>;
     recordLaborWorkItems: (input: RecordLaborWorkItemsInput) => Promise<RecordedLaborWorkItem[]>;
+    postLaborPaymentSession: (input: PostLaborPaymentSessionInput) => Promise<string>;
     createLaborContract: (input: CreateLaborContractInput) => Promise<string>;
     createLaborSettlementGroup: (input: CreateLaborSettlementGroupInput) => Promise<string>;
     addLaborContractProgress: (jobId: string, input: AddContractProgressInput) => Promise<string>;
@@ -160,6 +162,7 @@ export const createLaborNotebookAdapter = (db: SqlExecutor): LaborPreviewAdapter
     createNormalWork: (input) => createNormalWork(db, input),
     createGroupPieceWork: (input) => createGroupPieceWork(db, input),
     recordLaborWorkItems: (input) => recordLaborWorkItems(db, input),
+    postLaborPaymentSession: (input) => postLaborPaymentSession(db, input),
     createLaborContract: (input) => createLaborContract(db, input),
     createLaborSettlementGroup: (input) => createLaborSettlementGroup(db, input),
     addLaborContractProgress: (jobId, input) => addLaborContractProgress(db, jobId, input),
@@ -195,6 +198,7 @@ export const createLaborPreviewAdapter = async (
       createNormalWork: (input) => createNormalWork(db, input),
       createGroupPieceWork: (input) => createGroupPieceWork(db, input),
       recordLaborWorkItems: (input) => recordLaborWorkItems(db, input),
+      postLaborPaymentSession: (input) => postLaborPaymentSession(db, input),
       createLaborContract: (input) => createLaborContract(db, input),
       createLaborSettlementGroup: (input) => createLaborSettlementGroup(db, input),
       addLaborContractProgress: (jobId, input) => addLaborContractProgress(db, jobId, input),

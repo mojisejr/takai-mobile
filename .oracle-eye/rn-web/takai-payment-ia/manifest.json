@@ -2,28 +2,19 @@
   "project": "takai-mobile",
   "phase": "takai-payment-ia",
   "lane": "rn-web-eye",
-  "claimLabel": "RN Web Eye Closed",
-  "generatedAt": "2026-08-20T13:11:14.071Z",
-  "viewports": ["390x844", "320x844"],
+  "claimLabel": "RN Web Eye Pending",
+  "generatedAt": "2026-08-20T14:29:01.785Z",
+  "viewport": "390x844 target for browser capture",
   "exportDir": ".oracle-eye/rn-web/takai-payment-ia/export",
   "artifacts": {
     "exportIndex": ".oracle-eye/rn-web/takai-payment-ia/export/index.html",
-    "browserScreenshots": [
-      ".oracle-eye/rn-web/takai-payment-ia/browser/today-390x844.png",
-      ".oracle-eye/rn-web/takai-payment-ia/browser/work-filter-390x844.png",
-      ".oracle-eye/rn-web/takai-payment-ia/browser/workers-multi-select-390x844.png",
-      ".oracle-eye/rn-web/takai-payment-ia/browser/payment-confirmation-390x844.png",
-      ".oracle-eye/rn-web/takai-payment-ia/browser/today-320x844.png",
-      ".oracle-eye/rn-web/takai-payment-ia/browser/work-filter-320x844.png",
-      ".oracle-eye/rn-web/takai-payment-ia/browser/workers-multi-select-320x844.png",
-      ".oracle-eye/rn-web/takai-payment-ia/browser/payment-confirmation-320x844.png"
-    ],
+    "browserScreenshot": ".oracle-eye/rn-web/takai-payment-ia/browser/today-390x844.png",
     "browserEvidence": ".oracle-eye/rn-web/takai-payment-ia/browser/browser-evidence.json",
     "manifest": ".oracle-eye/rn-web/takai-payment-ia/manifest.json"
   },
   "notes": [
     "This script closes RN Web export readiness and records the artifact sink only.",
-    "Browser evidence was collected with Playwright at both declared phone viewports.",
+    "RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.",
     "This lane does not close Expo Go Device Eye or Native Eye."
   ]
 }

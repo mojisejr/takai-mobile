@@ -3,7 +3,7 @@
   "phase": "takai-payment-ia",
   "lane": "rn-static-eye",
   "claimLabel": "RN Static Token Gate Closed",
-  "generatedAt": "2026-08-20T13:10:34.830Z",
+  "generatedAt": "2026-08-20T14:28:55.048Z",
   "checks": [
     "test:design-contract",
     "test:labor-navigation-ui",
