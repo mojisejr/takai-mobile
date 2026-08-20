@@ -1,0 +1,21 @@
+{
+  "project": "takai-mobile",
+  "phase": "native-proof-boundary",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-08-13T22:57:53.789Z",
+  "viewport": "390x844 target for browser capture",
+  "exportDir": ".oracle-eye/rn-web/native-proof-boundary/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/native-proof-boundary/export/index.html",
+    "browserScreenshot": ".oracle-eye/rn-web/native-proof-boundary/browser/today-390x844.png",
+    "browserEvidence": ".oracle-eye/rn-web/native-proof-boundary/browser/browser-evidence.json",
+    "manifest": ".oracle-eye/rn-web/native-proof-boundary/manifest.json"
+  },
+  "notes": [
+    "Expo Web export completed and Playwright MCP captured normal, proof toast, and proof confirmation states.",
+    "Console errors were zero; one known React Native Web shadow style deprecation warning remains documented in browser/console-warnings.txt.",
+    "Observed requests returned HTTP 200 with no failed requests in browser/network-requests.txt.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { isTakaiLaborProofRequested, selectTakaiWebLaborAdapter } from '../src/data/index.web';
-import { selectLaborWebProofVisual } from '../src/features/labor-mvp/webProofVisual';
+import { selectLaborWebProofVisual } from '../src/features/labor-mvp/webProofVisual.web';
 
 const main = async (): Promise<void> => {
   assert.equal(isTakaiLaborProofRequested(''), false, 'default web URL must not enter proof mode');
