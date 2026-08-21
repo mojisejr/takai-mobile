@@ -25,14 +25,14 @@ verify_eyes:
     gate: required
     sees: [Rendered Expo Web layout, browser console, failed requests, narrow viewport overflow]
     does_not_see: [Expo Go touch, physical safe areas, native packaging]
-    artifact_sink: .oracle-eye/rn-web/takai-v2-read-ux-restoration/
+    artifact_sink: .oracle-eye/rn-web/takai-warm-notebook-ui-redesign/
     commands: [npm run eye:rn-web, browser capture at 390x844 and 320x844]
     claim_label: RN Web Eye Closed
   - kind: expo-go-device-eye
     gate: manual
     sees: [Android touch, scrolling, keyboard, safe area, operator comprehension]
     does_not_see: [Native build packaging]
-    artifact_sink: .oracle-eye/expo-go/takai-v2-read-ux-restoration/
+    artifact_sink: .oracle-eye/expo-go/takai-warm-notebook-ui-redesign/
     commands: [Operator runs the prepared V2 Expo Go Android scenarios in Phase 4]
     claim_label: Expo Go Device Eye Closed
 labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, จ่ายเงิน, คน]

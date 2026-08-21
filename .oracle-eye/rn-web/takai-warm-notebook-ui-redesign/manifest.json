@@ -1,0 +1,23 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-warm-notebook-ui-redesign",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Pending",
+  "generatedAt": "2026-08-21T13:46:38.593Z",
+  "viewports": [
+    { "width": 390, "height": 844 },
+    { "width": 320, "height": 844 }
+  ],
+  "exportDir": ".oracle-eye/rn-web/takai-warm-notebook-ui-redesign/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/takai-warm-notebook-ui-redesign/export/index.html",
+    "manifest": ".oracle-eye/rn-web/takai-warm-notebook-ui-redesign/manifest.json",
+    "browserEvidence": ".oracle-eye/rn-web/takai-warm-notebook-ui-redesign/browser-evidence.json"
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink only.",
+    "RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.",
+    "Browser screenshots, console counts, and failed-request counts are pending because the shared canonical Playwright browser was already in use; see browser-evidence.json.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}
