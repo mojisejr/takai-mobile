@@ -16,23 +16,23 @@ const [app, list, feedback, design, eye, webProofVisual, nativeProofVisual, proo
   read('src/features/labor-mvp/webProofVisualQuery.ts'),
 ]);
 
-for (const required of ['TodayScreen', 'CalendarScreen', 'HistoryScreen', 'JobScreen', 'PersonScreen', 'PeopleScreen', 'LedgerListCard']) {
+for (const required of ['TodayScreen', 'WorkScreen', 'RecordScreen', 'PaymentScreen', 'PeopleScreen', 'LedgerListCard']) {
   assert.ok(app.includes(required), `shared ledger grammar must cover ${required}`);
 }
-for (const required of ['LedgerListRow', 'LedgerTrailing', 'LedgerRowText', 'ActionEmptyState', 'FeedbackToast', 'FormFeedback', 'ScreenSkeleton', 'TakaiMascot', 'ConfirmActionSheet', 'selectLaborWebProofVisual']) {
+for (const required of ['LedgerListRow', 'LedgerTrailing', 'LedgerRowText', 'FeedbackToast', 'FormFeedback', 'ScreenSkeleton', 'ConfirmActionSheet', 'selectLaborWebProofVisual']) {
   assert.ok(app.includes(required), `Labor UI must apply ${required}`);
 }
 for (const required of ['borderRadius: tokens.radius.card', "overflow: 'hidden'", 'paddingHorizontal: tokens.spacing.row', 'minWidth: 0', 'minWidth: 80', 'borderBottomWidth: 1']) {
   assert.ok(list.includes(required), `LedgerListCard geometry missing ${required}`);
 }
-for (const required of ['ConfirmActionSheet', 'FeedbackToast', 'FormFeedback', 'ScreenSkeleton', 'ActionEmptyState', 'TakaiMascot', 'presentationStyle="pageSheet"']) {
+for (const required of ['ConfirmActionSheet', 'FeedbackToast', 'FormFeedback', 'ScreenSkeleton', 'ActionEmptyState', 'TakaiMascot', 'presentationStyle="overFullScreen"']) {
   assert.ok(feedback.includes(required), `feedback primitive missing ${required}`);
 }
-for (const stale of ['Labor Preview` is visibly labelled', '.oracle-eye/rn-web/labor-calendar-mvp/', '.oracle-eye/rn-static/labor-calendar-mvp/']) {
+for (const stale of ['Labor Preview` is visibly labelled', '.oracle-eye/rn-web/labor-calendar-mvp/', '.oracle-eye/rn-static/labor-calendar-mvp/', 'takai-payment-ia/']) {
   assert.equal(design.includes(stale), false, `DESIGN.md must not retain stale proof language/path: ${stale}`);
 }
-assert.ok(design.includes('.oracle-eye/rn-web/labor-brand-product-polish/'), 'DESIGN.md must point to the current RN Web evidence sink');
-assert.ok(eye.includes("'labor-brand-product-polish'"), 'RN Web harness default must point to the current evidence sink');
+assert.ok(design.includes('.oracle-eye/rn-web/takai-v2-read-ux-restoration/'), 'DESIGN.md must point to the V2 restoration RN Web evidence sink');
+assert.ok(eye.includes("'takai-v2-read-ux-restoration'"), 'RN Web harness default must point to the V2 restoration evidence sink');
 assert.equal(app.includes('styles.laborRow'), false, 'standalone labor bands must be replaced by LedgerListCard rows');
 assert.equal(app.includes('styles.personRow'), false, 'standalone people bands must be replaced by LedgerListCard rows');
 for (const required of ["params.get('proof') !== '1'", "params.get('toast') === 'success'", "params.get('sheet') === 'confirm'"]) {

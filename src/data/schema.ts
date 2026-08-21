@@ -519,4 +519,246 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         BEGIN SELECT RAISE(ABORT, 'labor advance deductions are immutable'); END`,
     ],
   },
+  {
+    id: 16,
+    name: 'labor_payment_session_multi_recipient_ledger',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_payment_sessions (
+        id TEXT PRIMARY KEY,
+        payment_date TEXT NOT NULL,
+        method TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        cash_paid_satang INTEGER NOT NULL CHECK (typeof(cash_paid_satang) = 'integer' AND cash_paid_satang >= 0),
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        status TEXT NOT NULL DEFAULT 'posted' CHECK (status IN ('posted', 'revised', 'cancelled')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_session_settlements (
+        id TEXT PRIMARY KEY,
+        payment_session_id TEXT NOT NULL REFERENCES labor_payment_sessions(id) ON DELETE CASCADE,
+        recipient_type TEXT NOT NULL CHECK (recipient_type IN ('person', 'group')),
+        person_id TEXT REFERENCES people(id),
+        settlement_group_id TEXT REFERENCES labor_settlement_groups(id),
+        wage_satang INTEGER NOT NULL CHECK (typeof(wage_satang) = 'integer' AND wage_satang >= 0),
+        bonus_satang INTEGER NOT NULL DEFAULT 0 CHECK (typeof(bonus_satang) = 'integer' AND bonus_satang >= 0),
+        advance_recovered_satang INTEGER NOT NULL DEFAULT 0 CHECK (typeof(advance_recovered_satang) = 'integer' AND advance_recovered_satang >= 0),
+        cash_paid_satang INTEGER NOT NULL CHECK (typeof(cash_paid_satang) = 'integer' AND cash_paid_satang >= 0),
+        CHECK (
+          (recipient_type = 'person' AND person_id IS NOT NULL AND settlement_group_id IS NULL)
+          OR (recipient_type = 'group' AND person_id IS NULL AND settlement_group_id IS NOT NULL)
+        ),
+        CHECK (cash_paid_satang = wage_satang + bonus_satang - advance_recovered_satang)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_session_wage_allocations (
+        id TEXT PRIMARY KEY,
+        settlement_id TEXT NOT NULL REFERENCES labor_payment_session_settlements(id) ON DELETE CASCADE,
+        labor_payable_id TEXT NOT NULL REFERENCES labor_payables(id) ON DELETE RESTRICT,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        UNIQUE(settlement_id, labor_payable_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_payment_session_advance_recoveries (
+        id TEXT PRIMARY KEY,
+        settlement_id TEXT NOT NULL REFERENCES labor_payment_session_settlements(id) ON DELETE CASCADE,
+        labor_worker_advance_id TEXT NOT NULL REFERENCES labor_worker_advances(id) ON DELETE RESTRICT,
+        labor_payable_id TEXT NOT NULL REFERENCES labor_payables(id) ON DELETE RESTRICT,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        UNIQUE(settlement_id, labor_worker_advance_id, labor_payable_id)
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_labor_payment_session_person_recipient
+        ON labor_payment_session_settlements(payment_session_id, person_id) WHERE person_id IS NOT NULL`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_labor_payment_session_group_recipient
+        ON labor_payment_session_settlements(payment_session_id, settlement_group_id) WHERE settlement_group_id IS NOT NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_sessions_date
+        ON labor_payment_sessions(payment_date DESC, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_settlements_session
+        ON labor_payment_session_settlements(payment_session_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_wage_payable
+        ON labor_payment_session_wage_allocations(labor_payable_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_recovery_advance
+        ON labor_payment_session_advance_recoveries(labor_worker_advance_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_payment_session_recovery_payable
+        ON labor_payment_session_advance_recoveries(labor_payable_id)`,
+    ],
+  },
+  {
+    id: 17,
+    name: 'labor_compensation_unit_v2_foundation',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_v2_work_tasks (
+        id TEXT PRIMARY KEY,
+        work_date TEXT NOT NULL,
+        title TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_task_assignments (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL REFERENCES labor_v2_work_tasks(id) ON DELETE CASCADE,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        note TEXT NOT NULL DEFAULT '',
+        UNIQUE(task_id, person_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_daily_units (
+        id TEXT PRIMARY KEY,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        work_date TEXT NOT NULL,
+        rate_satang INTEGER NOT NULL CHECK (typeof(rate_satang) = 'integer' AND rate_satang > 0),
+        quantity_milli INTEGER NOT NULL CHECK (quantity_milli IN (500, 1000)),
+        created_at TEXT NOT NULL,
+        UNIQUE(person_id, work_date)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_daily_unit_task_links (
+        daily_unit_id TEXT NOT NULL REFERENCES labor_v2_daily_units(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL REFERENCES labor_v2_work_tasks(id) ON DELETE RESTRICT,
+        PRIMARY KEY(daily_unit_id, task_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_hourly_shifts (
+        id TEXT PRIMARY KEY,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        work_date TEXT NOT NULL,
+        rate_satang INTEGER NOT NULL CHECK (typeof(rate_satang) = 'integer' AND rate_satang > 0),
+        shift_key TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        UNIQUE(person_id, work_date, rate_satang, shift_key)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_hourly_time_entries (
+        id TEXT PRIMARY KEY,
+        hourly_shift_id TEXT NOT NULL REFERENCES labor_v2_hourly_shifts(id) ON DELETE CASCADE,
+        task_assignment_id TEXT NOT NULL REFERENCES labor_v2_task_assignments(id) ON DELETE RESTRICT,
+        duration_minutes INTEGER NOT NULL CHECK (typeof(duration_minutes) = 'integer' AND duration_minutes > 0),
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_contract_batches (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        starts_on TEXT NOT NULL,
+        deadline_on TEXT,
+        note TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL CHECK (status IN ('open', 'finalized', 'cancelled')),
+        finalization_basis TEXT CHECK (finalization_basis IS NULL OR finalization_basis IN ('quantity_rate', 'lump_total')),
+        quantity_milli INTEGER CHECK (quantity_milli IS NULL OR (typeof(quantity_milli) = 'integer' AND quantity_milli > 0)),
+        rate_satang INTEGER CHECK (rate_satang IS NULL OR (typeof(rate_satang) = 'integer' AND rate_satang > 0)),
+        final_total_satang INTEGER CHECK (final_total_satang IS NULL OR (typeof(final_total_satang) = 'integer' AND final_total_satang > 0)),
+        finalized_at TEXT,
+        created_at TEXT NOT NULL,
+        CHECK ((status = 'open' AND finalization_basis IS NULL AND final_total_satang IS NULL) OR (status = 'finalized' AND finalization_basis IS NOT NULL AND final_total_satang IS NOT NULL) OR status = 'cancelled')
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_contract_batch_members (
+        id TEXT PRIMARY KEY,
+        contract_batch_id TEXT NOT NULL REFERENCES labor_v2_contract_batches(id) ON DELETE CASCADE,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(contract_batch_id, person_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_contract_batch_task_links (
+        contract_batch_id TEXT NOT NULL REFERENCES labor_v2_contract_batches(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL REFERENCES labor_v2_work_tasks(id) ON DELETE RESTRICT,
+        PRIMARY KEY(contract_batch_id, task_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_contract_progress (
+        id TEXT PRIMARY KEY,
+        contract_batch_id TEXT NOT NULL REFERENCES labor_v2_contract_batches(id) ON DELETE CASCADE,
+        progress_date TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        quantity_milli INTEGER CHECK (quantity_milli IS NULL OR (typeof(quantity_milli) = 'integer' AND quantity_milli > 0)),
+        unit_label TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_obligations (
+        id TEXT PRIMARY KEY,
+        source_kind TEXT NOT NULL CHECK (source_kind IN ('daily', 'hourly', 'contract')),
+        source_unit_id TEXT NOT NULL,
+        recipient_kind TEXT NOT NULL CHECK (recipient_kind IN ('person', 'group')),
+        person_id TEXT REFERENCES people(id),
+        due_satang INTEGER NOT NULL CHECK (typeof(due_satang) = 'integer' AND due_satang > 0),
+        status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'settled', 'cancelled')),
+        created_at TEXT NOT NULL,
+        CHECK ((recipient_kind = 'person' AND person_id IS NOT NULL) OR (recipient_kind = 'group' AND person_id IS NULL)),
+        UNIQUE(source_kind, source_unit_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_payment_sessions (
+        id TEXT PRIMARY KEY,
+        payment_date TEXT NOT NULL,
+        cash_paid_satang INTEGER NOT NULL CHECK (typeof(cash_paid_satang) = 'integer' AND cash_paid_satang >= 0),
+        note TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'posted' CHECK (status IN ('posted', 'revised', 'cancelled')),
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_payment_allocations (
+        id TEXT PRIMARY KEY,
+        payment_session_id TEXT NOT NULL REFERENCES labor_v2_payment_sessions(id) ON DELETE CASCADE,
+        obligation_id TEXT NOT NULL REFERENCES labor_v2_obligations(id) ON DELETE RESTRICT,
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        UNIQUE(payment_session_id, obligation_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_payment_revisions (
+        id TEXT PRIMARY KEY,
+        payment_session_id TEXT NOT NULL REFERENCES labor_v2_payment_sessions(id) ON DELETE RESTRICT,
+        reason TEXT NOT NULL,
+        before_json TEXT NOT NULL,
+        after_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_event_history (
+        id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        reason TEXT,
+        before_json TEXT,
+        after_json TEXT NOT NULL,
+        occurred_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_tasks_date ON labor_v2_work_tasks(work_date DESC, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_assignments_person ON labor_v2_task_assignments(person_id, task_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_daily_person_date ON labor_v2_daily_units(person_id, work_date DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_hourly_person_date ON labor_v2_hourly_shifts(person_id, work_date DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_contract_status ON labor_v2_contract_batches(status, starts_on DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_obligations_open ON labor_v2_obligations(status, recipient_kind, person_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_payments_date ON labor_v2_payment_sessions(payment_date DESC, created_at DESC)`,
+    ],
+  },
+  {
+    id: 18,
+    name: 'labor_compensation_unit_v2_payment_recovery_foundation',
+    statements: [
+      `ALTER TABLE labor_v2_payment_sessions ADD COLUMN method TEXT NOT NULL DEFAULT ''`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_payment_recipient_settlements (
+        id TEXT PRIMARY KEY,
+        payment_session_id TEXT NOT NULL REFERENCES labor_v2_payment_sessions(id) ON DELETE CASCADE,
+        obligation_id TEXT NOT NULL REFERENCES labor_v2_obligations(id) ON DELETE RESTRICT,
+        recipient_kind TEXT NOT NULL CHECK (recipient_kind IN ('person', 'group')),
+        person_id TEXT REFERENCES people(id),
+        wage_satang INTEGER NOT NULL CHECK (typeof(wage_satang) = 'integer' AND wage_satang >= 0),
+        bonus_satang INTEGER NOT NULL DEFAULT 0 CHECK (typeof(bonus_satang) = 'integer' AND bonus_satang >= 0),
+        advance_recovered_satang INTEGER NOT NULL DEFAULT 0 CHECK (typeof(advance_recovered_satang) = 'integer' AND advance_recovered_satang >= 0),
+        cash_paid_satang INTEGER NOT NULL CHECK (typeof(cash_paid_satang) = 'integer' AND cash_paid_satang >= 0),
+        CHECK ((recipient_kind = 'person' AND person_id IS NOT NULL) OR (recipient_kind = 'group' AND person_id IS NULL)),
+        CHECK (cash_paid_satang = wage_satang + bonus_satang - advance_recovered_satang),
+        UNIQUE(payment_session_id, obligation_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_payment_advance_recoveries (
+        id TEXT PRIMARY KEY,
+        recipient_settlement_id TEXT NOT NULL REFERENCES labor_v2_payment_recipient_settlements(id) ON DELETE CASCADE,
+        labor_worker_advance_id TEXT NOT NULL REFERENCES labor_worker_advances(id) ON DELETE RESTRICT,
+        obligation_id TEXT NOT NULL REFERENCES labor_v2_obligations(id) ON DELETE RESTRICT,
+        person_id TEXT NOT NULL REFERENCES people(id),
+        amount_satang INTEGER NOT NULL CHECK (typeof(amount_satang) = 'integer' AND amount_satang > 0),
+        UNIQUE(recipient_settlement_id, labor_worker_advance_id, obligation_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_payment_settlements_session
+        ON labor_v2_payment_recipient_settlements(payment_session_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_payment_settlements_obligation
+        ON labor_v2_payment_recipient_settlements(obligation_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_payment_recoveries_advance
+        ON labor_v2_payment_advance_recoveries(labor_worker_advance_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_payment_recoveries_obligation
+        ON labor_v2_payment_advance_recoveries(obligation_id)`,
+    ],
+  },
 ];

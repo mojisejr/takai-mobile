@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import { runMigrations, type SqlExecutor } from './migrations';
 import { TAKAI_DB_NAME } from './schema';
 import { seedDemoGarden } from './seed';
-import { createLaborNotebookAdapter, createLaborPreviewAdapter, type LaborPreviewAdapter } from '../features/labor-mvp/preview';
+import { createLaborV2NotebookAdapter, type LaborV2Adapter } from '../features/labor-mvp/previewV2Adapter';
 
 export type TakaiDatabase = SQLite.SQLiteDatabase & SqlExecutor;
 
@@ -18,15 +18,15 @@ export const initializeTakaiDatabase = async (): Promise<TakaiDatabase> => {
   return db;
 };
 
-export const initializeTakaiLaborPreview = async (): Promise<LaborPreviewAdapter> => {
+export const initializeTakaiLaborPreview = async (): Promise<LaborV2Adapter> => {
   const db = await SQLite.openDatabaseAsync('takai-labor-preview-v1.db') as TakaiDatabase;
   await runMigrations(db);
-  return createLaborPreviewAdapter(db, 'native-preview');
+  return createLaborV2NotebookAdapter(db);
 };
 
 /** Product boot path. Existing proof data remains untouched in its own database. */
-export const initializeTakaiLaborNotebook = async (): Promise<LaborPreviewAdapter> => {
+export const initializeTakaiLaborNotebook = async (): Promise<LaborV2Adapter> => {
   const db = await openTakaiDatabase();
   await runMigrations(db);
-  return createLaborNotebookAdapter(db);
+  return createLaborV2NotebookAdapter(db);
 };

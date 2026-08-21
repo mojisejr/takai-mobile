@@ -1,0 +1,17 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-compensation-v2",
+  "lane": "rn-static-eye",
+  "claimLabel": "RN Static Token Gate Closed",
+  "generatedAt": "2026-08-21T02:36:53.034Z",
+  "checks": [
+    "test:design-contract",
+    "test:labor-navigation-ui",
+    "test:labor-read-ui",
+    "test:labor-notebook-boundary"
+  ],
+  "notes": [
+    "This lane verifies source-level navigation, primitive, route, and design-contract truth.",
+    "It does not verify rendered layout, Android touch, native safe areas, or native Modal behaviour."
+  ]
+}

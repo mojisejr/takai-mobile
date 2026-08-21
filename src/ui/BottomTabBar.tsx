@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { tokens } from '../theme/tokens';
 
-export type BottomTabKey = 'today' | 'work' | 'record' | 'people' | 'more';
+/** `more` remains an internal compatibility key for the preserved legacy surface; it is not rendered in TAKAI Labor navigation. */
+export type BottomTabKey = 'today' | 'work' | 'record' | 'payment' | 'people' | 'more';
 
 type BottomTabBarProps = {
   activeTab?: BottomTabKey;
@@ -12,13 +13,15 @@ const tabs: Array<{ key: BottomTabKey; label: string }> = [
   { key: 'today', label: 'วันนี้' },
   { key: 'work', label: 'งาน' },
   { key: 'record', label: 'บันทึกงาน' },
+  { key: 'payment', label: 'จ่ายเงิน' },
   { key: 'people', label: 'คน' },
-  { key: 'more', label: 'เมนู' },
 ];
 
 export function BottomTabBar({ activeTab = 'today', onTabPress }: BottomTabBarProps) {
+  const { width } = useWindowDimensions();
+  const barWidth = Math.max(0, width - tokens.spacing.page * 2);
   return (
-    <View style={styles.base}>
+    <View style={[styles.base, { width: barWidth }]}>
       {tabs.map((tab) => {
         const active = tab.key === activeTab;
         return (
@@ -29,7 +32,15 @@ export function BottomTabBar({ activeTab = 'today', onTabPress }: BottomTabBarPr
             onPress={() => onTabPress?.(tab.key)}
             style={[styles.item, active && styles.activeItem]}
           >
-            <Text style={[styles.label, active && styles.activeLabel]}>{tab.label}</Text>
+            <Text
+              adjustsFontSizeToFit
+              ellipsizeMode="tail"
+              minimumFontScale={0.72}
+              numberOfLines={1}
+              style={[styles.label, active && styles.activeLabel]}
+            >
+              {tab.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -49,8 +60,12 @@ const styles = StyleSheet.create({
   },
   item: {
     alignItems: 'center',
-    flex: 1,
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
     justifyContent: 'center',
+    minWidth: 0,
+    paddingHorizontal: 2,
   },
   activeItem: {
     backgroundColor: '#EAF4EA',
@@ -58,8 +73,11 @@ const styles = StyleSheet.create({
   },
   label: {
     color: tokens.color.text.muted,
-    fontSize: tokens.typography.caption.size,
+    // Five labels must remain legible in the 320 px notebook shell.
+    fontSize: 10,
     fontWeight: '600',
+    minWidth: 0,
+    textAlign: 'center',
   },
   activeLabel: {
     color: tokens.color.primary.green,

@@ -1,0 +1,35 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-payment-ia",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-08-20T14:34:35.038Z",
+  "viewports": [
+    "390x844",
+    "320x844"
+  ],
+  "exportDir": ".oracle-eye/rn-web/takai-payment-ia/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/takai-payment-ia/export/index.html",
+    "browserScreenshots": [
+      ".oracle-eye/rn-web/takai-payment-ia/browser/today-phase4-390x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/work-calendar-day-phase4-390x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/multi-job-record-phase4-390x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/pay-by-work-phase4-390x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/pay-by-person-bonus-recovery-phase4-390x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/person-calendar-phase4-390x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/today-phase4-320x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/work-calendar-day-phase4-320x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/multi-job-record-phase4-320x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/pay-by-work-phase4-320x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/pay-by-person-bonus-recovery-phase4-320x844.png",
+      ".oracle-eye/rn-web/takai-payment-ia/browser/person-calendar-phase4-320x844.png"
+    ],
+    "browserEvidence": ".oracle-eye/rn-web/takai-payment-ia/browser/browser-evidence-phase4.json",
+    "manifest": ".oracle-eye/rn-web/takai-payment-ia/manifest.json"
+  },
+  "notes": [
+    "Browser evidence was collected with Playwright at both declared phone viewports for Phase 4 focused flows.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ]
+}

@@ -1,12 +1,16 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'labor-brand-product-polish';
+const phase = process.env.TAKAI_RN_WEB_EYE_PHASE || 'takai-v2-read-ux-restoration';
 const sink = join(root, '.oracle-eye', 'rn-web', phase);
 const exportDir = join(sink, 'export');
 const manifestPath = join(sink, 'manifest.json');
+
+const existingManifest = existsSync(manifestPath)
+  ? JSON.parse(readFileSync(manifestPath, 'utf8'))
+  : null;
 
 const fail = (message) => {
   console.error(`RN_WEB_EYE_FAIL: ${message}`);
@@ -31,21 +35,24 @@ if (!existsSync(indexPath)) {
   fail(`missing export artifact ${indexPath}`);
 }
 
+const previousBrowserClaimClosed = existingManifest?.claimLabel === 'RN Web Eye Closed';
 const manifest = {
   project: 'takai-mobile',
   phase,
   lane: 'rn-web-eye',
-  claimLabel: 'RN Web Eye Pending',
+  claimLabel: previousBrowserClaimClosed ? 'RN Web Eye Closed' : 'RN Web Eye Pending',
   generatedAt: new Date().toISOString(),
-  viewport: '390x844 target for browser capture',
+  ...(existingManifest?.viewports
+    ? { viewports: existingManifest.viewports }
+    : { viewport: existingManifest?.viewport ?? '390x844 target for browser capture' }),
   exportDir: `.oracle-eye/rn-web/${phase}/export`,
   artifacts: {
+    ...(existingManifest?.artifacts ?? {}),
     exportIndex: `.oracle-eye/rn-web/${phase}/export/index.html`,
-    browserScreenshot: `.oracle-eye/rn-web/${phase}/browser/today-390x844.png`,
-    browserEvidence: `.oracle-eye/rn-web/${phase}/browser/browser-evidence.json`,
     manifest: `.oracle-eye/rn-web/${phase}/manifest.json`,
   },
-  notes: [
+  ...(existingManifest?.browserEvidence ? { browserEvidence: existingManifest.browserEvidence } : {}),
+  notes: previousBrowserClaimClosed ? existingManifest.notes : [
     'This script closes RN Web export readiness and records the artifact sink only.',
     'RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.',
     'This lane does not close Expo Go Device Eye or Native Eye.',

@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { SqlExecutor } from '../src/data/migrations';
+import { runMigrations } from '../src/data/migrations';
+import { archiveLaborWorker, createLaborWorker, createLaborWorkerAdvance, listLaborWorkers } from '../src/features/labor-mvp/repository';
+import { finalizeLaborContractBatchV2, getCalendarMonthV2, getLegacyLaborRead, getPersonDetailV2, getTaskDetailV2, getWorkListV2, postLaborV2PaymentSession, recordLaborDayV2, startLaborContractBatchV2 } from '../src/features/labor-mvp/repositoryV2';
+
+class NodeSqliteExecutor implements SqlExecutor { constructor(private readonly database: DatabaseSync) {} async execAsync(sql: string): Promise<void> { this.database.exec(sql); } async getAllAsync<T>(sql: string, params: unknown[] = []): Promise<T[]> { return this.database.prepare(sql).all(...(params as SQLInputValue[])) as T[]; } async runAsync(sql: string, params: unknown[] = []): Promise<void> { this.database.prepare(sql).run(...(params as SQLInputValue[])); } }
+
+const main = async (): Promise<void> => { const directory = await mkdtemp(join(tmpdir(), 'takai-v2-read-')); let connection: DatabaseSync | null = null; try {
+  connection = new DatabaseSync(join(directory, 'takai.db')); const db = new NodeSqliteExecutor(connection); await runMigrations(db);
+  const queryPlan = await db.getAllAsync<{ detail: string }>('EXPLAIN QUERY PLAN SELECT id FROM labor_v2_work_tasks WHERE work_date >= ? AND work_date <= ? ORDER BY work_date DESC, created_at DESC', ['2026-01-01', '2026-01-31']); assert.ok(queryPlan.some((row) => row.detail.includes('idx_labor_v2_tasks_date')), 'month work query uses the existing date index; no migration is justified');
+  const su = await createLaborWorker(db, { id: 'su', displayName: 'สุ' }); const phuang = await createLaborWorker(db, { id: 'phuang', displayName: 'พวง' }); const chon = await createLaborWorker(db, { id: 'chon', displayName: 'ชล' });
+  await recordLaborDayV2(db, { workDate: '2026-01-15', tasks: [{ id: 'shade', title: 'ขึงสแลน', assigneePersonIds: [su] }, { id: 'fert', title: 'ใส่ปุ๋ย', assigneePersonIds: [su] }, { id: 'spray', title: 'พ่นยา', assigneePersonIds: [su] }], daily: [{ id: 'su-day', personId: su, rateSatang: 35_000, quantityMilli: 1000, taskIds: ['shade', 'fert', 'spray'] }] });
+  const open = await startLaborContractBatchV2(db, { id: 'bags', title: 'กรอกถุง', startsOn: '2026-01-15', memberPersonIds: [su, phuang], taskIds: ['shade'] });
+  const shade = await getTaskDetailV2(db, 'shade'); assert.deepEqual(shade.wageContexts.map((item) => [item.sourceKind, item.state]).sort(), [['contract', 'open_unpriced'], ['daily', 'unpaid']], 'one daily unit links three tasks without creating three daily dues, and an open contract stays unpriced');
+  await postLaborV2PaymentSession(db, { id: 'su-pay', paymentDate: '2026-01-16', settlements: [{ obligationId: 'obligation:daily:su-day', wageSatang: 10_000 }] });
+  const partial = await getTaskDetailV2(db, 'fert'); assert.equal(partial.wageContexts[0]?.state, 'partial', 'task wage status follows its linked unit rather than fabricating task dues');
+  await recordLaborDayV2(db, { workDate: '2026-02-01', tasks: [{ id: 'chon-hourly', title: 'ล้างถัง', assigneePersonIds: [chon] }], hourly: [{ id: 'chon-time', taskId: 'chon-hourly', personId: chon, rateSatang: 12_000, durationMinutes: 60 }] });
+  const suAdvance = await createLaborWorkerAdvance(db, { id: 'su-advance', personId: su, advanceDate: '2026-01-16', amountSatang: 1_000 }); const chonAdvance = await createLaborWorkerAdvance(db, { id: 'chon-advance', personId: chon, advanceDate: '2026-02-01', amountSatang: 2_000 });
+  await postLaborV2PaymentSession(db, { id: 'chon-pay', paymentDate: '2026-02-02', settlements: [{ obligationId: 'obligation:hourly:hourly:chon|2026-02-01|12000|', wageSatang: 12_000 }] });
+  const suDetail = await getPersonDetailV2(db, su); assert.deepEqual(suDetail.payments.map((item) => item.id), ['su-pay'], 'person payment history cannot leak another worker payment'); assert.deepEqual(suDetail.advances.map((item) => item.id), [suAdvance], 'person advance history cannot leak another worker advance'); assert.notEqual(chonAdvance, suAdvance);
+  const month = await getCalendarMonthV2(db, '2026-01'); assert.equal(month.days.length, 31, 'calendar month retains empty month-boundary days'); assert.equal(month.days[14]?.taskCount, 3, 'calendar month counts V2 task facts only');
+  const first = await getWorkListV2(db, { startDate: '2026-01-01', endDate: '2026-02-01', personId: su }, undefined, 1); assert.equal(first.items.length, 1); assert.ok(first.nextCursor, 'work list returns an opaque cursor'); const second = await getWorkListV2(db, { startDate: '2026-01-01', endDate: '2026-02-01', personId: su }, first.nextCursor!, 10); assert.equal(second.items.length, 2, 'cursor continues filtered V2 work rows'); assert.equal((await getWorkListV2(db, { wageState: 'open_unpriced' })).items[0]?.id, 'shade', 'wage filters operate on linked contexts without changing V2 totals');
+  await archiveLaborWorker(db, phuang, 'เลิกมาทำงาน'); assert.ok((await listLaborWorkers(db, true)).find((worker) => worker.id === phuang)?.archivedAt, 'worker directory intentionally exposes archived people for historical reads'); await assert.rejects(startLaborContractBatchV2(db, { title: 'งานใหม่', startsOn: '2026-02-03', memberPersonIds: [phuang] }), /worker is unavailable/, 'archived workers remain historical but cannot be selected for new work');
+  await finalizeLaborContractBatchV2(db, open, { finalizedAt: '2026-02-03', finalization: { kind: 'lump_total', finalTotalSatang: 4_000 } });
+  await db.runAsync("INSERT INTO labor_jobs (id, title, work_date, plot_id, note, kind, status, created_at, updated_at) VALUES ('legacy-job', 'งานเก่า', '2025-12-31', NULL, '', 'normal', 'open', 'x', 'x')"); const legacy = await getLegacyLaborRead(db); assert.equal(legacy.sourceLabel, 'ประวัติเดิม (V1, อ่านอย่างเดียว)'); assert.deepEqual(legacy.jobs.map((item) => item.id), ['legacy-job'], 'legacy history remains labelled and separate from V2 projections');
+  console.log('LABOR_V2_READ_PROJECTION_PASS: V2 work/calendar/person projections preserve compensation context, scope, archive, cursor, and labelled legacy reads');
+} finally { connection?.close(); await rm(directory, { recursive: true, force: true }); } };
+main().catch((error: unknown) => { console.error(error); process.exit(1); });

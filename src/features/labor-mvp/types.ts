@@ -88,6 +88,29 @@ export type CreateGroupPieceWorkInput = {
   collectorLabel?: string;
 };
 
+/**
+ * One row from the work-record notebook.  The enclosing command supplies the
+ * shared effective work date; every row still becomes its own labor job.
+ */
+export type RecordIndividualLaborWorkItemInput = Omit<CreateNormalWorkInput, 'workDate'> & {
+  settlementRoute: 'individual';
+};
+
+export type RecordGroupPieceLaborWorkItemInput = Omit<CreateGroupPieceWorkInput, 'workDate'> & {
+  settlementRoute: 'group';
+};
+
+export type RecordLaborWorkItemInput = RecordIndividualLaborWorkItemInput | RecordGroupPieceLaborWorkItemInput;
+
+export type RecordLaborWorkItemsInput = {
+  workDate: string;
+  items: RecordLaborWorkItemInput[];
+};
+
+export type RecordedLaborWorkItem =
+  | { settlementRoute: 'individual'; jobId: string; payableIds: string[] }
+  | { settlementRoute: 'group'; jobId: string; settlementGroupId: string };
+
 export type ContractShareInput = {
   personId: string;
   amountSatang: number;
@@ -180,6 +203,48 @@ export type ApplyLaborAdvanceDeductionInput = {
   note?: string;
 };
 
+export type PaymentSessionAdvanceRecoveryInput = {
+  id?: string;
+  advanceId: string;
+  payableId: string;
+  amountSatang: number;
+};
+
+export type PaymentSessionPersonSettlementInput = {
+  id?: string;
+  recipientType: 'person';
+  personId: string;
+  wageAllocations: PaymentAllocationInput[];
+  bonusSatang?: number;
+  advanceRecoveries?: PaymentSessionAdvanceRecoveryInput[];
+};
+
+export type PaymentSessionGroupSettlementInput = {
+  id?: string;
+  recipientType: 'group';
+  settlementGroupId: string;
+  wageSatang: number;
+  bonusSatang?: number;
+};
+
+export type PaymentSessionSettlementInput = PaymentSessionPersonSettlementInput | PaymentSessionGroupSettlementInput;
+
+/**
+ * Both pay-by-work and pay-by-person use this same command. Their route only
+ * decides how the caller preselects recipient rows; it does not alter ledger truth.
+ */
+export type PostLaborPaymentSessionInput = {
+  id?: string;
+  paymentDate: string;
+  method?: string;
+  note?: string;
+  settlements: PaymentSessionSettlementInput[];
+};
+
+export type CorrectLaborPaymentSessionInput = Omit<PostLaborPaymentSessionInput, 'id'> & {
+  reason: string;
+};
+
 export type LaborWorker = {
   id: string;
   displayName: string;
@@ -234,6 +299,38 @@ export type LaborPayment = {
   totalSatang: number;
   currentRevision: number;
   allocations: Array<{ id: string; payableId: string; amountSatang: number }>;
+};
+
+export type LaborPaymentSessionAdvanceRecovery = {
+  id: string;
+  advanceId: string;
+  payableId: string;
+  amountSatang: number;
+};
+
+export type LaborPaymentSessionSettlement = {
+  id: string;
+  recipientType: 'person' | 'group';
+  personId: string | null;
+  settlementGroupId: string | null;
+  wageSatang: number;
+  bonusSatang: number;
+  advanceRecoveredSatang: number;
+  cashPaidSatang: number;
+  wageAllocations: Array<{ id: string; payableId: string; amountSatang: number }>;
+  advanceRecoveries: LaborPaymentSessionAdvanceRecovery[];
+};
+
+export type LaborPaymentSession = {
+  id: string;
+  paymentDate: string;
+  method: string;
+  note: string;
+  cashPaidSatang: number;
+  currentRevision: number;
+  status: 'posted' | 'revised' | 'cancelled';
+  createdAt: string;
+  settlements: LaborPaymentSessionSettlement[];
 };
 
 export type LaborSettlementGroupReceipt = {
@@ -302,6 +399,154 @@ export type LaborPersonBalance = LaborWorker & {
   advanceRemainingSatang: number;
 };
 
+/**
+ * V2 deliberately separates the record of work from the amount owed.  These
+ * facts are parallel to the v1 job/payable ledger; they never reinterpret it.
+ */
+export type LaborV2TaskFact = {
+  id: string;
+  workDate: string;
+  title: string;
+  note?: string;
+  assigneePersonIds: string[];
+};
+
+export type LaborV2DailyIntent = {
+  id: string;
+  personId: string;
+  workDate: string;
+  rateSatang: number;
+  quantityMilli: 500 | 1000;
+  taskIds: string[];
+};
+
+export type LaborV2HourlyTimeIntent = {
+  id: string;
+  taskId: string;
+  personId: string;
+  workDate: string;
+  rateSatang: number;
+  shiftKey?: string;
+  durationMinutes: number;
+};
+
+export type LaborV2HourlyShiftIntent = {
+  id: string;
+  personId: string;
+  workDate: string;
+  rateSatang: number;
+  shiftKey: string;
+  durationMinutes: number;
+  totalSatang: number;
+  taskTimeEntryIds: string[];
+};
+
+export type LaborV2ContractBatchIntent = {
+  id: string;
+  title: string;
+  startsOn: string;
+  memberPersonIds: string[];
+  taskIds?: string[];
+  deadlineOn?: string;
+  finalization?:
+    | { kind: 'quantity_rate'; quantityMilli: number; rateSatang: number; unitLabel: string }
+    | { kind: 'lump_total'; finalTotalSatang: number };
+};
+
+export type LaborV2ObligationIntent = {
+  id: string;
+  sourceKind: 'daily' | 'hourly' | 'contract';
+  sourceUnitId: string;
+  recipientKind: 'person' | 'group';
+  personId: string | null;
+  dueSatang: number;
+};
+
+/** V2 payment settlement facts remain separate from both v1 payment batches and work tasks. */
+export type LaborV2PaymentRecipientSettlement = {
+  id: string;
+  paymentSessionId: string;
+  obligationId: string;
+  recipientKind: 'person' | 'group';
+  personId: string | null;
+  wageSatang: number;
+  bonusSatang: number;
+  advanceRecoveredSatang: number;
+  cashPaidSatang: number;
+};
+
+/** Recovery remains person-only by command validation in Phase 2; this row keeps its audit links now. */
+export type LaborV2PaymentAdvanceRecovery = {
+  id: string;
+  recipientSettlementId: string;
+  advanceId: string;
+  obligationId: string;
+  personId: string;
+  amountSatang: number;
+};
+
+export type LaborV2CompensationPlan = {
+  dailyUnits: Array<LaborV2DailyIntent & { dueSatang: number }>;
+  hourlyShifts: LaborV2HourlyShiftIntent[];
+  contractBatches: Array<LaborV2ContractBatchIntent & { status: 'open' | 'finalized'; dueSatang: number | null }>;
+  obligations: LaborV2ObligationIntent[];
+};
+
+export type RecordLaborDayV2Input = {
+  workDate: string;
+  tasks: Array<{ id?: string; title: string; note?: string; assigneePersonIds: string[] }>;
+  daily?: Array<{ id?: string; personId: string; rateSatang: number; quantityMilli: 500 | 1000; taskIds: string[] }>;
+  hourly?: Array<{ id?: string; taskId: string; personId: string; rateSatang: number; shiftKey?: string; durationMinutes: number; note?: string }>;
+};
+
+export type StartLaborContractBatchV2Input = { id?: string; title: string; startsOn: string; deadlineOn?: string; note?: string; memberPersonIds: string[]; taskIds?: string[] };
+export type RecordLaborContractProgressV2Input = { id?: string; progressDate: string; note?: string; quantityMilli?: number; unitLabel?: string };
+export type FinalizeLaborContractBatchV2Input = { finalizedAt: string; finalization: NonNullable<LaborV2ContractBatchIntent['finalization']> };
+export type LaborV2OpenContractBatch = { id: string; title: string; startsOn: string; memberPersonIds: string[]; };
+export type PostLaborV2PaymentSessionInput = {
+  id?: string; paymentDate: string; method?: string; note?: string;
+  settlements: Array<{ id?: string; obligationId: string; wageSatang: number; bonusSatang?: number; advanceRecoveries?: Array<{ id?: string; advanceId: string; amountSatang: number }> }>;
+};
+export type CorrectLaborV2PaymentSessionInput = { reason: string; method?: string; note?: string };
+export type LaborV2ReadModel = {
+  sourceVersion: 'v2';
+  tasks: Array<{ id: string; workDate: string; title: string; assigneePersonIds: string[] }>;
+  obligations: Array<LaborV2ObligationIntent & { paidSatang: number; remainingSatang: number; status: 'open' | 'settled' }>;
+  payments: Array<{ id: string; paymentDate: string; method: string; cashPaidSatang: number; currentRevision: number }>;
+  events: Array<{ id: string; entityType: string; entityId: string; action: string; reason: string | null; occurredAt: string }>;
+};
+
+/** V2-only projections.  They deliberately cannot mix the legacy payable ledger. */
+export type LaborV2CalendarDay = { workDate: string; taskCount: number; taskIds: string[] };
+export type LaborV2PersonProjection = {
+  sourceVersion: 'v2';
+  personId: string;
+  tasks: LaborV2ReadModel['tasks'];
+  obligations: LaborV2ReadModel['obligations'];
+  payments: LaborV2ReadModel['payments'];
+  events: LaborV2ReadModel['events'];
+};
+
+/** Read-only V2 work projections.  Payment state is contextual: one task can
+ * legitimately belong to more than one compensation context. */
+export type LaborV2TaskWageContext = {
+  sourceKind: 'daily' | 'hourly' | 'contract';
+  sourceUnitId: string;
+  recipientKind: 'person' | 'group';
+  personId: string | null;
+  state: 'open_unpriced' | 'unpaid' | 'partial' | 'paid';
+  dueSatang: number | null;
+  paidSatang: number;
+  remainingSatang: number | null;
+};
+export type LaborV2TaskDetail = LaborV2ReadModel['tasks'][number] & { wageContexts: LaborV2TaskWageContext[] };
+export type LaborV2CalendarMonth = { sourceVersion: 'v2'; month: string; days: Array<LaborV2CalendarDay & { isInMonth: true }> };
+export type LaborV2WorkListFilters = { startDate?: string; endDate?: string; personId?: string; sourceKind?: LaborV2TaskWageContext['sourceKind']; wageState?: LaborV2TaskWageContext['state'] };
+export type LaborV2WorkList = { sourceVersion: 'v2'; items: LaborV2TaskDetail[]; nextCursor: string | null };
+export type LaborV2TodayProjection = { sourceVersion: 'v2'; date: string; tasks: LaborV2TaskDetail[]; unpaid: LaborV2ReadModel['obligations'] };
+export type LaborV2PersonDetail = LaborV2PersonProjection & { advances: LaborWorkerAdvance[]; payments: Array<LaborV2ReadModel['payments'][number] & { settledObligationIds: string[] }>; events: LaborV2ReadModel['events']; };
+export type LegacyLaborRead = { sourceVersion: 'v1'; sourceLabel: 'ประวัติเดิม (V1, อ่านอย่างเดียว)'; jobs: Array<{ id: string; workDate: string; title: string }> };
+
 export type LaborContractProgress = {
   id: string;
   progressDate: string;
@@ -345,6 +590,8 @@ export type LaborMvpReadModel = {
   people: LaborPersonBalance[];
   payables: LaborPayable[];
   payments: LaborPayment[];
+  /** Additive payment-session surface; legacy fixtures may omit it until Phase 4 UI adoption. */
+  paymentSessions?: LaborPaymentSession[];
   timeline: LaborTimelineEvent[];
   contracts: LaborContract[];
   legacySources: LegacyLaborSource[];
@@ -366,6 +613,7 @@ export type LaborProjectionEventType =
   | 'contract_completion'
   | 'contract_deadline'
   | 'individual_payment'
+  | 'payment_session'
   | 'group_receipt'
   | 'advance'
   | 'advance_recovery';
@@ -399,6 +647,8 @@ export type LaborCalendarDaySummary = {
   workCount: number;
   workDueSatang: number;
   individualPaymentSatang: number;
+  /** Additive cash total for modern multi-recipient sessions. */
+  paymentSessionCashSatang?: number;
   groupReceiptSatang: number;
   advanceIssuedSatang: number;
   advanceRecoveredSatang: number;

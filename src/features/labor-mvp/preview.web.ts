@@ -53,6 +53,8 @@ export const createWebLaborPreviewAdapter = (): LaborPreviewAdapter => ({
   commands: {
     createNormalWork: readonlyPreview,
     createGroupPieceWork: readonlyPreview,
+    recordLaborWorkItems: readonlyPreview,
+    postLaborPaymentSession: readonlyPreview,
     createLaborContract: readonlyPreview,
     createLaborSettlementGroup: readonlyPreview,
     addLaborContractProgress: readonlyPreview,
@@ -98,7 +100,7 @@ export const createWebLaborNotebookAdapter = (): LaborPreviewAdapter => ({
   getPersonDetail: async () => null,
   workers: { list: async () => [], create: readonlyNotebook, update: readonlyNotebook, archive: readonlyNotebook },
   commands: {
-    createNormalWork: readonlyNotebook, createGroupPieceWork: readonlyNotebook, createLaborContract: readonlyNotebook, createLaborSettlementGroup: readonlyNotebook,
+    createNormalWork: readonlyNotebook, createGroupPieceWork: readonlyNotebook, recordLaborWorkItems: readonlyNotebook, postLaborPaymentSession: readonlyNotebook, createLaborContract: readonlyNotebook, createLaborSettlementGroup: readonlyNotebook,
     addLaborContractProgress: readonlyNotebook, completeLaborContractWork: readonlyNotebook, postLaborPayment: readonlyNotebook, postLaborSettlementGroupReceipt: readonlyNotebook,
     createLaborWorkerAdvance: readonlyNotebook, applyLaborAdvanceDeduction: readonlyNotebook, editLaborPayment: readonlyNotebook, editLaborSettlementGroupReceipt: readonlyNotebook, editLaborWorkerAdvance: readonlyNotebook,
   },

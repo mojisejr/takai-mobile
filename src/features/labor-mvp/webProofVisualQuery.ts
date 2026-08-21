@@ -1,4 +1,6 @@
 export type LaborWebProofVisual = 'none' | 'success-toast' | 'confirm-sheet';
+export type LaborWebProofScreen = 'today' | 'work' | 'record' | 'payment' | null;
+export type LaborWebProofScenario = 'daily-three-task' | 'open-contract' | 'payment-selection' | null;
 
 /**
  * Decides which read-only proof fixture to show from a supplied query string.
@@ -11,4 +13,18 @@ export const selectLaborWebProofVisualFromSearch = (search: string): LaborWebPro
   if (params.get('sheet') === 'confirm') return 'confirm-sheet';
   if (params.get('toast') === 'success') return 'success-toast';
   return 'none';
+};
+
+export const selectLaborWebProofScreenFromSearch = (search: string): LaborWebProofScreen => {
+  const params = new URLSearchParams(search);
+  if (params.get('proof') !== '1') return null;
+  const screen = params.get('screen');
+  return screen === 'record' || screen === 'payment' || screen === 'today' || screen === 'work' ? screen : 'today';
+};
+
+export const selectLaborWebProofScenarioFromSearch = (search: string): LaborWebProofScenario => {
+  const params = new URLSearchParams(search);
+  if (params.get('proof') !== '1') return null;
+  const scenario = params.get('scenario');
+  return scenario === 'daily-three-task' || scenario === 'open-contract' || scenario === 'payment-selection' ? scenario : null;
 };

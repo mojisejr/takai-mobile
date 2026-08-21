@@ -1,0 +1,124 @@
+{
+  "project": "takai-mobile",
+  "taskId": "#takai-labor-payment-ia-reframe",
+  "phase": "5-operator-acceptance",
+  "lane": "expo-go-device-eye",
+  "status": "pending_operator",
+  "claimLabel": "Expo Go Device Eye Pending",
+  "gateOfRecord": "Real Android Expo Go operator observation",
+  "capturedAt": null,
+  "git": {
+    "sha": null,
+    "branch": null,
+    "workingTree": null
+  },
+  "device": {
+    "manufacturer": null,
+    "model": null,
+    "androidVersion": null,
+    "screenOrSafeAreaNotes": null
+  },
+  "client": {
+    "kind": "Expo Go Android",
+    "expoGoVersion": null,
+    "expectedSdkVersion": "54.0.0",
+    "expectedRuntimeVersion": "exposdk:54.0.0",
+    "compatibilityResult": "pending_operator_observation"
+  },
+  "launch": {
+    "method": null,
+    "coldLaunch": "pending",
+    "openResult": "pending",
+    "crashOrCompatibilityMessage": null
+  },
+  "dataSafety": {
+    "notebookKind": "pending",
+    "backupOrDisposableDataDecision": null,
+    "testPeopleCreated": []
+  },
+  "scenarios": [
+    {
+      "id": "two-jobs-same-day",
+      "status": "not_run",
+      "expected": "One save creates two distinct same-day jobs, and Record contains no payment controls.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    },
+    {
+      "id": "unequal-hourly-workers",
+      "status": "not_run",
+      "expected": "Different whole-minute durations/rates remain independent person wage dues.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    },
+    {
+      "id": "group-piecework",
+      "status": "not_run",
+      "expected": "4,125 bags at 1 baht/bag creates one 4,125-baht group lump with no inferred person shares.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    },
+    {
+      "id": "partial-advance-recovery",
+      "status": "not_run",
+      "expected": "A 50-baht recovery from a 1,000-baht person advance stays separate from wage and group money.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    },
+    {
+      "id": "bonus-separate-from-wage",
+      "status": "not_run",
+      "expected": "Bonus is explicit and changes cash only, not wage earned or advance remaining.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    },
+    {
+      "id": "pay-by-work",
+      "status": "not_run",
+      "expected": "Work-first payment selects unpaid work and updates its money history after confirmation.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    },
+    {
+      "id": "pay-by-person",
+      "status": "not_run",
+      "expected": "Person-first payment selects a worker and uses the same settlement command without losing unpaid context.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    },
+    {
+      "id": "calendar-filter-review",
+      "status": "not_run",
+      "expected": "Work calendar and filter sheet answer date/person/state/kind questions and clear/reset cleanly.",
+      "operatorResult": null,
+      "screenshots": [],
+      "repairItemIds": []
+    }
+  ],
+  "observations": {
+    "touchTargets": { "status": "not_run", "note": null },
+    "scrolling": { "status": "not_run", "note": null },
+    "keyboard": { "status": "not_run", "note": null },
+    "safeAreaAndThaiLayout": { "status": "not_run", "note": null },
+    "workVsPaymentComprehension": { "status": "not_run", "note": null },
+    "groupVsPersonMoneyComprehension": { "status": "not_run", "note": null },
+    "relaunchPersistence": { "status": "not_run", "note": null }
+  },
+  "repairItems": [],
+  "operatorAcceptance": {
+    "accepted": null,
+    "operatorNameOrRole": null,
+    "summary": null
+  },
+  "limitations": [
+    "This pending template contains no device observation and must not close Expo Go Device Eye.",
+    "Expo Go evidence does not close Native Eye or prove Android internal-build packaging."
+  ]
+}

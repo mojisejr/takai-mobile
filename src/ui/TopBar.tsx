@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { tokens } from '../theme/tokens';
 import type { PressHandler, VariantProps } from './types';
 
@@ -7,11 +7,14 @@ type TopBarVariant = 'default' | 'back' | 'action' | 'plot';
 type TopBarProps = VariantProps<TopBarVariant> & {
   title: string;
   actionLabel?: string;
+  subtitle?: string;
+  hideSubtitle?: boolean;
   onBackPress?: PressHandler;
   onActionPress?: PressHandler;
+  onInfoPress?: PressHandler;
 };
 
-export function TopBar({ actionLabel, onActionPress, onBackPress, title, variant = 'default' }: TopBarProps) {
+export function TopBar({ actionLabel, hideSubtitle = false, onActionPress, onBackPress, onInfoPress, subtitle, title, variant = 'default' }: TopBarProps) {
   const showBack = variant === 'back' || variant === 'plot';
   const isPlot = variant === 'plot';
 
@@ -22,14 +25,19 @@ export function TopBar({ actionLabel, onActionPress, onBackPress, title, variant
           <Text style={[styles.icon, isPlot && styles.inverseText]}>‹</Text>
         </Pressable>
       ) : (
-        <Text style={styles.icon}>☰</Text>
+        <Image accessible={false} resizeMode="contain" source={require('../../assets/brand/takai-mascot-bust.png')} style={styles.mascot} />
       )}
-      <Text numberOfLines={1} style={[styles.title, isPlot && styles.inverseText]}>
-        {title}
-      </Text>
+      <View style={styles.titleBlock}>
+        <Text numberOfLines={1} style={[styles.brand, isPlot && styles.inverseText]}>TAKAI</Text>
+        {!hideSubtitle ? <Text numberOfLines={1} style={[styles.title, isPlot && styles.inverseText]}>{subtitle ?? title}</Text> : null}
+      </View>
       {actionLabel ? (
         <Pressable accessibilityRole="button" hitSlop={10} onPress={onActionPress}>
           <Text style={[styles.action, isPlot && styles.inverseText]}>{actionLabel}</Text>
+        </Pressable>
+      ) : onInfoPress ? (
+        <Pressable accessibilityLabel="วิธีใช้งาน" accessibilityRole="button" hitSlop={10} onPress={onInfoPress} style={styles.infoButton}>
+          <Text style={[styles.info, isPlot && styles.inverseText]}>i</Text>
         </Pressable>
       ) : (
         <View style={styles.actionSlot} />
@@ -55,10 +63,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     width: 28,
   },
+  mascot: { height: 34, width: 34 },
+  titleBlock: { flex: 1, minWidth: 0 },
+  brand: { color: tokens.color.primary.green, fontSize: tokens.typography.caption.size, fontWeight: '800', letterSpacing: 0.8 },
   title: {
     color: tokens.color.text.primary,
-    flex: 1,
-    fontSize: tokens.typography.h2.size,
+    fontSize: tokens.typography.body.size,
     fontWeight: '700',
   },
   action: {
@@ -72,4 +82,6 @@ const styles = StyleSheet.create({
   actionSlot: {
     width: 28,
   },
+  infoButton: { alignItems: 'center', borderColor: tokens.color.border.soft, borderRadius: 14, borderWidth: 1, height: 28, justifyContent: 'center', width: 28 },
+  info: { color: tokens.color.primary.green, fontSize: tokens.typography.metadata.size, fontWeight: '800' },
 });

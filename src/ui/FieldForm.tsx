@@ -76,7 +76,7 @@ export function SearchPickerSheet({
   const filtered = filterPickerOptions(options, query);
   const recents = recentPickerOptions(options, recentIds);
   return (
-    <Modal animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet" transparent visible={visible}>
+    <Modal animationType="slide" onRequestClose={onClose} presentationStyle="overFullScreen" transparent visible={visible}>
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.sheetHeader}>
@@ -95,6 +95,52 @@ export function SearchPickerSheet({
             {!query.trim() && recents.length ? <PickerGroup label="ใช้ล่าสุด" onPick={onPick} options={recents} /> : null}
             <PickerGroup label={query.trim() ? 'ผลการค้นหา' : 'ทั้งหมด'} onPick={onPick} options={filtered} emptyLabel={emptyLabel} />
             {quickAdd ? <View style={styles.quickAdd}>{quickAdd}</View> : null}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** Multi-select keeps choices in a searchable sheet; chips remain status-only. */
+export function MultiSearchPickerSheet({
+  emptyLabel,
+  onClose,
+  onToggle,
+  options,
+  query,
+  selectedIds,
+  setQuery,
+  title,
+  visible,
+}: {
+  visible: boolean;
+  title: string;
+  query: string;
+  setQuery: (value: string) => void;
+  options: PickerOption[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  onClose: PressHandler;
+  emptyLabel: string;
+}) {
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const filtered = filterPickerOptions(options, query);
+  const selected = selectedIds.map((id) => options.find((option) => option.id === id)).filter((option): option is PickerOption => Boolean(option));
+  const detail = options.find((option) => option.id === detailId) ?? null;
+  return (
+    <Modal animationType="slide" onRequestClose={onClose} presentationStyle="overFullScreen" transparent visible={visible}>
+      <View style={styles.backdrop}>
+        <View style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            <View><Text style={styles.sheetTitle}>{title}</Text><Text style={styles.selectionCount}>เลือกแล้ว {selected.length} คน</Text></View>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={onClose}><Text style={styles.close}>เสร็จ</Text></Pressable>
+          </View>
+          <TextInput autoFocus onChangeText={setQuery} placeholder="พิมพ์ค้นหาชื่อหรือความถนัด" placeholderTextColor={tokens.color.text.muted} style={styles.searchInput} value={query} />
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.results}>
+            {selected.length ? <View style={styles.group}><Text style={styles.groupLabel}>ที่เลือก</Text>{selected.map((option) => <View key={`selected:${option.id}`} style={styles.option}><View style={styles.optionText}><Text style={styles.optionLabel}>{option.label}</Text>{option.meta ? <Text style={styles.optionMeta}>{option.meta}</Text> : null}</View><Pressable accessibilityLabel={`นำ ${option.label} ออก`} onPress={() => onToggle(option.id)}><Text style={styles.optionAction}>นำออก</Text></Pressable></View>)}</View> : null}
+            {detail ? <View style={styles.detailCard}><View style={styles.sheetHeader}><Text style={styles.optionLabel}>ข้อมูลคนทำงาน</Text><Pressable accessibilityLabel="ปิดรายละเอียด" onPress={() => setDetailId(null)}><Text style={styles.close}>ปิด</Text></Pressable></View><Text style={styles.optionLabel}>{detail.label}</Text><Text style={styles.optionMeta}>{detail.meta || 'ยังไม่ได้ระบุงานที่ถนัด'}</Text></View> : null}
+            <View style={styles.group}><Text style={styles.groupLabel}>{query.trim() ? 'ผลการค้นหา' : 'รายชื่อคนทำงาน'}</Text>{filtered.length ? filtered.map((option) => { const checked = selectedIds.includes(option.id); return <View key={option.id} style={styles.option}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={() => onToggle(option.id)} style={styles.optionText}><Text style={styles.optionLabel}>{option.label}</Text>{option.meta ? <Text style={styles.optionMeta}>{option.meta}</Text> : null}</Pressable><Pressable accessibilityLabel={`ดูข้อมูล ${option.label}`} onPress={() => setDetailId(option.id)}><Text style={styles.optionAction}>ข้อมูล</Text></Pressable><Pressable accessibilityLabel={`${checked ? 'เอา' : 'เลือก'} ${option.label}`} onPress={() => onToggle(option.id)} style={[styles.checkbox, checked && styles.checkboxChecked]}><Text style={styles.checkboxText}>{checked ? '✓' : ''}</Text></Pressable></View>; }) : <Text style={styles.empty}>{emptyLabel}</Text>}</View>
           </ScrollView>
         </View>
       </View>
@@ -136,6 +182,7 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: tokens.color.surface.sand, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%', padding: tokens.spacing.page },
   sheetHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   sheetTitle: { color: tokens.color.text.primary, fontSize: tokens.typography.h2.size, fontWeight: '700' },
+  selectionCount: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size, marginTop: 2 },
   close: { color: tokens.color.primary.green, fontSize: tokens.typography.body.size, fontWeight: '700' },
   searchInput: { backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.button, borderWidth: 1, color: tokens.color.text.primary, fontSize: tokens.typography.body.size, minHeight: 48, paddingHorizontal: 12 },
   results: { marginTop: 12 },
@@ -146,6 +193,10 @@ const styles = StyleSheet.create({
   optionLabel: { color: tokens.color.text.primary, fontSize: tokens.typography.body.size },
   optionMeta: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size },
   optionAction: { color: tokens.color.primary.green, fontSize: tokens.typography.metadata.size, fontWeight: '700', marginLeft: 12 },
+  checkbox: { alignItems: 'center', borderColor: tokens.color.border.soft, borderRadius: 10, borderWidth: 1, height: 28, justifyContent: 'center', marginLeft: 10, width: 28 },
+  checkboxChecked: { backgroundColor: tokens.color.primary.green, borderColor: tokens.color.primary.green },
+  checkboxText: { color: tokens.color.text.inverse, fontSize: tokens.typography.metadata.size, fontWeight: '800' },
+  detailCard: { backgroundColor: '#EAF4EA', borderColor: tokens.color.primary.green, borderRadius: tokens.radius.button, borderWidth: 1, gap: 4, marginBottom: 16, padding: 12 },
   empty: { color: tokens.color.text.muted, fontSize: tokens.typography.body.size, padding: 12 },
   quickAdd: { borderTopColor: tokens.color.border.soft, borderTopWidth: 1, gap: 10, paddingTop: 16 },
   sticky: { backgroundColor: tokens.color.surface.sand, borderTopColor: tokens.color.border.soft, borderTopWidth: 1, marginHorizontal: -tokens.spacing.page, padding: tokens.spacing.page },
