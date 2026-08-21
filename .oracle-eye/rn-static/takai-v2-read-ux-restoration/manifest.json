@@ -3,7 +3,7 @@
   "phase": "takai-v2-read-ux-restoration",
   "lane": "rn-static-eye",
   "claimLabel": "RN Static Token Gate Closed",
-  "generatedAt": "2026-08-21T05:20:23.300Z",
+  "generatedAt": "2026-08-21T07:16:30.950Z",
   "checks": [
     "test:design-contract",
     "test:labor-navigation-ui",
