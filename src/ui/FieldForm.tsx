@@ -3,6 +3,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { tokens } from '../theme/tokens';
+import { typographyStyle } from '../theme/typography';
 import { localDateKey } from '../date';
 import { PrimaryButton } from './PrimaryButton';
 import { filterPickerOptions, recentPickerOptions, type PickerOption } from './pickerOptions';
@@ -170,34 +171,34 @@ export type { PickerOption } from './pickerOptions';
 
 const styles = StyleSheet.create({
   fieldGroup: { gap: 6 },
-  label: { color: tokens.color.text.primary, fontSize: tokens.typography.metadata.size, fontWeight: '700' },
-  pickerField: { alignItems: 'center', backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.button, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: 12 },
-  pickerValue: { color: tokens.color.text.primary, flex: 1, fontSize: tokens.typography.body.size },
-  dateInput: { backgroundColor: tokens.color.surface.muted, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.button, borderWidth: 1, color: tokens.color.text.primary, fontSize: tokens.typography.body.size, minHeight: 48, paddingHorizontal: 12 },
+  label: { color: tokens.color.text.primary, ...typographyStyle('metadata') },
+  pickerField: { alignItems: 'center', backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.row, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: 14 },
+  pickerValue: { color: tokens.color.text.primary, flex: 1, minWidth: 0, ...typographyStyle('body') },
+  dateInput: { backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.row, borderWidth: 1, color: tokens.color.text.primary, minHeight: 48, paddingHorizontal: 14, ...typographyStyle('body') },
   placeholder: { color: tokens.color.text.muted },
-  chevron: { color: tokens.color.primary.green, fontSize: tokens.typography.metadata.size, fontWeight: '700', marginLeft: 12 },
+  chevron: { color: tokens.color.primary.green, marginLeft: 12, ...typographyStyle('metadata') },
   section: { gap: 8 },
   sectionBody: { gap: 12 },
   backdrop: { backgroundColor: 'rgba(31,45,31,0.35)', flex: 1, justifyContent: 'flex-end' },
-  sheet: { backgroundColor: tokens.color.surface.sand, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%', padding: tokens.spacing.page },
+  sheet: { backgroundColor: tokens.color.surface.sand, borderTopLeftRadius: tokens.radius.hero, borderTopRightRadius: tokens.radius.hero, maxHeight: '88%', padding: tokens.spacing.card },
   sheetHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  sheetTitle: { color: tokens.color.text.primary, fontSize: tokens.typography.h2.size, fontWeight: '700' },
-  selectionCount: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size, marginTop: 2 },
-  close: { color: tokens.color.primary.green, fontSize: tokens.typography.body.size, fontWeight: '700' },
-  searchInput: { backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.button, borderWidth: 1, color: tokens.color.text.primary, fontSize: tokens.typography.body.size, minHeight: 48, paddingHorizontal: 12 },
+  sheetTitle: { color: tokens.color.text.primary, ...typographyStyle('h2') },
+  selectionCount: { color: tokens.color.text.muted, marginTop: 2, ...typographyStyle('caption') },
+  close: { color: tokens.color.primary.green, ...typographyStyle('metadata') },
+  searchInput: { backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.row, borderWidth: 1, color: tokens.color.text.primary, minHeight: 48, paddingHorizontal: 14, ...typographyStyle('body') },
   results: { marginTop: 12 },
   group: { gap: 2, marginBottom: 16 },
-  groupLabel: { color: tokens.color.text.muted, fontSize: tokens.typography.metadata.size, fontWeight: '700', marginBottom: 4 },
+  groupLabel: { color: tokens.color.text.muted, marginBottom: 4, ...typographyStyle('metadata') },
   option: { alignItems: 'center', backgroundColor: tokens.color.surface.card, borderBottomColor: tokens.color.border.soft, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: 12 },
-  optionText: { flex: 1, gap: 2 },
-  optionLabel: { color: tokens.color.text.primary, fontSize: tokens.typography.body.size },
-  optionMeta: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size },
-  optionAction: { color: tokens.color.primary.green, fontSize: tokens.typography.metadata.size, fontWeight: '700', marginLeft: 12 },
+  optionText: { flex: 1, gap: 2, minWidth: 0 },
+  optionLabel: { color: tokens.color.text.primary, ...typographyStyle('body') },
+  optionMeta: { color: tokens.color.text.muted, ...typographyStyle('caption') },
+  optionAction: { color: tokens.color.primary.green, marginLeft: 12, ...typographyStyle('metadata') },
   checkbox: { alignItems: 'center', borderColor: tokens.color.border.soft, borderRadius: 10, borderWidth: 1, height: 28, justifyContent: 'center', marginLeft: 10, width: 28 },
   checkboxChecked: { backgroundColor: tokens.color.primary.green, borderColor: tokens.color.primary.green },
   checkboxText: { color: tokens.color.text.inverse, fontSize: tokens.typography.metadata.size, fontWeight: '800' },
   detailCard: { backgroundColor: '#EAF4EA', borderColor: tokens.color.primary.green, borderRadius: tokens.radius.button, borderWidth: 1, gap: 4, marginBottom: 16, padding: 12 },
-  empty: { color: tokens.color.text.muted, fontSize: tokens.typography.body.size, padding: 12 },
+  empty: { color: tokens.color.text.muted, padding: 12, ...typographyStyle('body') },
   quickAdd: { borderTopColor: tokens.color.border.soft, borderTopWidth: 1, gap: 10, paddingTop: 16 },
   sticky: { backgroundColor: tokens.color.surface.sand, borderTopColor: tokens.color.border.soft, borderTopWidth: 1, marginHorizontal: -tokens.spacing.page, padding: tokens.spacing.page },
   pressed: { opacity: 0.7 },

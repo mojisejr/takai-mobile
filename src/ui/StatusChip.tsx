@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { tokens } from '../theme/tokens';
+import { typographyStyle } from '../theme/typography';
 
 export type StatusChipVariant =
   | 'today'
@@ -30,8 +31,8 @@ const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
     borderRadius: tokens.radius.chip,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   today: {
     backgroundColor: '#EAF4EA',
@@ -62,7 +63,6 @@ const styles = StyleSheet.create({
   },
   label: {
     color: tokens.color.text.primary,
-    fontSize: tokens.typography.caption.size,
-    fontWeight: '600',
+    ...typographyStyle('caption'),
   },
 });

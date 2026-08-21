@@ -1,5 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { tokens } from '../theme/tokens';
+import { typographyStyle } from '../theme/typography';
+import { IconDisc } from './NotebookPrimitives';
 import type { PressHandler, VariantProps } from './types';
 
 type TopBarVariant = 'default' | 'back' | 'action' | 'plot';
@@ -21,7 +23,7 @@ export function TopBar({ actionLabel, hideSubtitle = false, onActionPress, onBac
   return (
     <View style={[styles.base, isPlot && styles.plot]}>
       {showBack ? (
-        <Pressable accessibilityLabel="กลับ" accessibilityRole="button" hitSlop={10} onPress={onBackPress}>
+        <Pressable accessibilityLabel="กลับ" accessibilityRole="button" hitSlop={10} onPress={onBackPress} style={styles.backButton}>
           <Text style={[styles.icon, isPlot && styles.inverseText]}>‹</Text>
         </Pressable>
       ) : (
@@ -32,12 +34,12 @@ export function TopBar({ actionLabel, hideSubtitle = false, onActionPress, onBac
         {!hideSubtitle ? <Text numberOfLines={1} style={[styles.title, isPlot && styles.inverseText]}>{subtitle ?? title}</Text> : null}
       </View>
       {actionLabel ? (
-        <Pressable accessibilityRole="button" hitSlop={10} onPress={onActionPress}>
+        <Pressable accessibilityRole="button" hitSlop={10} onPress={onActionPress} style={styles.actionButton}>
           <Text style={[styles.action, isPlot && styles.inverseText]}>{actionLabel}</Text>
         </Pressable>
       ) : onInfoPress ? (
         <Pressable accessibilityLabel="วิธีใช้งาน" accessibilityRole="button" hitSlop={10} onPress={onInfoPress} style={styles.infoButton}>
-          <Text style={[styles.info, isPlot && styles.inverseText]}>i</Text>
+          {isPlot ? <Text style={[styles.info, styles.inverseText]}>i</Text> : <IconDisc icon="info" size={36} tone="sage" />}
         </Pressable>
       ) : (
         <View style={styles.actionSlot} />
@@ -50,8 +52,8 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
-    minHeight: 52,
+    gap: 10,
+    minHeight: 64,
     paddingHorizontal: tokens.spacing.page,
   },
   plot: {
@@ -63,25 +65,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     width: 28,
   },
-  mascot: { height: 34, width: 34 },
+  mascot: { height: 40, width: 40 },
   titleBlock: { flex: 1, minWidth: 0 },
-  brand: { color: tokens.color.primary.green, fontSize: tokens.typography.caption.size, fontWeight: '800', letterSpacing: 0.8 },
+  brand: { color: tokens.color.primary.green, letterSpacing: 0.8, ...typographyStyle('caption') },
   title: {
     color: tokens.color.text.primary,
-    fontSize: tokens.typography.body.size,
-    fontWeight: '700',
+    ...typographyStyle('h3'),
   },
   action: {
     color: tokens.color.primary.green,
-    fontSize: tokens.typography.metadata.size,
-    fontWeight: '700',
+    ...typographyStyle('metadata'),
   },
   inverseText: {
     color: tokens.color.text.inverse,
   },
-  actionSlot: {
-    width: 28,
-  },
-  infoButton: { alignItems: 'center', borderColor: tokens.color.border.soft, borderRadius: 14, borderWidth: 1, height: 28, justifyContent: 'center', width: 28 },
-  info: { color: tokens.color.primary.green, fontSize: tokens.typography.metadata.size, fontWeight: '800' },
+  actionSlot: { width: 44 },
+  actionButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  backButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  infoButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
+  info: { color: tokens.color.primary.green, ...typographyStyle('metadata') },
 });

@@ -3,9 +3,10 @@
   "phase": "takai-warm-notebook-ui-redesign",
   "lane": "rn-static-eye",
   "claimLabel": "RN Static Token Gate Closed",
-  "generatedAt": "2026-08-21T09:30:31.778Z",
+  "generatedAt": "2026-08-21T13:36:35.003Z",
   "checks": [
     "test:warm-notebook-foundation",
+    "test:warm-notebook-primitives",
     "test:design-contract",
     "test:labor-navigation-ui",
     "test:labor-read-ui",

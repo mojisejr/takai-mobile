@@ -5,6 +5,7 @@ export { FieldCard } from './FieldCard';
 export { DatePickerField, FormSection, MultiSearchPickerSheet, PickerField, SearchPickerSheet, StickySaveBar } from './FieldForm';
 export { ActionEmptyState, ConfirmActionSheet, FeedbackToast, FormFeedback, ScreenSkeleton, TakaiMascot } from './LaborFeedback';
 export { LedgerListCard, LedgerListRow, LedgerRowText, LedgerTrailing } from './LedgerListCard';
+export { AmountSummary, GardenAccent, IconDisc, ListRowTrailing } from './NotebookPrimitives';
 export { PrimaryButton } from './PrimaryButton';
 export { RecordListItem } from './RecordListItem';
 export { SectionHeader } from './SectionHeader';

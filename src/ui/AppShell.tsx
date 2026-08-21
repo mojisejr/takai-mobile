@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { tokens } from '../theme/tokens';
 import { BottomTabBar } from './BottomTabBar';
+import { GardenAccent } from './NotebookPrimitives';
 import type { BottomTabKey } from './BottomTabBar';
 import type { ChildrenProps, VariantProps } from './types';
 
@@ -33,6 +34,7 @@ export function AppShell({ activeTab, children, keyboardAware = false, onTabPres
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <View style={[styles.base, variant === 'modal' && styles.modal]}>
+        {variant === 'tabbed' ? <GardenAccent /> : null}
         {keyboardAware ? <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardSurface}>{content}</KeyboardAvoidingView> : content}
         {showTabs && variant === 'tabbed' && !keyboardOpen ? (
           <SafeAreaView edges={['bottom']} style={styles.tabs}>
@@ -52,6 +54,7 @@ const styles = StyleSheet.create({
   base: {
     backgroundColor: tokens.color.surface.sand,
     flex: 1,
+    overflow: 'hidden',
   },
   keyboardSurface: { flex: 1 },
   modal: {
@@ -61,7 +64,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: tokens.spacing.section,
     padding: tokens.spacing.page,
-    paddingBottom: 8,
+    paddingBottom: tokens.spacing.page,
   },
   staticContent: { flex: 1, gap: tokens.spacing.section, paddingHorizontal: tokens.spacing.page, paddingTop: tokens.spacing.page },
   tabs: {
