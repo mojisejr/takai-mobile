@@ -33,7 +33,9 @@
           "backgroundColor": "#F4E9D8",
           "imageWidth": 180
         }
-      ]
+      ],
+      "expo-font",
+      "@react-native-vector-icons/material-design-icons"
     ],
     "extra": {
       "eas": {

@@ -1,24 +1,24 @@
 ---
-design_md_version: 2
+design_md_version: 3
 project: takai-mobile
 token_source: src/theme/tokens.ts
 verify_tokens:
   - name: color.primary.green
     expect: "#2E7D32"
   - name: color.surface.sand
-    expect: "#F4E9D8"
+    expect: "#F7F1E5"
   - name: color.text.primary
     expect: "#1F2D1F"
   - name: radius.card
-    expect: "12"
+    expect: "24"
   - name: typography.body.size
-    expect: "16"
+    expect: "17"
 verify_eyes:
   - kind: rn-static-eye
     gate: required
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
-    artifact_sink: .oracle-eye/rn-static/takai-v2-read-ux-restoration/
+    artifact_sink: .oracle-eye/rn-static/takai-warm-notebook-ui-redesign/
     commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
@@ -72,7 +72,7 @@ The header always carries the TAKAI mascot and brand with the current screen as 
 
 ## Visual theme
 
-Keep the warm field-notebook theme: sand canvas, warm-white cards, green confirmed actions, quiet borders, 12px card radius, readable 16px Thai body text, tabular money, and text-plus-color state. TAKAI is not generic SaaS, a payroll package, or inventory software.
+Use the **Warm Garden Notebook** grammar: light cream canvas, warm-white elevated surfaces, TAKAI green actions, quiet sage/gold support colours, and sparse low-contrast borders. Hero surfaces use a 28px radius, primary cards 24px, rows/forms 18px, and only state chips are pill-shaped. Noto Sans Thai 400/600/700/800 is the product typeface: editorial page hierarchy (34px title, 24px section), 17px readable body, and tabular money. The mascot stays the single identity character; garden accents are abstract/native, never generated art. No gradients, glass, decorative nested cards, icon-only state, or generic payroll-SaaS treatment.
 
 Use Thai labels that describe the actual garden accounting model: `คนทำงาน`, `ชุดรับเงิน`, `ผู้รับเงินสดแทน`, `ค้างค่าแรง`, and `เงินเบิกคงเหลือ`.
 
@@ -85,6 +85,7 @@ Adapt/create `LaborMvpApp`, labor-specific status chips, compact calendar event 
 ## Layout and responsive rules
 
 - Android phone portrait is primary. Web preview is constrained to a mobile column.
+- At both 320px and 390px, the five icon-plus-Thai-label tabs remain visible/tappable; Thai text must wrap or truncate inside a `minWidth: 0` slot rather than overflow.
 - Page padding is 16px; sections gap 16px; rows are at least 48px; touch targets are 44–48px.
 - Thai title/body rows with a trailing amount or state use `minWidth: 0`, explicit wrapping/truncation, and a stable trailing slot.
 - Calendar keeps seven columns at 320px and 390px. It uses low-density typed markers; the selected-day sheet carries detail.

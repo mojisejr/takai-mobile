@@ -17,7 +17,7 @@ const webPreviewSource = read('src/data/index.web.ts');
 const webFixtureGeneratorSource = read('scripts/generate-labor-v2-preview-web-fixture.ts');
 const laborPreviewSource = read('src/features/labor-mvp/previewV2.ts');
 
-if (!design.includes('design_md_version: 2')) fail('DESIGN.md must declare Labor MVP design contract v2');
+if (!design.includes('design_md_version: 3')) fail('DESIGN.md must declare Warm Garden Notebook design contract v3');
 for (const lane of ['kind: rn-static-eye', 'kind: rn-web-eye', 'kind: expo-go-device-eye']) {
   if (!design.includes(lane)) fail(`DESIGN.md must declare ${lane} proof lane`);
 }
@@ -35,10 +35,10 @@ if (!webPreviewSource.includes('createWebLaborV2PreviewAdapter') || !webFixtureG
 
 const expectedTokens = {
   'color.primary.green': '#2E7D32',
-  'color.surface.sand': '#F4E9D8',
+  'color.surface.sand': '#F7F1E5',
   'color.text.primary': '#1F2D1F',
-  'radius.card': '12',
-  'typography.body.size': '16',
+  'radius.card': '24',
+  'typography.body.size': '17',
 };
 for (const [name, value] of Object.entries(expectedTokens)) {
   const escapedName = name.replaceAll('.', '\\.');
