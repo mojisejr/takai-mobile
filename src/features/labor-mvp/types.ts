@@ -527,6 +527,26 @@ export type LaborV2PersonProjection = {
   events: LaborV2ReadModel['events'];
 };
 
+/** Read-only V2 work projections.  Payment state is contextual: one task can
+ * legitimately belong to more than one compensation context. */
+export type LaborV2TaskWageContext = {
+  sourceKind: 'daily' | 'hourly' | 'contract';
+  sourceUnitId: string;
+  recipientKind: 'person' | 'group';
+  personId: string | null;
+  state: 'open_unpriced' | 'unpaid' | 'partial' | 'paid';
+  dueSatang: number | null;
+  paidSatang: number;
+  remainingSatang: number | null;
+};
+export type LaborV2TaskDetail = LaborV2ReadModel['tasks'][number] & { wageContexts: LaborV2TaskWageContext[] };
+export type LaborV2CalendarMonth = { sourceVersion: 'v2'; month: string; days: Array<LaborV2CalendarDay & { isInMonth: true }> };
+export type LaborV2WorkListFilters = { startDate?: string; endDate?: string; personId?: string; sourceKind?: LaborV2TaskWageContext['sourceKind']; wageState?: LaborV2TaskWageContext['state'] };
+export type LaborV2WorkList = { sourceVersion: 'v2'; items: LaborV2TaskDetail[]; nextCursor: string | null };
+export type LaborV2TodayProjection = { sourceVersion: 'v2'; date: string; tasks: LaborV2TaskDetail[]; unpaid: LaborV2ReadModel['obligations'] };
+export type LaborV2PersonDetail = LaborV2PersonProjection & { advances: LaborWorkerAdvance[]; payments: Array<LaborV2ReadModel['payments'][number] & { settledObligationIds: string[] }>; events: LaborV2ReadModel['events']; };
+export type LegacyLaborRead = { sourceVersion: 'v1'; sourceLabel: 'ประวัติเดิม (V1, อ่านอย่างเดียว)'; jobs: Array<{ id: string; workDate: string; title: string }> };
+
 export type LaborContractProgress = {
   id: string;
   progressDate: string;

@@ -1,7 +1,7 @@
 import type { SqlExecutor } from '../../data/migrations';
 import { planLaborCompensationV2 } from './compensationV2';
 import { createLaborWorkerAdvance, listLaborWorkerAdvances } from './repository';
-import type { CorrectLaborV2PaymentSessionInput, CreateLaborWorkerAdvanceInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2OpenContractBatch, LaborV2PersonProjection, LaborV2ReadModel, LaborWorkerAdvance, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input } from './types';
+import type { CorrectLaborV2PaymentSessionInput, CreateLaborWorkerAdvanceInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2CalendarMonth, LaborV2OpenContractBatch, LaborV2PersonDetail, LaborV2PersonProjection, LaborV2ReadModel, LaborV2TaskDetail, LaborV2TaskWageContext, LaborV2TodayProjection, LaborV2WorkList, LaborV2WorkListFilters, LaborWorkerAdvance, LegacyLaborRead, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input } from './types';
 
 const now = (): string => new Date().toISOString();
 const id = (prefix: string): string => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -123,9 +123,40 @@ export const getLaborV2ReadModel = async (db: SqlExecutor): Promise<LaborV2ReadM
 };
 
 /** Typed V2 read seams for Today, calendar, history, person, unpaid, and money history. */
-export const getLaborV2Today = async (db: SqlExecutor, workDate: string): Promise<{ sourceVersion: 'v2'; date: string; tasks: LaborV2ReadModel['tasks']; unpaid: LaborV2ReadModel['obligations'] }> => {
-  date(workDate, 'today date'); const model = await getLaborV2ReadModel(db);
-  return { sourceVersion: 'v2', date: workDate, tasks: model.tasks.filter((task) => task.workDate === workDate), unpaid: model.obligations.filter((item) => item.remainingSatang > 0) };
+const state = (due: number, paid: number): Exclude<LaborV2TaskWageContext['state'], 'open_unpriced'> => paid === 0 ? 'unpaid' : paid >= due ? 'paid' : 'partial';
+const decodeCursor = (cursor?: string): { workDate: string; id: string } | null => { if (!cursor) return null; try { const value = JSON.parse(decodeURIComponent(cursor)); return typeof value.workDate === 'string' && typeof value.id === 'string' ? value : null; } catch { throw new Error('TAKAI V2 work cursor is invalid'); } };
+const encodeCursor = (task: LaborV2ReadModel['tasks'][number]): string => encodeURIComponent(JSON.stringify({ workDate: task.workDate, id: task.id }));
+const contextsForTask = async (db: SqlExecutor, taskId: string): Promise<LaborV2TaskWageContext[]> => {
+  const [daily, hourly, contracts] = await Promise.all([
+    db.getAllAsync<{ id: string; person_id: string; due_satang: number; paid_satang: number }>(`SELECT unit.id, unit.person_id, obligation.due_satang, COALESCE((SELECT SUM(settlement.wage_satang) FROM labor_v2_payment_recipient_settlements settlement JOIN labor_v2_payment_sessions session ON session.id = settlement.payment_session_id WHERE settlement.obligation_id = obligation.id AND session.status IN ('posted', 'revised')), 0) paid_satang FROM labor_v2_daily_unit_task_links link JOIN labor_v2_daily_units unit ON unit.id = link.daily_unit_id JOIN labor_v2_obligations obligation ON obligation.source_kind = 'daily' AND obligation.source_unit_id = unit.id WHERE link.task_id = ? AND obligation.status != 'cancelled'`, [taskId]),
+    db.getAllAsync<{ id: string; person_id: string; due_satang: number; paid_satang: number }>(`SELECT shift.id, shift.person_id, obligation.due_satang, COALESCE((SELECT SUM(settlement.wage_satang) FROM labor_v2_payment_recipient_settlements settlement JOIN labor_v2_payment_sessions session ON session.id = settlement.payment_session_id WHERE settlement.obligation_id = obligation.id AND session.status IN ('posted', 'revised')), 0) paid_satang FROM labor_v2_hourly_time_entries entry JOIN labor_v2_task_assignments assignment ON assignment.id = entry.task_assignment_id JOIN labor_v2_hourly_shifts shift ON shift.id = entry.hourly_shift_id JOIN labor_v2_obligations obligation ON obligation.source_kind = 'hourly' AND obligation.source_unit_id = shift.id WHERE assignment.task_id = ? AND obligation.status != 'cancelled'`, [taskId]),
+    db.getAllAsync<{ id: string; status: 'open' | 'finalized'; final_total_satang: number | null; paid_satang: number }>(`SELECT batch.id, batch.status, batch.final_total_satang, COALESCE((SELECT SUM(settlement.wage_satang) FROM labor_v2_payment_recipient_settlements settlement JOIN labor_v2_payment_sessions session ON session.id = settlement.payment_session_id JOIN labor_v2_obligations obligation ON obligation.id = settlement.obligation_id WHERE obligation.source_kind = 'contract' AND obligation.source_unit_id = batch.id AND session.status IN ('posted', 'revised')), 0) paid_satang FROM labor_v2_contract_batch_task_links link JOIN labor_v2_contract_batches batch ON batch.id = link.contract_batch_id WHERE link.task_id = ? AND batch.status != 'cancelled'`, [taskId]),
+  ]);
+  return [
+    ...daily.map((row) => ({ sourceKind: 'daily' as const, sourceUnitId: row.id, recipientKind: 'person' as const, personId: row.person_id, dueSatang: Number(row.due_satang), paidSatang: Number(row.paid_satang), remainingSatang: Number(row.due_satang) - Number(row.paid_satang), state: state(Number(row.due_satang), Number(row.paid_satang)) })),
+    ...hourly.map((row) => ({ sourceKind: 'hourly' as const, sourceUnitId: row.id, recipientKind: 'person' as const, personId: row.person_id, dueSatang: Number(row.due_satang), paidSatang: Number(row.paid_satang), remainingSatang: Number(row.due_satang) - Number(row.paid_satang), state: state(Number(row.due_satang), Number(row.paid_satang)) })),
+    ...contracts.map((row) => row.status === 'open' ? ({ sourceKind: 'contract' as const, sourceUnitId: row.id, recipientKind: 'group' as const, personId: null, dueSatang: null, paidSatang: 0, remainingSatang: null, state: 'open_unpriced' as const }) : ({ sourceKind: 'contract' as const, sourceUnitId: row.id, recipientKind: 'group' as const, personId: null, dueSatang: Number(row.final_total_satang), paidSatang: Number(row.paid_satang), remainingSatang: Number(row.final_total_satang) - Number(row.paid_satang), state: state(Number(row.final_total_satang), Number(row.paid_satang)) })),
+  ];
+};
+
+export const getTaskDetailV2 = async (db: SqlExecutor, taskId: string): Promise<LaborV2TaskDetail> => {
+  const task = (await getLaborV2ReadModel(db)).tasks.find((item) => item.id === taskId);
+  if (!task) throw new Error('TAKAI V2 work task is unavailable');
+  return { ...task, wageContexts: await contextsForTask(db, taskId) };
+};
+
+export const getWorkListV2 = async (db: SqlExecutor, filters: LaborV2WorkListFilters = {}, cursor?: string, limit = 50): Promise<LaborV2WorkList> => {
+  if (!Number.isSafeInteger(limit) || limit <= 0 || limit > 100) throw new Error('TAKAI V2 work limit must be between 1 and 100');
+  if (filters.startDate) date(filters.startDate, 'work start'); if (filters.endDate) date(filters.endDate, 'work end'); if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) throw new Error('TAKAI V2 work start must not follow end');
+  const marker = decodeCursor(cursor); const tasks = (await getLaborV2ReadModel(db)).tasks.filter((task) => (!filters.startDate || task.workDate >= filters.startDate) && (!filters.endDate || task.workDate <= filters.endDate) && (!filters.personId || task.assigneePersonIds.includes(filters.personId)) && (!marker || task.workDate < marker.workDate || (task.workDate === marker.workDate && task.id > marker.id)));
+  const details = await Promise.all(tasks.map((task) => getTaskDetailV2(db, task.id)));
+  const filtered = details.filter((task) => (!filters.sourceKind || task.wageContexts.some((context) => context.sourceKind === filters.sourceKind)) && (!filters.wageState || task.wageContexts.some((context) => context.state === filters.wageState)));
+  const items = filtered.slice(0, limit); return { sourceVersion: 'v2', items, nextCursor: filtered.length > items.length ? encodeCursor(items.at(-1)!) : null };
+};
+
+export const getLaborV2Today = async (db: SqlExecutor, workDate: string): Promise<LaborV2TodayProjection> => {
+  date(workDate, 'today date'); const [work, model] = await Promise.all([getWorkListV2(db, { startDate: workDate, endDate: workDate }, undefined, 5), getLaborV2ReadModel(db)]);
+  return { sourceVersion: 'v2', date: workDate, tasks: work.items, unpaid: model.obligations.filter((item) => item.remainingSatang > 0).slice(0, 5) };
 };
 
 export const getLaborV2Calendar = async (db: SqlExecutor, startDate: string, endDate: string): Promise<{ sourceVersion: 'v2'; days: LaborV2CalendarDay[] }> => {
@@ -134,7 +165,22 @@ export const getLaborV2Calendar = async (db: SqlExecutor, startDate: string, end
   return { sourceVersion: 'v2', days: [...grouped.values()].sort((left, right) => left.workDate.localeCompare(right.workDate)) };
 };
 
+export const getCalendarMonthV2 = async (db: SqlExecutor, month: string): Promise<LaborV2CalendarMonth> => {
+  if (!/^\d{4}-\d{2}$/.test(month)) throw new Error('TAKAI V2 calendar month must be YYYY-MM');
+  const startDate = `${month}-01`; const dateValue = new Date(`${startDate}T00:00:00.000Z`); if (Number.isNaN(dateValue.valueOf()) || dateValue.getUTCMonth() + 1 !== Number(month.slice(5))) throw new Error('TAKAI V2 calendar month is invalid'); const lastDate = new Date(Date.UTC(dateValue.getUTCFullYear(), dateValue.getUTCMonth() + 1, 0)).getUTCDate(); const endDate = `${month}-${String(lastDate).padStart(2, '0')}`;
+  const calendar = await getLaborV2Calendar(db, startDate, endDate); const byDate = new Map(calendar.days.map((day) => [day.workDate, day]));
+  return { sourceVersion: 'v2', month, days: Array.from({ length: lastDate }, (_, index) => { const workDate = `${month}-${String(index + 1).padStart(2, '0')}`; return { workDate, taskCount: byDate.get(workDate)?.taskCount ?? 0, taskIds: byDate.get(workDate)?.taskIds ?? [], isInMonth: true }; }) };
+};
+
 export const getLaborV2History = async (db: SqlExecutor): Promise<LaborV2ReadModel['events']> => (await getLaborV2ReadModel(db)).events;
 export const getLaborV2Unpaid = async (db: SqlExecutor): Promise<LaborV2ReadModel['obligations']> => (await getLaborV2ReadModel(db)).obligations.filter((item) => item.remainingSatang > 0);
 export const getLaborV2MoneyHistory = async (db: SqlExecutor): Promise<LaborV2ReadModel['payments']> => (await getLaborV2ReadModel(db)).payments;
-export const getLaborV2Person = async (db: SqlExecutor, personId: string): Promise<LaborV2PersonProjection> => { const model = await getLaborV2ReadModel(db); return { sourceVersion: 'v2', personId, tasks: model.tasks.filter((task) => task.assigneePersonIds.includes(personId)), obligations: model.obligations.filter((item) => item.personId === personId), payments: model.payments, events: model.events.filter((item) => item.entityId === personId || item.entityType === 'payment_session') }; };
+export const getPersonDetailV2 = async (db: SqlExecutor, personId: string): Promise<LaborV2PersonDetail> => {
+  const model = await getLaborV2ReadModel(db); const [advances, paymentLinks] = await Promise.all([listLaborV2PersonAdvances(db, personId), db.getAllAsync<{ payment_session_id: string; obligation_id: string }>('SELECT settlement.payment_session_id, settlement.obligation_id FROM labor_v2_payment_recipient_settlements settlement JOIN labor_v2_payment_sessions session ON session.id = settlement.payment_session_id WHERE settlement.person_id = ? AND session.status IN (\'posted\', \'revised\')', [personId])]);
+  const paymentIds = new Set(paymentLinks.map((row) => row.payment_session_id)); const advanceIds = new Set(advances.map((item) => item.id));
+  return { sourceVersion: 'v2', personId, tasks: model.tasks.filter((task) => task.assigneePersonIds.includes(personId)), obligations: model.obligations.filter((item) => item.personId === personId), advances, payments: model.payments.filter((payment) => paymentIds.has(payment.id)).map((payment) => ({ ...payment, settledObligationIds: paymentLinks.filter((link) => link.payment_session_id === payment.id).map((link) => link.obligation_id) })), events: model.events.filter((event) => event.entityId === personId || advanceIds.has(event.entityId) || (event.entityType === 'payment_session' && paymentIds.has(event.entityId))) };
+};
+export const getLaborV2Person = async (db: SqlExecutor, personId: string): Promise<LaborV2PersonProjection> => getPersonDetailV2(db, personId);
+
+/** Legacy V1 stays a labelled read-only boundary; callers must never total it with V2. */
+export const getLegacyLaborRead = async (db: SqlExecutor): Promise<LegacyLaborRead> => ({ sourceVersion: 'v1', sourceLabel: 'ประวัติเดิม (V1, อ่านอย่างเดียว)', jobs: (await db.getAllAsync<{ id: string; work_date: string; title: string }>('SELECT id, work_date, title FROM labor_jobs ORDER BY work_date DESC, created_at DESC, id ASC')).map((row) => ({ id: row.id, workDate: row.work_date, title: row.title })) });
