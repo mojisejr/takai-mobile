@@ -1,0 +1,28 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-v2-read-ux-restoration",
+  "lane": "expo-go-device-eye",
+  "status": "pending_operator",
+  "claimLabel": "Expo Go Device Eye Pending",
+  "capturedAt": null,
+  "client": {
+    "platform": "android",
+    "expoGoVersion": null,
+    "device": null
+  },
+  "scenarios": [
+    { "id": "person-first-daily-three-jobs", "status": "not_run", "expected": "One person with three jobs creates one daily wage input at the entered rate.", "operatorResult": null },
+    { "id": "daily-plus-open-team-contract", "status": "not_run", "expected": "A daily set and an open team contract coexist; opening the contract creates no payment due.", "operatorResult": null },
+    { "id": "hourly-atomic-shift", "status": "not_run", "expected": "A person's job minutes are captured together with an explicit hourly rate.", "operatorResult": null },
+    { "id": "keyboard-and-tabs", "status": "not_run", "expected": "Last fields, picker, add/remove job, and save remain reachable with Android keyboard visible.", "operatorResult": null }
+  ],
+  "observations": {
+    "coldOpen": null,
+    "touch": null,
+    "scroll": null,
+    "keyboard": null,
+    "safeAreaAndThaiLayout": null,
+    "persistence": null
+  },
+  "operatorAcceptance": { "accepted": null, "note": null }
+}

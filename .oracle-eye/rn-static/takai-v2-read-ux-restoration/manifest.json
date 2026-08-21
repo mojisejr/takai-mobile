@@ -3,12 +3,13 @@
   "phase": "takai-v2-read-ux-restoration",
   "lane": "rn-static-eye",
   "claimLabel": "RN Static Token Gate Closed",
-  "generatedAt": "2026-08-21T05:08:43.719Z",
+  "generatedAt": "2026-08-21T05:20:23.300Z",
   "checks": [
     "test:design-contract",
     "test:labor-navigation-ui",
     "test:labor-read-ui",
     "test:labor-v2-read-navigation-ui",
+    "test:labor-write-ui",
     "test:labor-notebook-boundary"
   ],
   "notes": [

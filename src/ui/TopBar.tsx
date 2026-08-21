@@ -8,12 +8,13 @@ type TopBarProps = VariantProps<TopBarVariant> & {
   title: string;
   actionLabel?: string;
   subtitle?: string;
+  hideSubtitle?: boolean;
   onBackPress?: PressHandler;
   onActionPress?: PressHandler;
   onInfoPress?: PressHandler;
 };
 
-export function TopBar({ actionLabel, onActionPress, onBackPress, onInfoPress, subtitle, title, variant = 'default' }: TopBarProps) {
+export function TopBar({ actionLabel, hideSubtitle = false, onActionPress, onBackPress, onInfoPress, subtitle, title, variant = 'default' }: TopBarProps) {
   const showBack = variant === 'back' || variant === 'plot';
   const isPlot = variant === 'plot';
 
@@ -28,7 +29,7 @@ export function TopBar({ actionLabel, onActionPress, onBackPress, onInfoPress, s
       )}
       <View style={styles.titleBlock}>
         <Text numberOfLines={1} style={[styles.brand, isPlot && styles.inverseText]}>TAKAI</Text>
-        <Text numberOfLines={1} style={[styles.title, isPlot && styles.inverseText]}>{subtitle ?? title}</Text>
+        {!hideSubtitle ? <Text numberOfLines={1} style={[styles.title, isPlot && styles.inverseText]}>{subtitle ?? title}</Text> : null}
       </View>
       {actionLabel ? (
         <Pressable accessibilityRole="button" hitSlop={10} onPress={onActionPress}>
