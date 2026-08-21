@@ -1,0 +1,35 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-warm-notebook-ui-redesign",
+  "lane": "expo-go-device-eye",
+  "status": "pending_operator",
+  "claimLabel": "Expo Go Device Eye Pending",
+  "gateOfRecord": "Real Android Expo Go operator observation",
+  "capturedAt": null,
+  "device": { "manufacturer": null, "model": null, "androidVersion": null, "screenOrSafeAreaNotes": null },
+  "client": { "kind": "Expo Go Android", "expoGoVersion": null, "expectedSdkVersion": "54.0.0", "expectedRuntimeVersion": "exposdk:54.0.0", "compatibilityResult": "pending_operator_observation" },
+  "launch": { "method": null, "coldLaunch": "pending", "openResult": "pending", "crashOrCompatibilityMessage": null },
+  "dataSafety": { "notebookDatabase": "takai-local-v1.db", "notebookKind": "pending", "backupOrDisposableDataDecision": null, "resetUsed": null },
+  "scenarios": [
+    { "id": "record-person-team-first", "status": "not_run", "expected": "Person/team-first Record selection remains readable and reachable.", "operatorResult": null, "screenshots": [] },
+    { "id": "record-wage-method-sheet", "status": "not_run", "expected": "Wage method uses a picker sheet and cancel writes nothing.", "operatorResult": null, "screenshots": [] },
+    { "id": "record-daily-full-half-picker", "status": "not_run", "expected": "Daily full/half selection is compact and no-wage remains explicit.", "operatorResult": null, "screenshots": [] },
+    { "id": "record-hourly-vertical-fields", "status": "not_run", "expected": "Hourly job, hours/minutes, and remove stack vertically without narrow-screen spill.", "operatorResult": null, "screenshots": [] },
+    { "id": "record-long-form-keyboard", "status": "not_run", "expected": "Keyboard, sheets, sticky save, and tabs remain usable.", "operatorResult": null, "screenshots": [] },
+    { "id": "read-money-notebook-consistency", "status": "not_run", "expected": "The five notebook screens retain readable warm grammar and work/money comprehension.", "operatorResult": null, "screenshots": [] }
+  ],
+  "observations": {
+    "coldOpen": { "status": "not_run", "note": null },
+    "touchTargets": { "status": "not_run", "note": null },
+    "scrolling": { "status": "not_run", "note": null },
+    "keyboard": { "status": "not_run", "note": null },
+    "safeAreaAndThaiLayout": { "status": "not_run", "note": null },
+    "persistence": { "status": "not_run", "note": null }
+  },
+  "operatorAcceptance": { "accepted": null, "operatorNameOrRole": null, "summary": null },
+  "limitations": [
+    "This is a prepared template; it contains no device observation and cannot close Expo Go Device Eye.",
+    "RN Web and RN Static evidence do not prove Android touch, Thai IME, safe areas, or persistence.",
+    "Expo Go evidence does not close Native Eye or prove Android internal-build packaging."
+  ]
+}
