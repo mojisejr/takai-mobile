@@ -33,7 +33,7 @@ verify_eyes:
     sees: [Android touch, scrolling, keyboard, safe area, operator comprehension]
     does_not_see: [Native build packaging]
     artifact_sink: .oracle-eye/expo-go/takai-compensation-v2/
-    commands: [Operator runs Expo Go Android scenarios in Phase 5]
+    commands: [Operator runs the prepared V2 Expo Go Android scenarios in Phase 4]
     claim_label: Expo Go Device Eye Closed
 labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, จ่ายเงิน, คน]
 proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
@@ -99,6 +99,6 @@ Normal app boot opens the real local notebook and never creates proof records. P
 | Deterministic | every phase | ledger, adapter, and projection correctness |
 | RN Static | phase 3 | V2 contract, tokens, imports, primitive/route presence |
 | RN Web | phase 3 | rendered layout, browser console/network issues |
-| Expo Go device | phase 5 | Android touch, scrolling, safe area, keyboard, comprehension |
+| Expo Go device | phase 4 | Android touch, scrolling, safe area, keyboard, comprehension |
 
 RN Web and static proof do not claim native device usability. Expo Go operator acceptance remains the gate of record.

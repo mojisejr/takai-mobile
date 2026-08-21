@@ -1,0 +1,53 @@
+{
+  "project": "takai-mobile",
+  "taskId": "#takai-compensation-unit-v2-reframe",
+  "phase": "4-operator-scenario-rebaseline",
+  "lane": "expo-go-device-eye",
+  "status": "pending_operator",
+  "claimLabel": "Expo Go Device Eye Pending",
+  "gateOfRecord": "Real Android Expo Go operator observation",
+  "capturedAt": null,
+  "git": { "sha": null, "branch": null, "workingTree": null },
+  "device": { "manufacturer": null, "model": null, "androidVersion": null, "screenOrSafeAreaNotes": null },
+  "client": {
+    "kind": "Expo Go Android",
+    "expoGoVersion": null,
+    "expectedSdkVersion": "54.0.0",
+    "expectedRuntimeVersion": "exposdk:54.0.0",
+    "compatibilityResult": "pending_operator_observation"
+  },
+  "launch": { "method": null, "coldLaunch": "pending", "openResult": "pending", "crashOrCompatibilityMessage": null },
+  "dataSafety": {
+    "notebookDatabase": "takai-local-v1.db",
+    "notebookKind": "pending",
+    "backupOrDisposableDataDecision": null,
+    "resetUsed": null,
+    "testPeopleCreated": []
+  },
+  "scenarios": [
+    { "id": "daily-three-tasks-one-wage", "status": "not_run", "expected": "Three tasks for one worker/date create one daily person obligation, not three wages.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "daily-plus-open-two-member-contract", "status": "not_run", "expected": "One daily due can coexist with an open two-member contract that has no due or member shares.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "one-person-contract-batch", "status": "not_run", "expected": "A one-person contract remains an unpriced batch lump, not a person wage.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "contract-finalization-group-payout", "status": "not_run", "expected": "Later contract finalization creates one group obligation and one group payout, with no person advance recovery.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "unequal-hourly-workers", "status": "not_run", "expected": "Different worker minute totals create independent hourly obligations, never an equal split.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "partial-wage-bonus-person-advance-recovery", "status": "not_run", "expected": "Partial wage, bonus, and same-person advance recovery reconcile separately and only for a person obligation.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "calendar-person-payment-history", "status": "not_run", "expected": "Task calendar/history, person history, unpaid compensation, payment history, and reopen persistence remain distinguishable.", "operatorResult": null, "screenshots": [], "repairItemIds": [] }
+  ],
+  "observations": {
+    "coldOpen": { "status": "not_run", "note": null },
+    "touchTargets": { "status": "not_run", "note": null },
+    "scrolling": { "status": "not_run", "note": null },
+    "keyboard": { "status": "not_run", "note": null },
+    "safeAreaAndThaiLayout": { "status": "not_run", "note": null },
+    "workMoneyComprehension": { "status": "not_run", "note": null },
+    "groupPersonRecoveryComprehension": { "status": "not_run", "note": null },
+    "relaunchPersistence": { "status": "not_run", "note": null }
+  },
+  "repairItems": [],
+  "operatorAcceptance": { "accepted": null, "operatorNameOrRole": null, "summary": null },
+  "limitations": [
+    "This pending template contains no device observation and must not close Expo Go Device Eye.",
+    "The environment has no adb device bridge; a human must run Expo Go Android and record the results.",
+    "Expo Go evidence does not close Native Eye or prove Android internal-build packaging."
+  ]
+}

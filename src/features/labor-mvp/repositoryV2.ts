@@ -1,6 +1,7 @@
 import type { SqlExecutor } from '../../data/migrations';
 import { planLaborCompensationV2 } from './compensationV2';
-import type { CorrectLaborV2PaymentSessionInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2PersonProjection, LaborV2ReadModel, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input } from './types';
+import { createLaborWorkerAdvance, listLaborWorkerAdvances } from './repository';
+import type { CorrectLaborV2PaymentSessionInput, CreateLaborWorkerAdvanceInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2OpenContractBatch, LaborV2PersonProjection, LaborV2ReadModel, LaborWorkerAdvance, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input } from './types';
 
 const now = (): string => new Date().toISOString();
 const id = (prefix: string): string => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -69,6 +70,20 @@ export const recordLaborContractProgressV2 = async (db: SqlExecutor, batchId: st
   date(input.progressDate, 'contract progress'); const batch = (await db.getAllAsync<{ id: string }>("SELECT id FROM labor_v2_contract_batches WHERE id = ? AND status = 'open'", [batchId]))[0]; if (!batch) throw new Error('TAKAI V2 open contract batch is unavailable'); if (input.quantityMilli !== undefined) positive(input.quantityMilli, 'contract progress quantity');
   const progressId = input.id ?? id('labor-v2-progress'); await db.runAsync('INSERT INTO labor_v2_contract_progress (id, contract_batch_id, progress_date, note, quantity_milli, unit_label, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [progressId, batchId, input.progressDate, text(input.note), input.quantityMilli ?? null, text(input.unitLabel), occurredAt]); await event(db, { entityType: 'contract_batch', entityId: batchId, action: 'progress_recorded', occurredAt, after: input }); return progressId;
 });
+
+export const listOpenLaborContractBatchesV2 = async (db: SqlExecutor): Promise<LaborV2OpenContractBatch[]> => {
+  const batches = await db.getAllAsync<{ id: string; title: string; starts_on: string }>("SELECT id, title, starts_on FROM labor_v2_contract_batches WHERE status = 'open' ORDER BY starts_on DESC, id ASC");
+  const members = await db.getAllAsync<{ contract_batch_id: string; person_id: string }>('SELECT contract_batch_id, person_id FROM labor_v2_contract_batch_members ORDER BY sort_order ASC, id ASC');
+  return batches.map((batch) => ({ id: batch.id, title: batch.title, startsOn: batch.starts_on, memberPersonIds: members.filter((member) => member.contract_batch_id === batch.id).map((member) => member.person_id) }));
+};
+
+/** Shared person-finance rows, exposed through a V2-only UI boundary; no v1 payable is created. */
+export const createLaborV2PersonAdvance = async (db: SqlExecutor, input: CreateLaborWorkerAdvanceInput, occurredAt = now()): Promise<string> => {
+  const advanceId = await createLaborWorkerAdvance(db, input, occurredAt);
+  await event(db, { entityType: 'person_advance', entityId: advanceId, action: 'issued', occurredAt, after: { ...input, id: advanceId } });
+  return advanceId;
+};
+export const listLaborV2PersonAdvances = (db: SqlExecutor, personId?: string): Promise<LaborWorkerAdvance[]> => listLaborWorkerAdvances(db, personId);
 
 export const finalizeLaborContractBatchV2 = async (db: SqlExecutor, batchId: string, input: FinalizeLaborContractBatchV2Input, occurredAt = now()): Promise<string> => transaction(db, async () => {
   date(input.finalizedAt, 'contract finalization'); const batch = (await db.getAllAsync<{ id: string }>("SELECT id FROM labor_v2_contract_batches WHERE id = ? AND status = 'open'", [batchId]))[0]; if (!batch) throw new Error('TAKAI V2 open contract batch is unavailable');

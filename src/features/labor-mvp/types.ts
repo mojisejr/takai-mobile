@@ -502,6 +502,7 @@ export type RecordLaborDayV2Input = {
 export type StartLaborContractBatchV2Input = { id?: string; title: string; startsOn: string; deadlineOn?: string; note?: string; memberPersonIds: string[]; taskIds?: string[] };
 export type RecordLaborContractProgressV2Input = { id?: string; progressDate: string; note?: string; quantityMilli?: number; unitLabel?: string };
 export type FinalizeLaborContractBatchV2Input = { finalizedAt: string; finalization: NonNullable<LaborV2ContractBatchIntent['finalization']> };
+export type LaborV2OpenContractBatch = { id: string; title: string; startsOn: string; memberPersonIds: string[]; };
 export type PostLaborV2PaymentSessionInput = {
   id?: string; paymentDate: string; method?: string; note?: string;
   settlements: Array<{ id?: string; obligationId: string; wageSatang: number; bonusSatang?: number; advanceRecoveries?: Array<{ id?: string; advanceId: string; amountSatang: number }> }>;
