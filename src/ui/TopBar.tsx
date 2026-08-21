@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    minHeight: 64,
+    minHeight: 72,
     paddingHorizontal: tokens.spacing.page,
   },
   plot: {
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     width: 28,
   },
-  mascot: { height: 40, width: 40 },
+  mascot: { height: 48, width: 48 },
   titleBlock: { flex: 1, minWidth: 0 },
   brand: { color: tokens.color.primary.green, letterSpacing: 0.8, ...typographyStyle('caption') },
   title: {

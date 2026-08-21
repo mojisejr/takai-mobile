@@ -22,20 +22,21 @@ type AppShellProps = ChildrenProps &
 
 export function AppShell({ activeTab, children, keyboardAware = false, onTabPress, showTabs = true, scrollEnabled = true, variant = 'tabbed' }: AppShellProps) {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     if (!keyboardAware) return;
-    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    const show = Keyboard.addListener('keyboardDidShow', (event) => { setKeyboardOpen(true); setKeyboardHeight(event.endCoordinates.height); });
+    const hide = Keyboard.addListener('keyboardDidHide', () => { setKeyboardOpen(false); setKeyboardHeight(0); });
     return () => { show.remove(); hide.remove(); };
   }, [keyboardAware]);
-  const content = scrollEnabled ? <ScrollView automaticallyAdjustKeyboardInsets={keyboardAware} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+  const content = scrollEnabled ? <ScrollView automaticallyAdjustKeyboardInsets={keyboardAware} contentContainerStyle={[styles.content, keyboardAware && keyboardOpen && { paddingBottom: keyboardHeight + tokens.spacing.section }]} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
     {children}
   </ScrollView> : <View style={styles.staticContent}>{children}</View>;
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <View style={[styles.base, variant === 'modal' && styles.modal]}>
         {variant === 'tabbed' ? <GardenAccent /> : null}
-        {keyboardAware ? <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardSurface}>{content}</KeyboardAvoidingView> : content}
+        {keyboardAware ? <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0} style={styles.keyboardSurface}>{content}</KeyboardAvoidingView> : content}
         {showTabs && variant === 'tabbed' && !keyboardOpen ? (
           <SafeAreaView edges={['bottom']} style={styles.tabs}>
             <BottomTabBar activeTab={activeTab} onTabPress={onTabPress} />

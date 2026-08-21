@@ -35,6 +35,7 @@
     "test:warm-notebook-primitives": "node scripts/warm-notebook-primitives-contract-check.mjs",
     "test:warm-notebook-read-money": "node scripts/warm-notebook-read-money-contract-check.mjs",
     "test:warm-notebook-record": "node scripts/warm-notebook-record-contract-check.mjs",
+    "test:warm-notebook-responsive": "node scripts/warm-notebook-responsive-contract-check.mjs",
     "test:domain": "tsx scripts/domain-schema-check.ts",
     "test:activity-materials": "tsx scripts/activity-material-contract-check.ts",
     "test:material-catalog-integrity": "tsx scripts/material-catalog-integrity-contract-check.ts",

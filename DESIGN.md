@@ -59,7 +59,7 @@ Bottom navigation is exactly:
 
 Payment is also contextual from Today, Job Detail, Person Detail, or history; every route opens the same payment entry state. `เมนู` and its hamburger affordance are retired from the Labor MVP.
 
-The header always carries the TAKAI mascot and brand with the current screen as its subtitle. Detail screens provide a back action; the `i` action opens an in-app help sheet. Meaningful choices use picker/search sheets, including work kind, settlement route, people, and history filters. Compact chips are reserved for short states such as `ค้างจ่าย`, `จ่ายแล้ว`, and `ครึ่งวัน`. `ประวัติเดิม (V1, อ่านอย่างเดียว)` appears only in history/detail context and never contributes to V2 totals.
+The header always carries the TAKAI mascot and brand with the current screen as its subtitle. Detail screens provide a back action; the `i` action opens an in-app help sheet. Meaningful choices use picker/search sheets, including work kind, settlement route, people, and history filters. Compact chips are reserved for short states such as `ค้างจ่าย`, `จ่ายแล้ว`, and `ครึ่งวัน`. V1 history stays preserved in the local database but is not rendered during active V2 product development; reintroduce it only with an explicit owner decision.
 
 ## Ledger meaning that UI must preserve
 

@@ -11,6 +11,7 @@
     },
     "android": {
       "package": "com.nonthasak.takai",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#F4E9D8",
         "foregroundImage": "./assets/android-icon-foreground.png",

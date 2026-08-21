@@ -12,7 +12,7 @@ export function IconDisc({ icon, tone = 'sage', size = 40 }: { icon: TakaiIconKe
 }
 
 export function AmountSummary({ items }: { items: Array<{ label: string; value: string; icon?: TakaiIconKey }> }) {
-  return <View style={styles.amountSummary}>{items.map((item) => <View key={item.label} style={styles.amountItem}>{item.icon ? <IconDisc icon={item.icon} size={32} /> : null}<View style={styles.amountText}><Text numberOfLines={1} style={styles.amountLabel}>{item.label}</Text><Text numberOfLines={1} style={styles.amountValue}>{item.value}</Text></View></View>)}</View>;
+  return <View style={styles.amountSummary}>{items.map((item) => <View key={item.label} style={styles.amountItem}>{item.icon ? <IconDisc icon={item.icon} size={32} /> : null}<View style={styles.amountText}><Text style={styles.amountLabel}>{item.label}</Text><Text style={styles.amountValue}>{item.value}</Text></View></View>)}</View>;
 }
 
 /** Keep long Thai titles and a money/state slot from competing for the same width. */
@@ -30,9 +30,9 @@ const styles = StyleSheet.create({
   iconDiscsage: { backgroundColor: tokens.color.surface.sage },
   iconDiscgold: { backgroundColor: tokens.color.surface.gold },
   iconDiscgreen: { backgroundColor: tokens.color.primary.green },
-  amountSummary: { flexDirection: 'row', gap: 8 },
-  amountItem: { alignItems: 'center', backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.row, borderWidth: 1, flex: 1, flexDirection: 'row', gap: 8, minWidth: 0, padding: 10 },
-  amountText: { flex: 1, minWidth: 0 },
+  amountSummary: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  amountItem: { alignItems: 'flex-start', backgroundColor: tokens.color.surface.card, borderColor: tokens.color.border.soft, borderRadius: tokens.radius.row, borderWidth: 1, flexBasis: '30%', flexGrow: 1, gap: 8, minWidth: 84, padding: 12 },
+  amountText: { alignSelf: 'stretch', gap: 2, minWidth: 0 },
   amountLabel: { color: tokens.color.text.muted, ...typographyStyle('caption') },
   amountValue: { color: tokens.color.text.primary, fontVariant: ['tabular-nums'], ...typographyStyle('h3') },
   trailing: { alignItems: 'flex-end', flexShrink: 0, gap: 4, minWidth: 80 },

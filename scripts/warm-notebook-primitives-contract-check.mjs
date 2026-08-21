@@ -9,7 +9,7 @@ const tabs = read('src/ui/BottomTabBar.tsx');
 for (const marker of ['MaterialDesignIcons', 'takaiIconMap[tab.icon]', 'minHeight: 48', 'minWidth: 0', "label: 'วันนี้'", "label: 'คน'"]) if (!tabs.includes(marker)) fail(`five-tab notebook navigation missing ${marker}`);
 
 const topBar = read('src/ui/TopBar.tsx');
-for (const marker of ['takai-mascot-bust.png', '<IconDisc icon="info"', 'minHeight: 64', 'minHeight: 44']) if (!topBar.includes(marker)) fail(`branded header missing ${marker}`);
+for (const marker of ['takai-mascot-bust.png', '<IconDisc icon="info"', 'minHeight: 72', 'minHeight: 44', 'height: 48, width: 48']) if (!topBar.includes(marker)) fail(`branded header missing ${marker}`);
 
 const primitives = read('src/ui/NotebookPrimitives.tsx');
 for (const marker of ['IconDisc', 'AmountSummary', 'ListRowTrailing', 'GardenAccent', 'minWidth: 0', 'takaiIconMap']) if (!primitives.includes(marker)) fail(`notebook primitive missing ${marker}`);
