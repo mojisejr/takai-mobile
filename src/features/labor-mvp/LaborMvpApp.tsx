@@ -12,6 +12,7 @@ type Tab = 'today' | 'work' | 'record' | 'payment' | 'people';
 type Kind = 'daily' | 'hourly' | 'contract';
 export type Ready = { adapter: LaborV2Adapter; model: LaborV2ReadModel; workers: LaborWorker[]; openContracts: LaborV2OpenContractBatch[]; advances: LaborWorkerAdvance[]; date: string };
 const tabTitle: Record<Tab, string> = { today: 'วันนี้', work: 'งาน', record: 'บันทึกงาน', payment: 'จ่ายเงิน', people: 'คน' };
+const helpText: Record<Tab, string> = { today: 'ดูงานวันนี้และค่าแรงค้างจ่าย แล้วกดไปยังหน้าที่ต้องการได้ทันที', work: 'กดวันที่ในปฏิทินเพื่อดูงานของวันนั้น หรือเปิดรายการงานทั้งหมดเพื่อค้นหาและกรอง', record: 'เลือกคนหรือชุดงานก่อน เติมงานที่ทำวันนี้ แล้วเลือกวิธีคิดค่าแรง', payment: 'เลือกค่าแรงค้างจ่ายก่อน แล้วบันทึกเงินที่จ่าย โบนัส หรือการหักเงินเบิก', people: 'แตะชื่อเพื่อดูประวัติ แก้ไขข้อมูล หรือเก็บรายชื่อโดยไม่ลบประวัติ' };
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const baht = (satang: number) => `${new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }).format(satang / 100)} บาท`;
 const personName = (workers: LaborWorker[], id: string | null) => workers.find((item) => item.id === id)?.displayName ?? 'ประวัติเดิม';
@@ -23,7 +24,7 @@ export function LaborMvpApp() {
   if (!ready) return <ScreenSkeleton lines={4} />;
   const props = { ready, refresh: () => load(), notify: setMessage };
   return <View style={styles.root}><AppShell activeTab={tab as BottomTabKey} keyboardAware={tab === 'record' || tab === 'people'} onTabPress={(next) => setTab(next as Tab)} showTabs variant="tabbed" scrollEnabled={tab !== 'work'}>
-    <TopBar hideSubtitle title={tabTitle[tab]} variant="default" onInfoPress={() => setMessage('TAKAI · บันทึกงานและค่าแรงแยกกัน')} />{ready.adapter.mode === 'proof' ? <StatusChip label="ข้อมูลทดสอบ V2" variant="offline" /> : null}<Text style={styles.pageTitle}>{tabTitle[tab]}</Text>
+    <TopBar hideSubtitle title={tabTitle[tab]} variant="default" onInfoPress={() => setMessage(helpText[tab])} />{ready.adapter.mode === 'proof' ? <StatusChip label="ข้อมูลทดสอบ V2" variant="offline" /> : null}<Text style={styles.pageTitle}>{tabTitle[tab]}</Text>
     {tab === 'today' ? <TodayScreen {...props} onRecord={() => setTab('record')} onPayment={() => setTab('payment')} onWork={() => setTab('work')} /> : null}
     {tab === 'work' ? <WorkScreen {...props} onRecord={() => setTab('record')} /> : null}
     {tab === 'record' ? <RecordScreen {...props} onPayment={() => setTab('payment')} /> : null}
