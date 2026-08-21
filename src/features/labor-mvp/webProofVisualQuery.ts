@@ -1,5 +1,5 @@
 export type LaborWebProofVisual = 'none' | 'success-toast' | 'confirm-sheet';
-export type LaborWebProofScreen = 'today' | 'record' | 'payment' | null;
+export type LaborWebProofScreen = 'today' | 'work' | 'record' | 'payment' | null;
 export type LaborWebProofScenario = 'daily-three-task' | 'open-contract' | 'payment-selection' | null;
 
 /**
@@ -19,7 +19,7 @@ export const selectLaborWebProofScreenFromSearch = (search: string): LaborWebPro
   const params = new URLSearchParams(search);
   if (params.get('proof') !== '1') return null;
   const screen = params.get('screen');
-  return screen === 'record' || screen === 'payment' || screen === 'today' ? screen : 'today';
+  return screen === 'record' || screen === 'payment' || screen === 'today' || screen === 'work' ? screen : 'today';
 };
 
 export const selectLaborWebProofScenarioFromSearch = (search: string): LaborWebProofScenario => {

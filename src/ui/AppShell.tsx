@@ -12,13 +12,15 @@ type AppShellProps = ChildrenProps &
     activeTab?: BottomTabKey;
     onTabPress?: (tab: BottomTabKey) => void;
     showTabs?: boolean;
+    /** A screen with its own FlatList must own the vertical scroll surface. */
+    scrollEnabled?: boolean;
   };
 
-export function AppShell({ activeTab, children, onTabPress, showTabs = true, variant = 'tabbed' }: AppShellProps) {
+export function AppShell({ activeTab, children, onTabPress, showTabs = true, scrollEnabled = true, variant = 'tabbed' }: AppShellProps) {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <View style={[styles.base, variant === 'modal' && styles.modal]}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.content} scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false}>
           {children}
         </ScrollView>
         {showTabs && variant === 'tabbed' ? (
@@ -44,6 +46,7 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.color.surface.card,
   },
   content: {
+    alignItems: 'stretch',
     gap: tokens.spacing.section,
     padding: tokens.spacing.page,
     paddingBottom: 8,

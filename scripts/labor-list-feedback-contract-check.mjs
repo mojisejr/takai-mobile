@@ -31,8 +31,8 @@ for (const required of ['ConfirmActionSheet', 'FeedbackToast', 'FormFeedback', '
 for (const stale of ['Labor Preview` is visibly labelled', '.oracle-eye/rn-web/labor-calendar-mvp/', '.oracle-eye/rn-static/labor-calendar-mvp/', 'takai-payment-ia/']) {
   assert.equal(design.includes(stale), false, `DESIGN.md must not retain stale proof language/path: ${stale}`);
 }
-assert.ok(design.includes('.oracle-eye/rn-web/takai-compensation-v2/'), 'DESIGN.md must point to the V2 RN Web evidence sink');
-assert.ok(eye.includes("'takai-compensation-v2'"), 'RN Web harness default must point to the V2 evidence sink');
+assert.ok(design.includes('.oracle-eye/rn-web/takai-v2-read-ux-restoration/'), 'DESIGN.md must point to the V2 restoration RN Web evidence sink');
+assert.ok(eye.includes("'takai-v2-read-ux-restoration'"), 'RN Web harness default must point to the V2 restoration evidence sink');
 assert.equal(app.includes('styles.laborRow'), false, 'standalone labor bands must be replaced by LedgerListCard rows');
 assert.equal(app.includes('styles.personRow'), false, 'standalone people bands must be replaced by LedgerListCard rows');
 for (const required of ["params.get('proof') !== '1'", "params.get('toast') === 'success'", "params.get('sheet') === 'confirm'"]) {

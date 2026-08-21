@@ -59,6 +59,7 @@
     "test:labor-read-projections": "tsx scripts/labor-read-projections-contract-check.ts",
     "test:labor-navigation-ui": "tsx scripts/labor-navigation-ui-contract-check.ts",
     "test:labor-read-ui": "tsx scripts/labor-read-ui-contract-check.ts",
+    "test:labor-v2-read-navigation-ui": "tsx scripts/labor-v2-read-navigation-ui-contract-check.ts",
     "test:labor-write-ui": "tsx scripts/labor-write-ui-contract-check.ts",
     "test:labor-people-money-flow": "tsx scripts/labor-people-money-flow-contract-check.ts",
     "test:labor-compensation-v2": "tsx scripts/labor-compensation-v2-contract-check.ts",

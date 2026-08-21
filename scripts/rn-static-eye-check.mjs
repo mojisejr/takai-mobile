@@ -3,10 +3,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const phase = process.env.TAKAI_RN_STATIC_EYE_PHASE || 'takai-compensation-v2';
+const phase = process.env.TAKAI_RN_STATIC_EYE_PHASE || 'takai-v2-read-ux-restoration';
 const sink = join(root, '.oracle-eye', 'rn-static', phase);
 const manifestPath = join(sink, 'manifest.json');
-const checks = ['test:design-contract', 'test:labor-navigation-ui', 'test:labor-read-ui', 'test:labor-notebook-boundary'];
+const checks = ['test:design-contract', 'test:labor-navigation-ui', 'test:labor-read-ui', 'test:labor-v2-read-navigation-ui', 'test:labor-notebook-boundary'];
 
 mkdirSync(sink, { recursive: true });
 for (const check of checks) {

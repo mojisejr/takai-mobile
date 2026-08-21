@@ -18,21 +18,21 @@ verify_eyes:
     gate: required
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
-    artifact_sink: .oracle-eye/rn-static/takai-compensation-v2/
-    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-read-ui, npm run test:labor-notebook-boundary]
+    artifact_sink: .oracle-eye/rn-static/takai-v2-read-ux-restoration/
+    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
     gate: required
     sees: [Rendered Expo Web layout, browser console, failed requests, narrow viewport overflow]
     does_not_see: [Expo Go touch, physical safe areas, native packaging]
-    artifact_sink: .oracle-eye/rn-web/takai-compensation-v2/
-    commands: [npm run eye:rn-web, browser capture at 390x844 and 320px]
+    artifact_sink: .oracle-eye/rn-web/takai-v2-read-ux-restoration/
+    commands: [npm run eye:rn-web, browser capture at 390x844 and 320x844]
     claim_label: RN Web Eye Closed
   - kind: expo-go-device-eye
     gate: manual
     sees: [Android touch, scrolling, keyboard, safe area, operator comprehension]
     does_not_see: [Native build packaging]
-    artifact_sink: .oracle-eye/expo-go/takai-compensation-v2/
+    artifact_sink: .oracle-eye/expo-go/takai-v2-read-ux-restoration/
     commands: [Operator runs the prepared V2 Expo Go Android scenarios in Phase 4]
     claim_label: Expo Go Device Eye Closed
 labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, จ่ายเงิน, คน]
@@ -43,7 +43,7 @@ proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
 
 ## Product frame
 
-TAKAI is a warm, local-first work-and-payment notebook for a garden owner. Its primary work record is a **task**; money is a separate **compensation unit** and its resulting obligation. A calendar/history derives from tasks, while money views derive from obligations and payments; neither is a second source of truth.
+TAKAI is a warm, local-first work-and-payment notebook for a garden owner. Its primary fact is `งานที่ทำวันนี้`; `ค่าแรง` and payment are separate facts. A calendar/history derives from work, while money views derive from wage and payment; neither is a second source of truth.
 
 The MVP does not expose the prior garden Activity, plot, hole, case, tracker, or material flows in its primary navigation. Those modules remain preserved in source only. Labor jobs can be general work with no plot.
 
@@ -51,15 +51,15 @@ The MVP does not expose the prior garden Activity, plot, hole, case, tracker, or
 
 Bottom navigation is exactly:
 
-1. `วันนี้` — operational work and money attention.
-2. `งาน` — calendar, selected-day ledger, and history.
+1. `วันนี้` — งานที่ทำวันนี้ล่าสุดไม่เกิน 5 รายการ และค่าแรงค้างจ่ายไม่เกิน 5 รายการ พร้อมทางไป `ดูทั้งหมด`.
+2. `งาน` — ปฏิทิน 7 คอลัมน์, เลือกวัน, รายการงานทั้งหมดแบบกรองได้, และรายละเอียดงาน.
 3. `บันทึกงาน` — task capture plus daily/hourly/open-contract compensation units.
 4. `จ่ายเงิน` — obligation payment, bonus, person-only advance recovery, and reasoned correction entry.
 5. `คน` — people, wage balance, advance balance, and person history.
 
 Payment is also contextual from Today, Job Detail, Person Detail, or history; every route opens the same payment entry state. `เมนู` and its hamburger affordance are retired from the Labor MVP.
 
-The header always carries the TAKAI mascot and brand with the current screen as its subtitle. Detail screens provide a back action; the `i` action opens an in-app help sheet. Meaningful choices use picker/search sheets, including work kind, settlement route, people, and history filters. Compact chips are reserved for short states such as `ค้างจ่าย`, `จ่ายแล้ว`, and `ครึ่งวัน`.
+The header always carries the TAKAI mascot and brand with the current screen as its subtitle. Detail screens provide a back action; the `i` action opens an in-app help sheet. Meaningful choices use picker/search sheets, including work kind, settlement route, people, and history filters. Compact chips are reserved for short states such as `ค้างจ่าย`, `จ่ายแล้ว`, and `ครึ่งวัน`. `ประวัติเดิม (V1, อ่านอย่างเดียว)` appears only in history/detail context and never contributes to V2 totals.
 
 ## Ledger meaning that UI must preserve
 

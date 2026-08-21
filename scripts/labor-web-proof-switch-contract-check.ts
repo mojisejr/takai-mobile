@@ -12,6 +12,7 @@ const main = async (): Promise<void> => {
   assert.equal(selectLaborWebProofVisual('?proof=1&sheet=confirm'), 'confirm-sheet', 'proof URL must expose a non-writing confirmation sheet fixture');
   assert.equal(selectLaborWebProofScreen('?proof=1&screen=record'), 'record', 'proof record capture must be explicitly addressed');
   assert.equal(selectLaborWebProofScreen('?proof=1&screen=payment'), 'payment', 'proof payment capture must be explicitly addressed');
+  assert.equal(selectLaborWebProofScreen('?proof=1&screen=work'), 'work', 'proof work capture must be explicitly addressed');
   assert.equal(selectLaborWebProofScenario('?proof=1&scenario=daily-three-task'), 'daily-three-task', 'proof daily capture must declare its three-task fixture');
   assert.equal(selectLaborWebProofScenario('?proof=1&scenario=open-contract'), 'open-contract', 'proof contract capture must declare its unpriced batch fixture');
   assert.equal(selectLaborWebProofScenario('?proof=1&scenario=payment-selection'), 'payment-selection', 'proof payment capture must declare its selected obligation fixture');
