@@ -2,6 +2,7 @@ import { Children, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { tokens } from '../theme/tokens';
+import { typographyStyle } from '../theme/typography';
 import type { PressHandler } from './types';
 
 /** A quiet notebook list: the outer card owns the border, corners, and dividers. */
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
   pressable: { minHeight: 52 },
   row: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 58, paddingHorizontal: tokens.spacing.row, paddingVertical: 10 },
   text: { flex: 1, minWidth: 0 },
-  title: { color: tokens.color.text.primary, fontSize: tokens.typography.body.size, fontWeight: '700' },
-  detail: { color: tokens.color.text.muted, fontSize: tokens.typography.caption.size, lineHeight: 17, marginTop: 2 },
+  title: { color: tokens.color.text.primary, ...typographyStyle('h3') },
+  detail: { color: tokens.color.text.muted, lineHeight: 18, marginTop: 2, ...typographyStyle('caption') },
   trailing: { alignItems: 'flex-end', flexShrink: 0, gap: 4, minWidth: 80 },
 });

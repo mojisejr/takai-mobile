@@ -1,4 +1,6 @@
+import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { takaiIconMap, type TakaiIconKey } from '../theme/icons';
 import { tokens } from '../theme/tokens';
 
 /** `more` remains an internal compatibility key for the preserved legacy surface; it is not rendered in TAKAI Labor navigation. */
@@ -9,12 +11,12 @@ type BottomTabBarProps = {
   onTabPress?: (tab: BottomTabKey) => void;
 };
 
-const tabs: Array<{ key: BottomTabKey; label: string }> = [
-  { key: 'today', label: 'วันนี้' },
-  { key: 'work', label: 'งาน' },
-  { key: 'record', label: 'บันทึกงาน' },
-  { key: 'payment', label: 'จ่ายเงิน' },
-  { key: 'people', label: 'คน' },
+const tabs: Array<{ key: BottomTabKey; label: string; icon: TakaiIconKey }> = [
+  { key: 'today', label: 'วันนี้', icon: 'today' },
+  { key: 'work', label: 'งาน', icon: 'work' },
+  { key: 'record', label: 'บันทึกงาน', icon: 'record' },
+  { key: 'payment', label: 'จ่ายเงิน', icon: 'payment' },
+  { key: 'people', label: 'คน', icon: 'people' },
 ];
 
 export function BottomTabBar({ activeTab = 'today', onTabPress }: BottomTabBarProps) {
@@ -32,6 +34,7 @@ export function BottomTabBar({ activeTab = 'today', onTabPress }: BottomTabBarPr
             onPress={() => onTabPress?.(tab.key)}
             style={[styles.item, active && styles.activeItem]}
           >
+            <MaterialDesignIcons color={active ? tokens.color.primary.green : tokens.color.text.muted} name={takaiIconMap[tab.icon]} size={20} />
             <Text
               adjustsFontSizeToFit
               ellipsizeMode="tail"
@@ -55,15 +58,17 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.card,
     borderWidth: 1,
     flexDirection: 'row',
-    minHeight: 58,
-    padding: 6,
+    minHeight: 68,
+    padding: 5,
   },
   item: {
     alignItems: 'center',
     flexBasis: 0,
     flexGrow: 1,
     flexShrink: 1,
+    gap: 2,
     justifyContent: 'center',
+    minHeight: 48,
     minWidth: 0,
     paddingHorizontal: 2,
   },
@@ -74,8 +79,9 @@ const styles = StyleSheet.create({
   label: {
     color: tokens.color.text.muted,
     // Five labels must remain legible in the 320 px notebook shell.
+    fontFamily: tokens.typography.metadata.family,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: tokens.typography.metadata.weight,
     minWidth: 0,
     textAlign: 'center',
   },

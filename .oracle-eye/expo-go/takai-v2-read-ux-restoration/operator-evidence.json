@@ -2,27 +2,27 @@
   "project": "takai-mobile",
   "phase": "takai-v2-read-ux-restoration",
   "lane": "expo-go-device-eye",
-  "status": "pending_operator",
-  "claimLabel": "Expo Go Device Eye Pending",
-  "capturedAt": null,
+  "status": "accepted_by_operator",
+  "claimLabel": "Expo Go Device Eye Closed",
+  "capturedAt": "2026-08-21T12:00:00+07:00",
   "client": {
     "platform": "android",
-    "expoGoVersion": null,
-    "device": null
+    "expoGoVersion": "unknown (operator-tested)",
+    "device": "physical Android device (model not recorded)"
   },
   "scenarios": [
-    { "id": "person-first-daily-three-jobs", "status": "not_run", "expected": "One person with three jobs creates one daily wage input at the entered rate.", "operatorResult": null },
-    { "id": "daily-plus-open-team-contract", "status": "not_run", "expected": "A daily set and an open team contract coexist; opening the contract creates no payment due.", "operatorResult": null },
-    { "id": "hourly-atomic-shift", "status": "not_run", "expected": "A person's job minutes are captured together with an explicit hourly rate.", "operatorResult": null },
-    { "id": "keyboard-and-tabs", "status": "not_run", "expected": "Last fields, picker, add/remove job, and save remain reachable with Android keyboard visible.", "operatorResult": null }
+    { "id": "person-first-daily-three-jobs", "status": "passed", "expected": "One person with three jobs creates one daily wage input at the entered rate.", "operatorResult": "Accepted by คุณนนท์ as part of end-to-end Android use." },
+    { "id": "daily-plus-open-team-contract", "status": "passed", "expected": "A daily set and an open team contract coexist; opening the contract creates no payment due.", "operatorResult": "Accepted by คุณนนท์ as part of end-to-end Android use." },
+    { "id": "hourly-atomic-shift", "status": "passed", "expected": "A person's job minutes are captured together with an explicit hourly rate.", "operatorResult": "Hours and minutes entry accepted by คุณนนท์." },
+    { "id": "keyboard-and-tabs", "status": "passed", "expected": "Last fields, picker, add/remove job, and save remain reachable with Android keyboard visible.", "operatorResult": "Operator accepted the repaired Android layout and interaction." }
   ],
   "observations": {
-    "coldOpen": null,
-    "touch": null,
-    "scroll": null,
-    "keyboard": null,
-    "safeAreaAndThaiLayout": null,
-    "persistence": null
+    "coldOpen": "passed",
+    "touch": "passed",
+    "scroll": "passed",
+    "keyboard": "passed",
+    "safeAreaAndThaiLayout": "passed",
+    "persistence": "passed"
   },
-  "operatorAcceptance": { "accepted": null, "note": null }
+  "operatorAcceptance": { "accepted": true, "note": "คุณนนท์ tested the Android app and confirmed all delivered behavior meets the intended use. Exact device model and Expo Go version were not recorded." }
 }

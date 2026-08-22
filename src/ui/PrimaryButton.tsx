@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { tokens } from '../theme/tokens';
+import { typographyStyle } from '../theme/typography';
 import type { PressHandler, VariantProps } from './types';
 
 type PrimaryButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'destructive';
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: tokens.radius.button,
     justifyContent: 'center',
-    minHeight: 46,
+    minHeight: 48,
     paddingHorizontal: 16,
   },
   primary: {
@@ -71,8 +72,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: tokens.color.text.inverse,
-    fontSize: tokens.typography.body.size,
-    fontWeight: '700',
+    ...typographyStyle('h3'),
   },
   secondaryLabel: {
     color: tokens.color.primary.green,

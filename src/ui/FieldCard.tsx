@@ -14,15 +14,11 @@ const styles = StyleSheet.create({
     borderColor: tokens.color.border.soft,
     borderRadius: tokens.radius.card,
     borderWidth: 1,
-    padding: 14,
+    padding: tokens.spacing.card,
   },
   flat: {},
   raised: {
-    shadowColor: tokens.color.text.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    ...tokens.depth.card,
   },
   alert: {
     borderColor: tokens.color.state.warning,

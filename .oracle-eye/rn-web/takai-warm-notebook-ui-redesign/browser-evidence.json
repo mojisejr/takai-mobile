@@ -1,0 +1,20 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-warm-notebook-ui-redesign",
+  "lane": "rn-web-eye",
+  "status": "pending",
+  "attemptedAt": "2026-08-21T13:46:00.000Z",
+  "targetUrl": "http://127.0.0.1:8081/?proof=1",
+  "requiredViewports": [
+    { "width": 390, "height": 844 },
+    { "width": 320, "height": 844 }
+  ],
+  "requiredScreens": ["Today", "Work calendar", "full filtered Work list", "Payment", "People detail"],
+  "screenshots": [],
+  "console": { "errors": null, "warnings": null, "status": "not_captured" },
+  "failedNetworkRequests": { "count": null, "status": "not_captured" },
+  "exportPreflight": { "status": "passed", "artifact": ".oracle-eye/rn-web/takai-warm-notebook-ui-redesign/export/index.html" },
+  "blocker": "Canonical Playwright MCP could not acquire the shared browser: Browser is already in use for /Users/non/Library/Caches/ms-playwright-mcp/mcp-chrome-6e6b3e8, use --isolated to run multiple instances of the same browser. The shared browser was preserved; no isolated workaround or termination was attempted.",
+  "claimLabel": "RN Web Eye Pending",
+  "doesNotClose": ["Expo Go Device Eye", "Native Eye"]
+}

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { tokens } from '../theme/tokens';
+import { typographyStyle } from '../theme/typography';
 import type { PressHandler, VariantProps } from './types';
 
 type SectionHeaderVariant = 'default' | 'compact' | 'withAction';
@@ -28,19 +29,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    minHeight: 36,
+    minHeight: 40,
   },
   compact: {
     minHeight: 28,
   },
   title: {
     color: tokens.color.text.primary,
-    fontSize: tokens.typography.h2.size,
-    fontWeight: '700',
+    ...typographyStyle('h2'),
   },
   action: {
     color: tokens.color.primary.green,
-    fontSize: tokens.typography.metadata.size,
-    fontWeight: '700',
+    ...typographyStyle('metadata'),
   },
 });
