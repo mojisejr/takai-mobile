@@ -28,15 +28,16 @@ export function LaborRecordGroupEditor({ ready, refresh, notify, onPayment, onMa
   const [groups, setGroups] = useState<WorkGroup[]>(() => {
     if (scenario === 'daily-three-task') return [{ ...createGroup('daily'), id: 'proof-daily', personId: su, rateBaht: '350', jobs: [{ ...createJob(), id: 'proof-cut', title: 'ตัดหญ้า' }, { ...createJob(), id: 'proof-fertilize', title: 'ใส่ปุ๋ย' }, { ...createJob(), id: 'proof-spray', title: 'พ่นยา' }] }];
     if (scenario === 'open-contract') return [{ ...createGroup('contract'), id: 'proof-contract', memberIds: [su, phuang], contractTitle: 'กรอกถุงเพาะชำ', jobs: [{ ...createJob(), id: 'proof-bags', title: 'กรอกถุงเพาะชำ' }] }];
+    if (scenario === 'plot-multi-target' || scenario === 'plot-quick-add') return [{ ...createGroup('daily'), id: 'proof-plots', personId: su, rateBaht: '350', jobs: [{ ...createJob(), id: 'proof-plot-task', title: 'พ่นยารอบเช้า', plotTargets: [{ plotId: 'labor-v2-preview-plot-north', treeLabels: ['A-014'] }, { plotId: 'labor-v2-preview-plot-pond', treeLabels: ['P-003'] }] }] }];
     return [createGroup()];
   });
   const [picker, setPicker] = useState<{ groupId: string; kind: 'person' | 'team' } | null>(null);
-  const [plotPicker, setPlotPicker] = useState<{ groupId: string; jobId: string } | null>(null);
+  const [plotPicker, setPlotPicker] = useState<{ groupId: string; jobId: string } | null>(() => scenario === 'plot-quick-add' ? { groupId: 'proof-plots', jobId: 'proof-plot-task' } : null);
   const [methodPickerGroup, setMethodPickerGroup] = useState<string | null>(null);
   const [dayPartPickerGroup, setDayPartPickerGroup] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [plots, setPlots] = useState<LaborV2Plot[]>([]);
-  const [quickPlotName, setQuickPlotName] = useState('');
+  const [quickPlotName, setQuickPlotName] = useState(scenario === 'plot-quick-add' ? 'แปลงใหม่ทดสอบ' : '');
   const [saving, setSaving] = useState(false);
   const workers = ready.workers.filter((worker) => !worker.archivedAt);
   const options = workers.map((worker) => ({ id: worker.id, label: worker.displayName, meta: worker.specialty }));

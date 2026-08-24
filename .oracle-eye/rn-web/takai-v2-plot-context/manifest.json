@@ -1,0 +1,172 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-v2-plot-context",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-08-24T21:44:28.290Z",
+  "viewports": [
+    "390x844",
+    "320x844"
+  ],
+  "exportDir": ".oracle-eye/rn-web/takai-v2-plot-context/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/takai-v2-plot-context/export/index.html",
+    "manifest": ".oracle-eye/rn-web/takai-v2-plot-context/manifest.json",
+    "browserEvidence": ".oracle-eye/rn-web/takai-v2-plot-context/browser/browser-evidence.json",
+    "consoleErrors": ".oracle-eye/rn-web/takai-v2-plot-context/browser/console-errors.json",
+    "consoleWarnings": ".oracle-eye/rn-web/takai-v2-plot-context/browser/console-warnings.json",
+    "networkFailures": ".oracle-eye/rn-web/takai-v2-plot-context/browser/network-failures.json"
+  },
+  "browserEvidence": {
+    "screens": [
+      {
+        "flow": "record-empty-general",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-empty-general-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "record-multi-plot",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record&scenario=plot-multi-target",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-multi-plot-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "record-quick-add",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record&scenario=plot-quick-add",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-quick-add-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "record-tree-add-remove:add-remove",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record&scenario=plot-multi-target",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-tree-add-remove-added-390x844.png",
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-tree-add-remove-removed-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "plot-archive-history",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&scenario=plot-archive-history",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/plot-archive-history-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "work-renamed-detail",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=work&scenario=plot-renamed-detail",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/work-renamed-detail-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "record-empty-general",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-empty-general-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "record-multi-plot",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record&scenario=plot-multi-target",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-multi-plot-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "record-quick-add",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record&scenario=plot-quick-add",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-quick-add-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "record-tree-add-remove:add-remove",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=record&scenario=plot-multi-target",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-tree-add-remove-added-320x844.png",
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/record-tree-add-remove-removed-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "plot-archive-history",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&scenario=plot-archive-history",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/plot-archive-history-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "work-renamed-detail",
+        "targetUrl": "http://127.0.0.1:54016/?proof=1&screen=work&scenario=plot-renamed-detail",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-v2-plot-context/browser/work-renamed-detail-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      }
+    ],
+    "consoleErrorCount": 0,
+    "failedRequestCount": 0,
+    "knownWarnings": [],
+    "controlPlane": "Playwright MCP was attempted first; its shared profile was occupied, so this phase-specific harness used an isolated Playwright Chromium context against the same exported artifact."
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink only.",
+    "RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ],
+  "targetUrl": "http://127.0.0.1:54016",
+  "limitations": [
+    "RN Web is rendered browser evidence only. It does not prove Android touch, physical keyboard avoidance, safe areas, local SQLite persistence, or native packaging.",
+    "Expo Go Device Eye and Native Eye remain Pending until separately observed."
+  ]
+}

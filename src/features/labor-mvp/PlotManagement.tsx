@@ -5,13 +5,13 @@ import { tokens } from '../../theme/tokens';
 import type { Ready } from './LaborMvpApp';
 import type { LaborV2Plot, LaborV2PlotDetail } from './types';
 
-type Props = { ready: Ready; notify: (text: string) => void; onBack: () => void };
+type Props = { ready: Ready; notify: (text: string) => void; onBack: () => void; initialPlotId?: string };
 
 /** A route-local master-data screen: five bottom tabs remain exactly unchanged. */
-export function PlotManagement({ ready, notify, onBack }: Props) {
+export function PlotManagement({ ready, notify, onBack, initialPlotId }: Props) {
   const [plots, setPlots] = useState<LaborV2Plot[]>([]);
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | 'new' | null>(null);
+  const [selectedId, setSelectedId] = useState<string | 'new' | null>(() => initialPlotId ?? null);
   const [loading, setLoading] = useState(true);
   const load = async () => { setLoading(true); try { setPlots(await ready.adapter.plots.list(includeArchived)); } catch { notify('เปิดรายการแปลงไม่สำเร็จ'); } finally { setLoading(false); } };
   useEffect(() => { void load(); }, [ready.adapter, includeArchived]);

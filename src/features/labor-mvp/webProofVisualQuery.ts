@@ -1,6 +1,15 @@
 export type LaborWebProofVisual = 'none' | 'success-toast' | 'confirm-sheet';
 export type LaborWebProofScreen = 'today' | 'work' | 'record' | 'payment' | null;
-export type LaborWebProofScenario = 'daily-three-task' | 'open-contract' | 'payment-selection' | null;
+/** Read-only visual states for the explicit browser-proof route. */
+export type LaborWebProofScenario =
+  | 'daily-three-task'
+  | 'open-contract'
+  | 'payment-selection'
+  | 'plot-multi-target'
+  | 'plot-quick-add'
+  | 'plot-renamed-detail'
+  | 'plot-archive-history'
+  | null;
 
 /**
  * Decides which read-only proof fixture to show from a supplied query string.
@@ -26,5 +35,13 @@ export const selectLaborWebProofScenarioFromSearch = (search: string): LaborWebP
   const params = new URLSearchParams(search);
   if (params.get('proof') !== '1') return null;
   const scenario = params.get('scenario');
-  return scenario === 'daily-three-task' || scenario === 'open-contract' || scenario === 'payment-selection' ? scenario : null;
+  return scenario === 'daily-three-task'
+    || scenario === 'open-contract'
+    || scenario === 'payment-selection'
+    || scenario === 'plot-multi-target'
+    || scenario === 'plot-quick-add'
+    || scenario === 'plot-renamed-detail'
+    || scenario === 'plot-archive-history'
+    ? scenario
+    : null;
 };

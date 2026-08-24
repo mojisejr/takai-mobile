@@ -42,6 +42,15 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
               "A-014",
               "ต้นริมรั้ว"
             ]
+          },
+          {
+            "plotId": "labor-v2-preview-plot-pond",
+            "currentName": "แปลงริมสระ",
+            "recordedName": "แปลงริมสระ",
+            "wasRenamed": false,
+            "treeLabels": [
+              "P-003"
+            ]
           }
         ]
       },
@@ -373,6 +382,15 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
                 "A-014",
                 "ต้นริมรั้ว"
               ]
+            },
+            {
+              "plotId": "labor-v2-preview-plot-pond",
+              "currentName": "แปลงริมสระ",
+              "recordedName": "แปลงริมสระ",
+              "wasRenamed": false,
+              "treeLabels": [
+                "P-003"
+              ]
             }
           ]
         },
@@ -528,6 +546,17 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "currentRevision": 2,
         "createdAt": "2026-08-21T08:00:03.000Z",
         "updatedAt": "2026-08-21T08:01:30.000Z"
+      },
+      {
+        "id": "labor-v2-preview-plot-pond",
+        "name": "แปลงริมสระ",
+        "cropLabel": "มะพร้าว",
+        "latitude": null,
+        "longitude": null,
+        "archivedAt": null,
+        "currentRevision": 1,
+        "createdAt": "2026-08-21T08:00:05.000Z",
+        "updatedAt": "2026-08-21T08:00:05.000Z"
       }
     ],
     "includingArchived": [
@@ -541,6 +570,17 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "currentRevision": 2,
         "createdAt": "2026-08-21T08:00:03.000Z",
         "updatedAt": "2026-08-21T08:01:30.000Z"
+      },
+      {
+        "id": "labor-v2-preview-plot-pond",
+        "name": "แปลงริมสระ",
+        "cropLabel": "มะพร้าว",
+        "latitude": null,
+        "longitude": null,
+        "archivedAt": null,
+        "currentRevision": 1,
+        "createdAt": "2026-08-21T08:00:05.000Z",
+        "updatedAt": "2026-08-21T08:00:05.000Z"
       },
       {
         "id": "labor-v2-preview-plot-east",
@@ -678,6 +718,39 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
               "updatedAt": "2026-08-21T08:00:04.000Z"
             },
             "createdAt": "2026-08-21T08:00:04.000Z"
+          }
+        ]
+      },
+      "labor-v2-preview-plot-pond": {
+        "id": "labor-v2-preview-plot-pond",
+        "name": "แปลงริมสระ",
+        "cropLabel": "มะพร้าว",
+        "latitude": null,
+        "longitude": null,
+        "archivedAt": null,
+        "currentRevision": 1,
+        "createdAt": "2026-08-21T08:00:05.000Z",
+        "updatedAt": "2026-08-21T08:00:05.000Z",
+        "revisions": [
+          {
+            "id": "labor-v2-preview-plot-revision-labor-v2-preview-plot-pond-1",
+            "plotId": "labor-v2-preview-plot-pond",
+            "revision": 1,
+            "action": "created",
+            "reason": null,
+            "before": null,
+            "after": {
+              "id": "labor-v2-preview-plot-pond",
+              "name": "แปลงริมสระ",
+              "cropLabel": "มะพร้าว",
+              "latitude": null,
+              "longitude": null,
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-21T08:00:05.000Z",
+              "updatedAt": "2026-08-21T08:00:05.000Z"
+            },
+            "createdAt": "2026-08-21T08:00:05.000Z"
           }
         ]
       }
