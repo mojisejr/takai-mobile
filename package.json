@@ -74,6 +74,7 @@
     "test:labor-compensation-v2-command": "tsx scripts/labor-compensation-v2-command-contract-check.ts",
     "test:labor-v2-plot": "tsx scripts/labor-v2-plot-contract-check.ts",
     "test:labor-v2-plot-read-projections": "tsx scripts/labor-v2-plot-read-projection-contract-check.ts",
+    "test:labor-v2-plot-ui": "tsx scripts/labor-v2-plot-ui-contract-check.ts",
     "test:labor-v2-read-projections": "tsx scripts/labor-v2-read-projection-contract-check.ts",
     "test:labor-payment-batch-read-seams": "tsx scripts/labor-payment-batch-read-seams-contract-check.ts",
     "test:labor-payment-batch-ui": "tsx scripts/labor-payment-batch-ui-contract-check.ts",

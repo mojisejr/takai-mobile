@@ -1,0 +1,26 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-v2-plot-context",
+  "lane": "rn-static-eye",
+  "claimLabel": "RN Static Token Gate Closed",
+  "generatedAt": "2026-08-24T13:09:46.879Z",
+  "checks": [
+    "test:warm-notebook-foundation",
+    "test:warm-notebook-primitives",
+    "test:warm-notebook-read-money",
+    "test:warm-notebook-record",
+    "test:warm-notebook-responsive",
+    "test:design-contract",
+    "test:labor-navigation-ui",
+    "test:labor-v2-plot-ui",
+    "test:labor-read-ui",
+    "test:labor-v2-read-navigation-ui",
+    "test:labor-write-ui",
+    "test:labor-payment-batch-ui",
+    "test:labor-notebook-boundary"
+  ],
+  "notes": [
+    "This lane verifies source-level navigation, primitive, route, and design-contract truth.",
+    "It does not verify rendered layout, Android touch, native safe areas, or native Modal behaviour."
+  ]
+}
