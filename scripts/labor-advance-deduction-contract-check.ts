@@ -35,7 +35,7 @@ const main = async (): Promise<void> => {
   try {
     firstConnection = new DatabaseSync(databasePath);
     const db = new NodeSqliteExecutor(firstConnection);
-    assert.deepEqual(await runMigrations(db), Array.from({ length: 18 }, (_, index) => index + 1), 'fresh schema must include additive advance-recovery, payment-session, and V2 foundation ledgers');
+    assert.deepEqual(await runMigrations(db), Array.from({ length: 19 }, (_, index) => index + 1), 'fresh schema must include additive advance-recovery, payment-session, V2 foundation, and plot ledgers');
     const kai = await createLaborWorker(db, { id: 'worker-kai', displayName: 'น้าไก่' }, '2026-08-02T01:00:00.000Z');
     const su = await createLaborWorker(db, { id: 'worker-su', displayName: 'พี่สุ' }, '2026-08-02T01:00:01.000Z');
     const advance = await createLaborWorkerAdvance(db, {

@@ -494,10 +494,18 @@ export type LaborV2CompensationPlan = {
 
 export type RecordLaborDayV2Input = {
   workDate: string;
-  tasks: Array<{ id?: string; title: string; note?: string; assigneePersonIds: string[] }>;
+  tasks: Array<{ id?: string; title: string; note?: string; assigneePersonIds: string[]; plotTargets?: LaborV2TaskPlotTargetInput[] }>;
   daily?: Array<{ id?: string; personId: string; rateSatang: number; quantityMilli: 500 | 1000; taskIds: string[] }>;
   hourly?: Array<{ id?: string; taskId: string; personId: string; rateSatang: number; shiftKey?: string; durationMinutes: number; note?: string }>;
 };
+
+/** A tree label is a free-text historical reference beneath its selected V2 plot, not a tree registry record. */
+export type LaborV2TaskPlotTargetInput = { plotId: string; treeLabels?: string[] };
+export type CreateLaborV2PlotInput = { id?: string; name: string; cropLabel?: string; latitude?: number; longitude?: number };
+export type UpdateLaborV2PlotInput = { name?: string; cropLabel?: string; latitude?: number | null; longitude?: number | null; reason: string };
+export type LaborV2Plot = { id: string; name: string; cropLabel: string; latitude: number | null; longitude: number | null; archivedAt: string | null; currentRevision: number; createdAt: string; updatedAt: string };
+export type LaborV2PlotRevision = { id: string; plotId: string; revision: number; action: 'created' | 'updated' | 'archived' | 'restored'; reason: string | null; before: unknown | null; after: unknown; createdAt: string };
+export type LaborV2PlotDetail = LaborV2Plot & { revisions: LaborV2PlotRevision[] };
 
 export type StartLaborContractBatchV2Input = { id?: string; title: string; startsOn: string; deadlineOn?: string; note?: string; memberPersonIds: string[]; taskIds?: string[] };
 export type RecordLaborContractProgressV2Input = { id?: string; progressDate: string; note?: string; quantityMilli?: number; unitLabel?: string };
