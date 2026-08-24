@@ -226,7 +226,7 @@ const verifySchema11Upgrade = async (): Promise<Report['schema11Upgrade']> => {
     const db = new NodeSqliteExecutor(connection);
     await applyThroughEleven(db);
     const appliedMigrationIds = await runMigrations(db);
-    assert.deepEqual(appliedMigrationIds, [12, 13, 14, 15, 16, 17, 18], 'schema-11 fixture must upgrade through current additive migrations');
+    assert.deepEqual(appliedMigrationIds, [12, 13, 14, 15, 16, 17, 18, 19], 'schema-11 fixture must upgrade through current additive migrations');
     connection.close(); connection = null;
     reopened = new DatabaseSync(databasePath);
     assert.deepEqual(await runMigrations(new NodeSqliteExecutor(reopened)), [], 'reopened upgraded database must be migration-idempotent');
@@ -287,7 +287,7 @@ const main = async (): Promise<void> => {
     connection = new DatabaseSync(databasePath);
     const db = new NodeSqliteExecutor(connection);
     const migrationIds = await runMigrations(db);
-    assert.deepEqual(migrationIds, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+    assert.deepEqual(migrationIds, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     const peopleCommands = new SerializedCommands();
     const people = await createPeople(peopleCommands, db);
     const reports: ScenarioReport[] = [];

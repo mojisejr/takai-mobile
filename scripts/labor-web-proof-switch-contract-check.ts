@@ -16,6 +16,10 @@ const main = async (): Promise<void> => {
   assert.equal(selectLaborWebProofScenario('?proof=1&scenario=daily-three-task'), 'daily-three-task', 'proof daily capture must declare its three-task fixture');
   assert.equal(selectLaborWebProofScenario('?proof=1&scenario=open-contract'), 'open-contract', 'proof contract capture must declare its unpriced batch fixture');
   assert.equal(selectLaborWebProofScenario('?proof=1&scenario=payment-selection'), 'payment-selection', 'proof payment capture must declare its selected obligation fixture');
+  assert.equal(selectLaborWebProofScenario('?proof=1&scenario=plot-multi-target'), 'plot-multi-target', 'proof route must declare a rendered multi-plot capture state');
+  assert.equal(selectLaborWebProofScenario('?proof=1&scenario=plot-quick-add'), 'plot-quick-add', 'proof route must declare the quick-add sheet state');
+  assert.equal(selectLaborWebProofScenario('?proof=1&scenario=plot-renamed-detail'), 'plot-renamed-detail', 'proof route must declare renamed-name task detail');
+  assert.equal(selectLaborWebProofScenario('?proof=1&scenario=plot-archive-history'), 'plot-archive-history', 'proof route must declare archived plot history');
   assert.equal(selectLaborWebProofScenario('?scenario=daily-three-task'), null, 'scenario alone must not affect the normal notebook');
 
   const normal = selectTakaiWebLaborAdapter('');

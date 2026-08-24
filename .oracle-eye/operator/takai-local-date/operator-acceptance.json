@@ -1,0 +1,33 @@
+{
+  "project": "takai-mobile",
+  "taskId": "#takai-v2-local-date-alignment",
+  "phase": "local-date-repair",
+  "lane": "operator-device-eye",
+  "status": "closed_by_operator",
+  "claimLabel": "Operator Device Eye Closed",
+  "gateOfRecord": "Direct user acceptance after retesting the repaired date flow",
+  "capturedAt": "2026-08-25T05:11:53+07:00",
+  "operatorEvidence": {
+    "operator": "คุณนนท์",
+    "source": "direct acceptance in this session",
+    "environment": "not recorded",
+    "summary": "After the local-time date repair, คุณนนท์ confirmed the behavior is okay and authorized closing the Eye truth for this repair."
+  },
+  "scenarios": [
+    {
+      "id": "local-date-alignment",
+      "status": "passed_after_repair",
+      "expected": "A work record made today is represented on the same local calendar date in Today, calendar, and payment contexts.",
+      "operatorResult": "Accepted by คุณนนท์ after retest."
+    }
+  ],
+  "repair": {
+    "cause": "LaborMvpApp derived the current day with UTC ISO serialization, which can roll the date back in timezones ahead of UTC.",
+    "fix": "Use localDateKey and localMonthKey based on the device calendar for application defaults and month navigation.",
+    "deterministicProof": "npm run test:labor-local-date; npm run validate; npm test"
+  },
+  "limitations": [
+    "The user's device model, Android version, client type, and exact test time were not recorded and are intentionally unspecified.",
+    "This closes only the accepted local-date repair. It does not replace the separately pending V2 plot-context Expo Go card or Native Eye of the new internal APK."
+  ]
+}

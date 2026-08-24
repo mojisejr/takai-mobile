@@ -761,4 +761,56 @@ export const TAKAI_MIGRATIONS: Migration[] = [
         ON labor_v2_payment_advance_recoveries(obligation_id)`,
     ],
   },
+  {
+    id: 19,
+    name: 'labor_v2_plot_context_and_tree_reference_ledger',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_v2_plots (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+        crop_label TEXT NOT NULL DEFAULT '',
+        latitude REAL,
+        longitude REAL,
+        archived_at TEXT,
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        CHECK ((latitude IS NULL AND longitude IS NULL) OR (typeof(latitude) IN ('integer', 'real') AND typeof(longitude) IN ('integer', 'real') AND latitude >= -90 AND latitude <= 90 AND longitude >= -180 AND longitude <= 180))
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_plot_revisions (
+        id TEXT PRIMARY KEY,
+        plot_id TEXT NOT NULL REFERENCES labor_v2_plots(id) ON DELETE RESTRICT,
+        revision INTEGER NOT NULL CHECK (revision > 0),
+        action TEXT NOT NULL CHECK (action IN ('created', 'updated', 'archived', 'restored')),
+        reason TEXT,
+        before_json TEXT,
+        after_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(plot_id, revision)
+      )`,
+      `CREATE TRIGGER IF NOT EXISTS labor_v2_plot_revisions_immutable_update BEFORE UPDATE ON labor_v2_plot_revisions BEGIN SELECT RAISE(ABORT, 'TAKAI V2 plot revisions are immutable'); END`,
+      `CREATE TRIGGER IF NOT EXISTS labor_v2_plot_revisions_immutable_delete BEFORE DELETE ON labor_v2_plot_revisions BEGIN SELECT RAISE(ABORT, 'TAKAI V2 plot revisions are immutable'); END`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_task_plot_targets (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL REFERENCES labor_v2_work_tasks(id) ON DELETE CASCADE,
+        plot_id TEXT NOT NULL REFERENCES labor_v2_plots(id) ON DELETE RESTRICT,
+        plot_name_snapshot TEXT NOT NULL CHECK (length(trim(plot_name_snapshot)) > 0),
+        sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+        UNIQUE(task_id, plot_id),
+        UNIQUE(task_id, sort_order)
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_task_plot_tree_refs (
+        id TEXT PRIMARY KEY,
+        task_plot_target_id TEXT NOT NULL REFERENCES labor_v2_task_plot_targets(id) ON DELETE CASCADE,
+        tree_label TEXT NOT NULL CHECK (length(trim(tree_label)) > 0),
+        sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+        UNIQUE(task_plot_target_id, tree_label),
+        UNIQUE(task_plot_target_id, sort_order)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_plots_active_name ON labor_v2_plots(archived_at, name COLLATE NOCASE)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_plot_revisions_plot ON labor_v2_plot_revisions(plot_id, revision DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_task_plot_targets_task ON labor_v2_task_plot_targets(task_id, sort_order)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_task_plot_tree_refs_target ON labor_v2_task_plot_tree_refs(task_plot_target_id, sort_order)`,
+    ],
+  },
 ];

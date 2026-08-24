@@ -18,8 +18,8 @@ verify_eyes:
     gate: required
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
-    artifact_sink: .oracle-eye/rn-static/takai-warm-notebook-ui-redesign/
-    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
+    artifact_sink: .oracle-eye/rn-static/takai-v2-plot-context/
+    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-v2-plot-ui, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
     gate: required
@@ -45,7 +45,7 @@ proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
 
 TAKAI is a warm, local-first work-and-payment notebook for a garden owner. Its primary fact is `งานที่ทำวันนี้`; `ค่าแรง` and payment are separate facts. A calendar/history derives from work, while money views derive from wage and payment; neither is a second source of truth.
 
-The MVP does not expose the prior garden Activity, plot, hole, case, tracker, or material flows in its primary navigation. Those modules remain preserved in source only. Labor jobs can be general work with no plot.
+The MVP does not expose the prior garden Activity, hole, case, tracker, or material flows in its primary navigation. Those modules remain preserved in source only. Labor jobs can be general work with no plot. V2 plot context is deliberately route-local from task capture and task detail; it is not a revived legacy Operations surface or a sixth tab, and the exact five-tab navigation remains unchanged.
 
 ## Navigation and information architecture
 
@@ -78,9 +78,9 @@ Use Thai labels that describe the actual garden accounting model: `คนทำ�
 
 ## Component inventory
 
-Reuse `AppShell`, `TopBar`, `BottomTabBar`, `FieldCard`, `SectionHeader`, `PrimaryButton`, `StatusChip`, `SearchPickerSheet`, `DatePickerField`, and `StickySaveBar`.
+Reuse `AppShell`, `TopBar`, `BottomTabBar`, `FieldCard`, `SectionHeader`, `PrimaryButton`, `StatusChip`, `SearchPickerSheet`, `MultiSearchPickerSheet`, `DatePickerField`, `StickySaveBar`, and `ConfirmActionSheet`.
 
-Adapt/create `LaborMvpApp`, labor-specific status chips, compact calendar event markers, `LaborRecordRow`, `CalendarDaySheet`, `LedgerTimeline`, filter sheet, and an amount-summary strip. Do not retrofit `OperationalSliceScreen`.
+Adapt/create `LaborMvpApp`, labor-specific status chips, compact calendar event markers, `LaborRecordRow`, `CalendarDaySheet`, `LedgerTimeline`, filter sheet, amount-summary strip, and a route-local plot list/detail. A task may select zero or many active plots; each selected plot renders editable tree-reference rows below it. Rename/archive history remains readable in task detail, while archived plots are absent from capture pickers. Do not retrofit `OperationalSliceScreen`.
 
 ## Layout and responsive rules
 
@@ -90,6 +90,7 @@ Adapt/create `LaborMvpApp`, labor-specific status chips, compact calendar event 
 - Thai title/body rows with a trailing amount or state use `minWidth: 0`, explicit wrapping/truncation, and a stable trailing slot.
 - Calendar keeps seven columns at 320px and 390px. It uses low-density typed markers; the selected-day sheet carries detail.
 - No nested decorative cards, gradients, glass effects, tiny outdoor-only metadata, or color-only state.
+- Long Thai plot/tree names use a `minWidth: 0` text slot or a detail route; quick-add and tree fields run inside the keyboard-aware capture shell.
 
 ## Notebook and proof lanes
 

@@ -1,4 +1,4 @@
-import type { LaborV2CompensationPlan, LaborV2ContractBatchIntent, LaborV2DailyIntent, LaborV2HourlyShiftIntent, LaborV2HourlyTimeIntent, LaborV2ObligationIntent, LaborV2TaskFact } from './types';
+import type { LaborV2CompensationPlan, LaborV2CompensationTaskFact, LaborV2ContractBatchIntent, LaborV2DailyIntent, LaborV2HourlyShiftIntent, LaborV2HourlyTimeIntent, LaborV2ObligationIntent } from './types';
 
 const assertDate = (value: string, label: string): void => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`TAKAI V2 ${label} must be YYYY-MM-DD`);
@@ -33,7 +33,7 @@ const unique = (values: string[], label: string): void => {
  * and no payment write can be reached through this function.
  */
 export const planLaborCompensationV2 = (input: {
-  tasks: LaborV2TaskFact[];
+  tasks: LaborV2CompensationTaskFact[];
   daily: LaborV2DailyIntent[];
   hourly: LaborV2HourlyTimeIntent[];
   contracts: LaborV2ContractBatchIntent[];

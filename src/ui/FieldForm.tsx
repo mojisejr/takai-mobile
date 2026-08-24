@@ -110,6 +110,7 @@ export function MultiSearchPickerSheet({
   onToggle,
   options,
   query,
+  quickAdd,
   selectionLabel = 'คน',
   selectedIds,
   setQuery,
@@ -126,6 +127,8 @@ export function MultiSearchPickerSheet({
   onToggle: (id: string) => void;
   onClose: PressHandler;
   emptyLabel: string;
+  /** Route-local master-data creation belongs below the searchable choices. */
+  quickAdd?: ReactNode;
 }) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const filtered = filterPickerOptions(options, query);
@@ -144,6 +147,7 @@ export function MultiSearchPickerSheet({
             {selected.length ? <View style={styles.group}><Text style={styles.groupLabel}>ที่เลือก</Text>{selected.map((option) => <View key={`selected:${option.id}`} style={styles.option}><View style={styles.optionText}><Text style={styles.optionLabel}>{option.label}</Text>{option.meta ? <Text style={styles.optionMeta}>{option.meta}</Text> : null}</View><Pressable accessibilityLabel={`นำ ${option.label} ออก`} onPress={() => onToggle(option.id)}><Text style={styles.optionAction}>นำออก</Text></Pressable></View>)}</View> : null}
             {detail ? <View style={styles.detailCard}><View style={styles.sheetHeader}><Text style={styles.optionLabel}>ข้อมูลคนทำงาน</Text><Pressable accessibilityLabel="ปิดรายละเอียด" onPress={() => setDetailId(null)}><Text style={styles.close}>ปิด</Text></Pressable></View><Text style={styles.optionLabel}>{detail.label}</Text><Text style={styles.optionMeta}>{detail.meta || 'ยังไม่ได้ระบุงานที่ถนัด'}</Text></View> : null}
             <View style={styles.group}><Text style={styles.groupLabel}>{query.trim() ? 'ผลการค้นหา' : 'รายชื่อคนทำงาน'}</Text>{filtered.length ? filtered.map((option) => { const checked = selectedIds.includes(option.id); return <View key={option.id} style={styles.option}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={() => onToggle(option.id)} style={styles.optionText}><Text style={styles.optionLabel}>{option.label}</Text>{option.meta ? <Text style={styles.optionMeta}>{option.meta}</Text> : null}</Pressable><Pressable accessibilityLabel={`ดูข้อมูล ${option.label}`} onPress={() => setDetailId(option.id)}><Text style={styles.optionAction}>ข้อมูล</Text></Pressable><Pressable accessibilityLabel={`${checked ? 'เอา' : 'เลือก'} ${option.label}`} onPress={() => onToggle(option.id)} style={[styles.checkbox, checked && styles.checkboxChecked]}><Text style={styles.checkboxText}>{checked ? '✓' : ''}</Text></Pressable></View>; }) : <Text style={styles.empty}>{emptyLabel}</Text>}</View>
+            {quickAdd ? <View style={styles.quickAdd}>{quickAdd}</View> : null}
           </ScrollView>
         </View>
       </View>

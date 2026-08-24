@@ -1,0 +1,37 @@
+{
+  "project": "takai-mobile",
+  "taskId": "#takai-v2-plot-context",
+  "phase": "4-rendered-web-and-operator-acceptance",
+  "lane": "expo-go-device-eye",
+  "status": "pending_operator",
+  "claimLabel": "Expo Go Device Eye Pending",
+  "gateOfRecord": "Real Android Expo Go operator observation",
+  "capturedAt": null,
+  "device": { "manufacturer": null, "model": null, "androidVersion": null, "screenOrSafeAreaNotes": null },
+  "client": { "kind": "Expo Go Android", "expoGoVersion": null, "expectedSdkVersion": "54.0.0", "expectedRuntimeVersion": "exposdk:54.0.0", "compatibilityResult": "pending_operator_observation" },
+  "launch": { "method": null, "coldLaunch": "pending", "openResult": "pending", "crashOrCompatibilityMessage": null },
+  "dataSafety": { "notebookDatabase": "takai-local-v1.db", "backupOrDisposableDataDecision": null, "resetUsed": null },
+  "scenarios": [
+    { "id": "capture-empty-general-work", "status": "not_run", "expected": "General work may save without selecting a plot.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "capture-multi-plot-target", "status": "not_run", "expected": "One task can select two active plots without changing wage semantics.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "quick-add-plot", "status": "not_run", "expected": "Quick add returns with the new plot selected for its originating task.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "tree-add-remove", "status": "not_run", "expected": "Tree labels add/remove only beneath a selected plot and remain readable.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "archive-history-read-only", "status": "not_run", "expected": "Archive removes new selection but preserves readable task history.", "operatorResult": null, "screenshots": [], "repairItemIds": [] },
+    { "id": "rename-detail-history", "status": "not_run", "expected": "Rename preserves recorded historical name and a reasoned timeline.", "operatorResult": null, "screenshots": [], "repairItemIds": [] }
+  ],
+  "observations": {
+    "coldOpen": { "status": "not_run", "note": null },
+    "touchTargets": { "status": "not_run", "note": null },
+    "pickerSearch": { "status": "not_run", "note": null },
+    "keyboardAndScrolling": { "status": "not_run", "note": null },
+    "safeAreaAndThaiLayout": { "status": "not_run", "note": null },
+    "plotMoneyComprehension": { "status": "not_run", "note": null }
+  },
+  "repairItems": [],
+  "operatorAcceptance": { "accepted": null, "operatorNameOrRole": null, "summary": null },
+  "limitations": [
+    "This template contains no device observation and must not close Expo Go Device Eye.",
+    "RN Web evidence does not prove Android touch, keyboard, safe areas, or SQLite persistence.",
+    "Expo Go evidence does not close Native Eye or prove internal-build packaging."
+  ]
+}
