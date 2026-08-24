@@ -409,7 +409,15 @@ export type LaborV2TaskFact = {
   title: string;
   note?: string;
   assigneePersonIds: string[];
+  /**
+   * Optional work-location facts. A target is a historical log reference,
+   * never an input to compensation or settlement calculations.
+   */
+  plotTargets: LaborV2TaskPlotTarget[];
 };
+
+/** Minimal work fact used by the pure compensation planner before any plot reads exist. */
+export type LaborV2CompensationTaskFact = Pick<LaborV2TaskFact, 'id' | 'workDate' | 'title' | 'note' | 'assigneePersonIds'>;
 
 export type LaborV2DailyIntent = {
   id: string;
@@ -501,6 +509,12 @@ export type RecordLaborDayV2Input = {
 
 /** A tree label is a free-text historical reference beneath its selected V2 plot, not a tree registry record. */
 export type LaborV2TaskPlotTargetInput = { plotId: string; treeLabels?: string[] };
+/**
+ * The master name is deliberately read live, while recordedName is the
+ * immutable name captured when the task was saved. Tree labels remain free
+ * text under this target; they are not registered tree identities.
+ */
+export type LaborV2TaskPlotTarget = { plotId: string; currentName: string; recordedName: string; wasRenamed: boolean; treeLabels: string[] };
 export type CreateLaborV2PlotInput = { id?: string; name: string; cropLabel?: string; latitude?: number; longitude?: number };
 export type UpdateLaborV2PlotInput = { name?: string; cropLabel?: string; latitude?: number | null; longitude?: number | null; reason: string };
 export type LaborV2Plot = { id: string; name: string; cropLabel: string; latitude: number | null; longitude: number | null; archivedAt: string | null; currentRevision: number; createdAt: string; updatedAt: string };
@@ -518,7 +532,7 @@ export type PostLaborV2PaymentSessionInput = {
 export type CorrectLaborV2PaymentSessionInput = { reason: string; method?: string; note?: string };
 export type LaborV2ReadModel = {
   sourceVersion: 'v2';
-  tasks: Array<{ id: string; workDate: string; title: string; assigneePersonIds: string[] }>;
+  tasks: Array<LaborV2TaskFact>;
   obligations: Array<LaborV2ObligationIntent & { paidSatang: number; remainingSatang: number; status: 'open' | 'settled' }>;
   payments: Array<{ id: string; paymentDate: string; method: string; cashPaidSatang: number; currentRevision: number }>;
   events: Array<{ id: string; entityType: string; entityId: string; action: string; reason: string | null; occurredAt: string }>;
@@ -562,7 +576,8 @@ export type LaborV2MoneyHistory = {
 };
 
 /** V2-only projections.  They deliberately cannot mix the legacy payable ledger. */
-export type LaborV2CalendarDay = { workDate: string; taskCount: number; taskIds: string[] };
+/** Calendar keeps compact ids for existing consumers and task facts for a day-detail caller. */
+export type LaborV2CalendarDay = { workDate: string; taskCount: number; taskIds: string[]; tasks: LaborV2ReadModel['tasks'] };
 export type LaborV2PersonProjection = {
   sourceVersion: 'v2';
   personId: string;

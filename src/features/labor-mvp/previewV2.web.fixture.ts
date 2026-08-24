@@ -13,7 +13,8 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "title": "ล้างถัง",
         "assigneePersonIds": [
           "labor-v2-preview-chon"
-        ]
+        ],
+        "plotTargets": []
       },
       {
         "id": "labor-v2-preview-hourly-su",
@@ -21,7 +22,8 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "title": "เก็บกิ่ง",
         "assigneePersonIds": [
           "labor-v2-preview-su"
-        ]
+        ],
+        "plotTargets": []
       },
       {
         "id": "labor-v2-preview-task-1",
@@ -29,6 +31,18 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "title": "ตัดหญ้า",
         "assigneePersonIds": [
           "labor-v2-preview-su"
+        ],
+        "plotTargets": [
+          {
+            "plotId": "labor-v2-preview-plot-north",
+            "currentName": "แปลงทุเรียนโซนเหนือ",
+            "recordedName": "แปลง A",
+            "wasRenamed": true,
+            "treeLabels": [
+              "A-014",
+              "ต้นริมรั้ว"
+            ]
+          }
         ]
       },
       {
@@ -37,7 +51,8 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "title": "ใส่ปุ๋ย",
         "assigneePersonIds": [
           "labor-v2-preview-su"
-        ]
+        ],
+        "plotTargets": []
       },
       {
         "id": "labor-v2-preview-task-3",
@@ -45,6 +60,17 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "title": "พ่นยา",
         "assigneePersonIds": [
           "labor-v2-preview-su"
+        ],
+        "plotTargets": [
+          {
+            "plotId": "labor-v2-preview-plot-east",
+            "currentName": "แปลง B",
+            "recordedName": "แปลง B",
+            "wasRenamed": false,
+            "treeLabels": [
+              "B-002"
+            ]
+          }
         ]
       }
     ],
@@ -327,7 +353,8 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
           "title": "เก็บกิ่ง",
           "assigneePersonIds": [
             "labor-v2-preview-su"
-          ]
+          ],
+          "plotTargets": []
         },
         {
           "id": "labor-v2-preview-task-1",
@@ -335,6 +362,18 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
           "title": "ตัดหญ้า",
           "assigneePersonIds": [
             "labor-v2-preview-su"
+          ],
+          "plotTargets": [
+            {
+              "plotId": "labor-v2-preview-plot-north",
+              "currentName": "แปลงทุเรียนโซนเหนือ",
+              "recordedName": "แปลง A",
+              "wasRenamed": true,
+              "treeLabels": [
+                "A-014",
+                "ต้นริมรั้ว"
+              ]
+            }
           ]
         },
         {
@@ -343,7 +382,8 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
           "title": "ใส่ปุ๋ย",
           "assigneePersonIds": [
             "labor-v2-preview-su"
-          ]
+          ],
+          "plotTargets": []
         },
         {
           "id": "labor-v2-preview-task-3",
@@ -351,6 +391,17 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
           "title": "พ่นยา",
           "assigneePersonIds": [
             "labor-v2-preview-su"
+          ],
+          "plotTargets": [
+            {
+              "plotId": "labor-v2-preview-plot-east",
+              "currentName": "แปลง B",
+              "recordedName": "แปลง B",
+              "wasRenamed": false,
+              "treeLabels": [
+                "B-002"
+              ]
+            }
           ]
         }
       ],
@@ -443,7 +494,8 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
           "title": "ล้างถัง",
           "assigneePersonIds": [
             "labor-v2-preview-chon"
-          ]
+          ],
+          "plotTargets": []
         }
       ],
       "obligations": [
@@ -462,6 +514,173 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
       "advances": [],
       "payments": [],
       "events": []
+    }
+  },
+  "plots": {
+    "active": [
+      {
+        "id": "labor-v2-preview-plot-north",
+        "name": "แปลงทุเรียนโซนเหนือ",
+        "cropLabel": "ทุเรียน",
+        "latitude": 13.7563,
+        "longitude": 100.5018,
+        "archivedAt": null,
+        "currentRevision": 2,
+        "createdAt": "2026-08-21T08:00:03.000Z",
+        "updatedAt": "2026-08-21T08:01:30.000Z"
+      }
+    ],
+    "includingArchived": [
+      {
+        "id": "labor-v2-preview-plot-north",
+        "name": "แปลงทุเรียนโซนเหนือ",
+        "cropLabel": "ทุเรียน",
+        "latitude": 13.7563,
+        "longitude": 100.5018,
+        "archivedAt": null,
+        "currentRevision": 2,
+        "createdAt": "2026-08-21T08:00:03.000Z",
+        "updatedAt": "2026-08-21T08:01:30.000Z"
+      },
+      {
+        "id": "labor-v2-preview-plot-east",
+        "name": "แปลง B",
+        "cropLabel": "มังคุด",
+        "latitude": null,
+        "longitude": null,
+        "archivedAt": "2026-08-21T08:01:31.000Z",
+        "currentRevision": 2,
+        "createdAt": "2026-08-21T08:00:04.000Z",
+        "updatedAt": "2026-08-21T08:01:31.000Z"
+      }
+    ],
+    "details": {
+      "labor-v2-preview-plot-north": {
+        "id": "labor-v2-preview-plot-north",
+        "name": "แปลงทุเรียนโซนเหนือ",
+        "cropLabel": "ทุเรียน",
+        "latitude": 13.7563,
+        "longitude": 100.5018,
+        "archivedAt": null,
+        "currentRevision": 2,
+        "createdAt": "2026-08-21T08:00:03.000Z",
+        "updatedAt": "2026-08-21T08:01:30.000Z",
+        "revisions": [
+          {
+            "id": "labor-v2-preview-plot-revision-labor-v2-preview-plot-north-2",
+            "plotId": "labor-v2-preview-plot-north",
+            "revision": 2,
+            "action": "updated",
+            "reason": "ตั้งชื่อตามชนิดพืช",
+            "before": {
+              "id": "labor-v2-preview-plot-north",
+              "name": "แปลง A",
+              "cropLabel": "ทุเรียน",
+              "latitude": 13.7563,
+              "longitude": 100.5018,
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-21T08:00:03.000Z",
+              "updatedAt": "2026-08-21T08:00:03.000Z"
+            },
+            "after": {
+              "id": "labor-v2-preview-plot-north",
+              "name": "แปลงทุเรียนโซนเหนือ",
+              "cropLabel": "ทุเรียน",
+              "latitude": 13.7563,
+              "longitude": 100.5018,
+              "archivedAt": null,
+              "currentRevision": 2,
+              "createdAt": "2026-08-21T08:00:03.000Z",
+              "updatedAt": "2026-08-21T08:01:30.000Z"
+            },
+            "createdAt": "2026-08-21T08:01:30.000Z"
+          },
+          {
+            "id": "labor-v2-preview-plot-revision-labor-v2-preview-plot-north-1",
+            "plotId": "labor-v2-preview-plot-north",
+            "revision": 1,
+            "action": "created",
+            "reason": null,
+            "before": null,
+            "after": {
+              "id": "labor-v2-preview-plot-north",
+              "name": "แปลง A",
+              "cropLabel": "ทุเรียน",
+              "latitude": 13.7563,
+              "longitude": 100.5018,
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-21T08:00:03.000Z",
+              "updatedAt": "2026-08-21T08:00:03.000Z"
+            },
+            "createdAt": "2026-08-21T08:00:03.000Z"
+          }
+        ]
+      },
+      "labor-v2-preview-plot-east": {
+        "id": "labor-v2-preview-plot-east",
+        "name": "แปลง B",
+        "cropLabel": "มังคุด",
+        "latitude": null,
+        "longitude": null,
+        "archivedAt": "2026-08-21T08:01:31.000Z",
+        "currentRevision": 2,
+        "createdAt": "2026-08-21T08:00:04.000Z",
+        "updatedAt": "2026-08-21T08:01:31.000Z",
+        "revisions": [
+          {
+            "id": "labor-v2-preview-plot-revision-labor-v2-preview-plot-east-2",
+            "plotId": "labor-v2-preview-plot-east",
+            "revision": 2,
+            "action": "archived",
+            "reason": "ย้ายไปรวมโซนเหนือ",
+            "before": {
+              "id": "labor-v2-preview-plot-east",
+              "name": "แปลง B",
+              "cropLabel": "มังคุด",
+              "latitude": null,
+              "longitude": null,
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-21T08:00:04.000Z",
+              "updatedAt": "2026-08-21T08:00:04.000Z"
+            },
+            "after": {
+              "id": "labor-v2-preview-plot-east",
+              "name": "แปลง B",
+              "cropLabel": "มังคุด",
+              "latitude": null,
+              "longitude": null,
+              "archivedAt": "2026-08-21T08:01:31.000Z",
+              "currentRevision": 2,
+              "createdAt": "2026-08-21T08:00:04.000Z",
+              "updatedAt": "2026-08-21T08:01:31.000Z"
+            },
+            "createdAt": "2026-08-21T08:01:31.000Z"
+          },
+          {
+            "id": "labor-v2-preview-plot-revision-labor-v2-preview-plot-east-1",
+            "plotId": "labor-v2-preview-plot-east",
+            "revision": 1,
+            "action": "created",
+            "reason": null,
+            "before": null,
+            "after": {
+              "id": "labor-v2-preview-plot-east",
+              "name": "แปลง B",
+              "cropLabel": "มังคุด",
+              "latitude": null,
+              "longitude": null,
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-21T08:00:04.000Z",
+              "updatedAt": "2026-08-21T08:00:04.000Z"
+            },
+            "createdAt": "2026-08-21T08:00:04.000Z"
+          }
+        ]
+      }
     }
   }
 };
