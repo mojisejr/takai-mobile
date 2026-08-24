@@ -1,0 +1,52 @@
+{
+  "project": "takai-mobile",
+  "taskId": "#takai-payment-batch-advance-flow",
+  "phase": "4-operator-acceptance",
+  "lane": "expo-go-device-eye",
+  "status": "closed_by_operator",
+  "claimLabel": "Expo Go Device Eye Closed",
+  "gateOfRecord": "Real Android operator observation",
+  "capturedAt": "2026-08-24T13:25:00+07:00",
+  "operatorEvidence": {
+    "operator": "คุณนนท์",
+    "source": "direct Android/Expo Go test report in this session",
+    "summary": "Batch payment, standalone advance, and advance recovery were exercised. After the recovery-balance read fix, the operator reported the flow is okay and authorized closing Phase 3-4 acceptance."
+  },
+  "scenarios": [
+    {
+      "id": "mixed-payment-batch",
+      "status": "passed",
+      "operatorResult": "เลือกค่าแรงค้างจ่ายหลายรายการและบันทึกการจ่ายตาม flow ได้",
+      "scope": "person/group obligation selection and confirmation"
+    },
+    {
+      "id": "standalone-person-advance",
+      "status": "passed",
+      "operatorResult": "ให้เงินเบิกจากรายละเอียดคนงานเป็นเหตุการณ์แยกจากงานได้",
+      "scope": "person-scoped advance"
+    },
+    {
+      "id": "same-person-advance-recovery",
+      "status": "passed_after_repair",
+      "operatorResult": "หลังหักเงินเบิกแล้ว ยอดคงเหลือแสดงถูกต้องเมื่อรีเฟรชข้อมูล",
+      "scope": "recovery only against the same person's wage"
+    },
+    {
+      "id": "thai-mobile-ergonomics",
+      "status": "passed",
+      "operatorResult": "คุณนนท์รายงานว่าใช้งานบน Android ได้ตามต้องการหลังทดลอง flow ล่าสุด",
+      "scope": "touch, Thai labels, form feedback, and navigation in the approved flow"
+    }
+  ],
+  "repair": {
+    "id": "advance-recovery-read-balance",
+    "status": "verified",
+    "cause": "advance balance reader omitted recoveries stored by labor_v2_payment_advance_recoveries",
+    "verification": "operator retest plus deterministic regression test"
+  },
+  "limitations": [
+    "This evidence closes the approved Expo Go Android acceptance for the payment-batch and standalone-advance scope only.",
+    "Device manufacturer, Android version, and Expo Go version were not recorded in the operator report and are intentionally left unspecified.",
+    "Expo Go acceptance does not prove internal APK startup, native packaging, or store readiness. Native Eye remains Pending until the new internal build is installed and tested."
+  ]
+}

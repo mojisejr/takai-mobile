@@ -1,0 +1,5 @@
+Total messages: 4 (Errors: 0, Warnings: 2)
+Returning 2 messages for level "warning"
+
+[WARNING] "shadow*" style props are deprecated. Use "boxShadow". @ http://127.0.0.1:8085/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:23463
+[WARNING] props.pointerEvents is deprecated. Use style.pointerEvents @ http://127.0.0.1:8085/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:23463

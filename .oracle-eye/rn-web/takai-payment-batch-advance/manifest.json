@@ -1,0 +1,35 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-payment-batch-advance",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-08-24T13:25:00+07:00",
+  "targetUrl": "http://127.0.0.1:8085/?proof=1&screen=payment&scenario=payment-selection",
+  "viewports": ["390x844", "320x844"],
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/takai-payment-batch-advance/export/index.html",
+    "payment390": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/payment-mixed-390x844.png",
+    "payment320": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/payment-mixed-320x844.png",
+    "payment390Snapshot": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/payment-mixed-390x844.yml",
+    "advanceSheet390": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/person-advance-sheet-390x844.png",
+    "advanceSheet390Snapshot": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/person-advance-sheet-390x844.yml",
+    "consoleErrors": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/console-errors.json",
+    "consoleWarnings": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/console-warnings.json",
+    "networkRequests": ".oracle-eye/rn-web/takai-payment-batch-advance/browser/network-requests.json"
+  },
+  "browserEvidence": {
+    "screens": ["Payment multi-select/review", "Person Detail with remaining advance", "Standalone advance sheet"],
+    "consoleErrorCount": 0,
+    "failedRequestCount": 0,
+    "horizontalOverflow": "none observed at 390x844 and 320x844",
+    "verifiedReadFact": "The rendered Person Detail shows the V2 fixture advance as remaining 50 baht after a 50-baht recovery.",
+    "knownWarnings": [
+      "React Native Web warns that shadow style props are deprecated; use boxShadow.",
+      "React Native Web warns that props.pointerEvents is deprecated; use style.pointerEvents."
+    ]
+  },
+  "limitations": [
+    "RN Web is a rendered browser diagnostic only; it does not prove Android touch, native Modal behavior, local SQLite persistence, safe areas, or internal APK packaging.",
+    "Web proof data is read-only by design and never claims a browser payment write."
+  ]
+}

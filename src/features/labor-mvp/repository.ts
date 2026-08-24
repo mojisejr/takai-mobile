@@ -163,6 +163,11 @@ const advanceRows = async (db: SqlExecutor, personId?: string): Promise<AdvanceR
             FROM labor_payment_session_advance_recoveries AS recovery
             JOIN labor_payment_session_settlements AS settlement ON settlement.id = recovery.settlement_id
             JOIN labor_payment_sessions AS session ON session.id = settlement.payment_session_id
+            WHERE recovery.labor_worker_advance_id = advance.id AND session.status IN ('posted', 'revised')), 0)
+          + COALESCE((SELECT SUM(recovery.amount_satang)
+            FROM labor_v2_payment_advance_recoveries AS recovery
+            JOIN labor_v2_payment_recipient_settlements AS settlement ON settlement.id = recovery.recipient_settlement_id
+            JOIN labor_v2_payment_sessions AS session ON session.id = settlement.payment_session_id
             WHERE recovery.labor_worker_advance_id = advance.id AND session.status IN ('posted', 'revised')), 0) AS recovered_satang
    FROM labor_worker_advances AS advance
    WHERE advance.status IN ('posted', 'revised') ${personId ? 'AND advance.person_id = ?' : ''}

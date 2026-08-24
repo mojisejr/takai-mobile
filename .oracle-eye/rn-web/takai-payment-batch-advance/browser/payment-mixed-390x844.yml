@@ -1,0 +1,139 @@
+- generic [ref=e1] [box=0,0,390,844]:
+  - generic [ref=e6] [box=0,0,390,844]:
+    - generic [ref=e8] [box=0,0,390,1959]:
+      - generic [ref=e9] [box=16,16,358,72]:
+        - generic [ref=e12] [box=90,29,214,47]:
+          - generic [ref=e13] [box=90,29,214,20]: TAKAI
+          - generic [ref=e14] [box=90,49,214,27]: จ่ายเงิน
+        - button "วิธีใช้งาน" [ref=e15] [cursor=pointer] [box=314,30,44,44]:
+          - generic [ref=e16] [box=318,34,36,36]: 󰋽
+      - generic [ref=e18] [box=16,108,111,32]: ข้อมูลทดสอบ V2
+      - generic [ref=e21] [box=35,179,320,84]:
+        - generic [ref=e22] [box=35,179,44,44]: 󰄖
+        - generic [ref=e24] [box=91,179,264,84]:
+          - generic [ref=e25] [box=91,179,264,19]: สมุดจ่ายเงิน
+          - generic [ref=e26] [box=91,201,264,36]: ค้างค่าแรง 180 บาท
+          - generic [ref=e27] [box=91,240,264,23]: รวมหลายก้อนจ่ายเป็นครั้งเดียวได้
+      - generic [ref=e28] [box=16,302,358,115]:
+        - generic [ref=e29] [box=16,302,175,115]:
+          - generic [ref=e30] [box=29,315,32,32]: 󰄖
+          - generic [ref=e32] [box=29,355,149,49]:
+            - generic [ref=e33] [box=29,355,149,20]: ก้อนค้างจ่าย
+            - generic [ref=e34] [box=29,377,149,27]: 2 รายการ
+        - generic [ref=e35] [box=199,302,175,115]:
+          - generic [ref=e36] [box=212,315,32,32]: 󰖙
+          - generic [ref=e38] [box=212,355,149,49]:
+            - generic [ref=e39] [box=212,355,149,20]: เลือกแล้ว
+            - generic [ref=e40] [box=212,377,149,27]: 2 รายการ
+      - generic [ref=e41] [box=16,437,358,75]:
+        - generic [ref=e42] [box=16,437,358,21]: เลือกค่าแรงค้างจ่าย
+        - button "2 รายการ · 180 บาท เลือก" [ref=e43] [cursor=pointer] [box=16,464,358,48]:
+          - generic [ref=e44] [box=31,475,287,26]: 2 รายการ · 180 บาท
+          - generic [ref=e45] [box=330,478,30,21]: เลือก
+      - generic [ref=e46] [box=16,548,358,1395]:
+        - generic [ref=e47] [box=16,548,358,40]: ตรวจรายการที่เลือก
+        - generic [ref=e49] [box=16,596,358,486]:
+          - generic [ref=e50] [box=35,615,320,76]:
+            - generic [ref=e51] [box=35,615,247,76]:
+              - generic [ref=e52] [box=35,615,247,19]: พี่สุ
+              - generic [ref=e53] [box=35,637,247,33]: งานรายชั่วโมง
+              - generic [ref=e54] [box=35,673,247,18]: 2026-08-24 · ค้าง 120 บาท
+            - generic [ref=e55] [cursor=pointer] [box=294,644,61,19]: เต็มจำนวน
+          - generic [ref=e57] [box=35,703,320,73]:
+            - generic [ref=e58] [box=35,703,320,19]: จ่ายค่าแรง (บาท)
+            - textbox [ref=e59] [box=35,728,320,48]: "120"
+          - generic [ref=e60] [box=35,788,320,73]:
+            - generic [ref=e61] [box=35,788,320,19]: เงินเพิ่ม (บาท)
+            - textbox [ref=e62] [box=35,813,320,48]: "0"
+          - generic [ref=e63] [box=35,873,320,73]:
+            - generic [ref=e64] [box=35,873,320,19]: หักเงินเบิก (บาท)
+            - textbox [ref=e65] [box=35,898,320,48]: "0"
+          - generic [ref=e66] [box=35,958,320,75]:
+            - generic [ref=e67] [box=35,958,320,21]: เลือกเงินเบิกของคนนี้
+            - button "เลือกเงินเบิก (ถ้ามี) เลือก" [ref=e68] [cursor=pointer] [box=35,985,320,48]:
+              - generic [ref=e69] [box=50,996,249,26]: เลือกเงินเบิก (ถ้ามี)
+              - generic [ref=e70] [box=311,999,30,21]: เลือก
+          - generic [ref=e71] [box=35,1045,320,18]: เงินสดของรายการนี้ 120 บาท
+        - generic [ref=e72] [box=16,1090,358,486]:
+          - generic [ref=e73] [box=35,1109,320,76]:
+            - generic [ref=e74] [box=35,1109,247,76]:
+              - generic [ref=e75] [box=35,1109,247,19]: น้าชล
+              - generic [ref=e76] [box=35,1131,247,33]: งานรายชั่วโมง
+              - generic [ref=e77] [box=35,1167,247,18]: 2026-08-24 · ค้าง 60 บาท
+            - generic [ref=e78] [cursor=pointer] [box=294,1138,61,19]: เต็มจำนวน
+          - generic [ref=e80] [box=35,1197,320,73]:
+            - generic [ref=e81] [box=35,1197,320,19]: จ่ายค่าแรง (บาท)
+            - textbox [ref=e82] [box=35,1222,320,48]: "60"
+          - generic [ref=e83] [box=35,1282,320,73]:
+            - generic [ref=e84] [box=35,1282,320,19]: เงินเพิ่ม (บาท)
+            - textbox [ref=e85] [box=35,1307,320,48]: "0"
+          - generic [ref=e86] [box=35,1367,320,73]:
+            - generic [ref=e87] [box=35,1367,320,19]: หักเงินเบิก (บาท)
+            - textbox [ref=e88] [box=35,1392,320,48]: "0"
+          - generic [ref=e89] [box=35,1452,320,75]:
+            - generic [ref=e90] [box=35,1452,320,21]: เลือกเงินเบิกของคนนี้
+            - button "เลือกเงินเบิก (ถ้ามี) เลือก" [ref=e91] [cursor=pointer] [box=35,1479,320,48]:
+              - generic [ref=e92] [box=50,1490,249,26]: เลือกเงินเบิก (ถ้ามี)
+              - generic [ref=e93] [box=311,1493,30,21]: เลือก
+          - generic [ref=e94] [box=35,1539,320,18]: เงินสดของรายการนี้ 60 บาท
+        - generic [ref=e95] [box=16,1584,358,108]:
+          - generic [ref=e96] [box=35,1603,320,19]: สรุปการจ่ายครั้งนี้
+          - generic [ref=e97] [box=35,1622,320,33]: เงินสดที่จ่าย 180 บาท
+          - generic [ref=e98] [box=35,1655,320,18]: ค่าแรงและเงินเพิ่ม หักเฉพาะเงินเบิกของคนทำงานคนเดียวกัน
+        - generic [ref=e99] [box=16,1700,358,75]:
+          - generic [ref=e100] [box=16,1700,358,21]: วันที่จ่าย
+          - textbox "YYYY-MM-DD" [ref=e101] [box=16,1727,358,48]: 2026-08-24
+        - textbox "วิธีจ่าย เช่น เงินสด" [ref=e102] [box=16,1783,358,48]: เงินสด
+        - textbox "หมายเหตุ (ไม่บังคับ)" [ref=e103] [box=16,1839,358,48]
+        - button "ตรวจแล้ว ยืนยันจ่ายเงิน" [ref=e104] [cursor=pointer] [box=16,1895,358,48]
+    - generic [ref=e107] [box=16,760,358,68]:
+      - tab "󰖙 วันนี้" [ref=e108] [cursor=pointer] [box=22,766,69,56]:
+        - generic [ref=e109] [box=47,775,20,21]: 󰖙
+        - generic [ref=e110] [box=48,798,18,15]: วันนี้
+      - tab "󰸘 งาน" [ref=e111] [cursor=pointer] [box=91,766,69,56]:
+        - generic [ref=e112] [box=116,775,20,21]: 󰸘
+        - generic [ref=e113] [box=118,798,16,15]: งาน
+      - tab "󱓩 บันทึกงาน" [ref=e114] [cursor=pointer] [box=160,766,69,56]:
+        - generic [ref=e115] [box=185,775,20,21]: 󱓩
+        - generic [ref=e116] [box=174,798,41,15]: บันทึกงาน
+      - tab "󰄖 จ่ายเงิน" [ref=e117] [cursor=pointer] [box=230,766,69,56]:
+        - generic [ref=e118] [box=254,775,20,21]: 󰄖
+        - generic [ref=e119] [box=249,798,31,15]: จ่ายเงิน
+      - tab "󰭘 คน" [ref=e120] [cursor=pointer] [box=299,766,69,56]:
+        - generic [ref=e121] [box=323,775,20,21]: 󰭘
+        - generic [ref=e122] [box=327,798,13,15]: คน
+  - dialog [ref=e124] [box=0,0,390,844]:
+    - generic [ref=e127] [box=0,380,390,464]:
+      - generic [ref=e128] [box=18,398,354,58]:
+        - generic [ref=e129] [box=18,398,198,58]:
+          - generic [ref=e130] [box=18,398,198,36]: เลือกค่าแรงค้างจ่าย
+          - generic [ref=e131] [box=18,436,198,20]: เลือกแล้ว 2 รายการ
+        - button "เสร็จ" [ref=e132] [cursor=pointer] [box=344,417,28,21]
+      - textbox "พิมพ์ค้นหาชื่อหรือความถนัด" [active] [ref=e134] [box=18,468,354,48]
+      - generic [ref=e136] [box=18,528,354,298]:
+        - generic [ref=e137] [box=18,528,354,133]:
+          - generic [ref=e138] [box=18,528,354,21]: ที่เลือก
+          - generic [ref=e139] [box=18,555,354,52]:
+            - generic [ref=e140] [box=30,557,278,48]:
+              - generic [ref=e141] [box=30,557,278,26]: งานรายชั่วโมง · 120 บาท
+              - generic [ref=e142] [box=30,585,278,20]: พี่สุ · 2026-08-24
+            - generic "นำ งานรายชั่วโมง · 120 บาท ออก" [ref=e143] [cursor=pointer] [box=308,570,52,21]: นำออก
+          - generic [ref=e145] [box=18,609,354,52]:
+            - generic [ref=e146] [box=30,611,278,48]:
+              - generic [ref=e147] [box=30,611,278,26]: งานรายชั่วโมง · 60 บาท
+              - generic [ref=e148] [box=30,639,278,20]: น้าชล · 2026-08-24
+            - generic "นำ งานรายชั่วโมง · 60 บาท ออก" [ref=e149] [cursor=pointer] [box=308,624,52,21]: นำออก
+        - generic [ref=e151] [box=18,677,354,133]:
+          - generic [ref=e152] [box=18,677,354,21]: รายชื่อคนทำงาน
+          - generic [ref=e153] [box=18,704,354,52]:
+            - checkbox "งานรายชั่วโมง · 60 บาท น้าชล · 2026-08-24" [ref=e154] [cursor=pointer] [box=30,706,247,48]:
+              - generic [ref=e155] [box=30,706,247,26]: งานรายชั่วโมง · 60 บาท
+              - generic [ref=e156] [box=30,734,247,20]: น้าชล · 2026-08-24
+            - generic "ดูข้อมูล งานรายชั่วโมง · 60 บาท" [ref=e157] [cursor=pointer] [box=277,719,45,21]: ข้อมูล
+            - generic "เอา งานรายชั่วโมง · 60 บาท" [ref=e159] [cursor=pointer] [box=332,716,28,28]: ✓
+          - generic [ref=e161] [box=18,758,354,52]:
+            - checkbox "งานรายชั่วโมง · 120 บาท พี่สุ · 2026-08-24" [ref=e162] [cursor=pointer] [box=30,760,247,48]:
+              - generic [ref=e163] [box=30,760,247,26]: งานรายชั่วโมง · 120 บาท
+              - generic [ref=e164] [box=30,788,247,20]: พี่สุ · 2026-08-24
+            - generic "ดูข้อมูล งานรายชั่วโมง · 120 บาท" [ref=e165] [cursor=pointer] [box=277,773,45,21]: ข้อมูล
+            - generic "เอา งานรายชั่วโมง · 120 บาท" [ref=e167] [cursor=pointer] [box=332,770,28,28]: ✓
