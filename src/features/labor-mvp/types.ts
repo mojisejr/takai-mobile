@@ -516,6 +516,43 @@ export type LaborV2ReadModel = {
   events: Array<{ id: string; entityType: string; entityId: string; action: string; reason: string | null; occurredAt: string }>;
 };
 
+/**
+ * A payment draft selects payable obligations, never work tasks.  The row is
+ * deliberately recipient-safe: group work stays one `ชุดรับเงิน` row and is
+ * never attributed to an individual worker.
+ */
+export type LaborV2PaymentBatchDraftItem = {
+  obligationId: string;
+  sourceKind: LaborV2ObligationIntent['sourceKind'];
+  sourceUnitId: string;
+  recipientKind: LaborV2ObligationIntent['recipientKind'];
+  personId: string | null;
+  recipientLabel: 'คนทำงาน' | 'ชุดรับเงิน';
+  title: string;
+  effectiveDate: string;
+  dueSatang: number;
+  paidSatang: number;
+  remainingSatang: number;
+};
+export type LaborV2PaymentBatchDraftInput = { personId?: string; selectedObligationIds?: string[] };
+export type LaborV2PaymentBatchDraft = {
+  sourceVersion: 'v2';
+  contextPersonId: string | null;
+  available: LaborV2PaymentBatchDraftItem[];
+  selected: LaborV2PaymentBatchDraftItem[];
+  unavailableSelectionIds: string[];
+};
+export type LaborV2MoneyHistoryEntry =
+  | { kind: 'payment'; id: string; effectiveDate: string; cashPaidSatang: number; payment: LaborV2ReadModel['payments'][number] }
+  | { kind: 'advance'; id: string; effectiveDate: string; amountSatang: number; personId: string; advance: LaborWorkerAdvance };
+export type LaborV2MoneyHistory = {
+  sourceVersion: 'v2';
+  payments: LaborV2ReadModel['payments'];
+  advances: LaborWorkerAdvance[];
+  events: LaborV2ReadModel['events'];
+  entries: LaborV2MoneyHistoryEntry[];
+};
+
 /** V2-only projections.  They deliberately cannot mix the legacy payable ledger. */
 export type LaborV2CalendarDay = { workDate: string; taskCount: number; taskIds: string[] };
 export type LaborV2PersonProjection = {

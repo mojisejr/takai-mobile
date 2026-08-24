@@ -110,6 +110,7 @@ export function MultiSearchPickerSheet({
   onToggle,
   options,
   query,
+  selectionLabel = 'คน',
   selectedIds,
   setQuery,
   title,
@@ -118,6 +119,7 @@ export function MultiSearchPickerSheet({
   visible: boolean;
   title: string;
   query: string;
+  selectionLabel?: string;
   setQuery: (value: string) => void;
   options: PickerOption[];
   selectedIds: string[];
@@ -134,7 +136,7 @@ export function MultiSearchPickerSheet({
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.sheetHeader}>
-            <View><Text style={styles.sheetTitle}>{title}</Text><Text style={styles.selectionCount}>เลือกแล้ว {selected.length} คน</Text></View>
+            <View><Text style={styles.sheetTitle}>{title}</Text><Text style={styles.selectionCount}>เลือกแล้ว {selected.length} {selectionLabel}</Text></View>
             <Pressable accessibilityRole="button" hitSlop={8} onPress={onClose}><Text style={styles.close}>เสร็จ</Text></Pressable>
           </View>
           <TextInput autoFocus onChangeText={setQuery} placeholder="พิมพ์ค้นหาชื่อหรือความถนัด" placeholderTextColor={tokens.color.text.muted} style={styles.searchInput} value={query} />

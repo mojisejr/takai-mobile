@@ -194,6 +194,14 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
       },
       {
         "id": "labor-v2-preview-event-12",
+        "entityType": "person_advance",
+        "entityId": "labor-v2-preview-advance",
+        "action": "issued",
+        "reason": null,
+        "occurredAt": "2026-08-24T08:01:00.000Z"
+      },
+      {
+        "id": "labor-v2-preview-event-13",
         "entityType": "payment_session",
         "entityId": "labor-v2-preview-payment",
         "action": "posted",
@@ -201,5 +209,259 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         "occurredAt": "2026-08-24T08:02:00.000Z"
       }
     ]
+  },
+  "paymentBatchItems": [
+    {
+      "obligationId": "obligation:hourly:hourly:labor-v2-preview-chon|2026-08-24|12000|",
+      "sourceKind": "hourly",
+      "sourceUnitId": "hourly:labor-v2-preview-chon|2026-08-24|12000|",
+      "recipientKind": "person",
+      "personId": "labor-v2-preview-chon",
+      "recipientLabel": "คนทำงาน",
+      "title": "งานรายชั่วโมง",
+      "effectiveDate": "2026-08-24",
+      "dueSatang": 6000,
+      "paidSatang": 0,
+      "remainingSatang": 6000
+    },
+    {
+      "obligationId": "obligation:hourly:hourly:labor-v2-preview-su|2026-08-24|12000|",
+      "sourceKind": "hourly",
+      "sourceUnitId": "hourly:labor-v2-preview-su|2026-08-24|12000|",
+      "recipientKind": "person",
+      "personId": "labor-v2-preview-su",
+      "recipientLabel": "คนทำงาน",
+      "title": "งานรายชั่วโมง",
+      "effectiveDate": "2026-08-24",
+      "dueSatang": 24000,
+      "paidSatang": 12000,
+      "remainingSatang": 12000
+    }
+  ],
+  "moneyHistory": {
+    "sourceVersion": "v2",
+    "payments": [
+      {
+        "id": "labor-v2-preview-payment",
+        "paymentDate": "2026-08-24",
+        "method": "cash",
+        "cashPaidSatang": 455500,
+        "currentRevision": 1
+      }
+    ],
+    "advances": [
+      {
+        "id": "labor-v2-preview-advance",
+        "personId": "labor-v2-preview-su",
+        "advanceDate": "2026-08-24",
+        "amountSatang": 10000,
+        "recoveredSatang": 5000,
+        "remainingSatang": 5000,
+        "method": "",
+        "note": "",
+        "currentRevision": 1,
+        "status": "posted"
+      }
+    ],
+    "events": [
+      {
+        "id": "labor-v2-preview-event-1",
+        "entityType": "person_advance",
+        "entityId": "labor-v2-preview-advance",
+        "action": "issued",
+        "reason": null,
+        "occurredAt": "2026-08-24T08:01:00.000Z"
+      },
+      {
+        "id": "labor-v2-preview-event-2",
+        "entityType": "payment_session",
+        "entityId": "labor-v2-preview-payment",
+        "action": "posted",
+        "reason": null,
+        "occurredAt": "2026-08-24T08:02:00.000Z"
+      }
+    ],
+    "entries": [
+      {
+        "kind": "payment",
+        "id": "labor-v2-preview-payment",
+        "effectiveDate": "2026-08-24",
+        "cashPaidSatang": 455500,
+        "payment": {
+          "id": "labor-v2-preview-payment",
+          "paymentDate": "2026-08-24",
+          "method": "cash",
+          "cashPaidSatang": 455500,
+          "currentRevision": 1
+        }
+      },
+      {
+        "kind": "advance",
+        "id": "labor-v2-preview-advance",
+        "effectiveDate": "2026-08-24",
+        "amountSatang": 10000,
+        "personId": "labor-v2-preview-su",
+        "advance": {
+          "id": "labor-v2-preview-advance",
+          "personId": "labor-v2-preview-su",
+          "advanceDate": "2026-08-24",
+          "amountSatang": 10000,
+          "recoveredSatang": 5000,
+          "remainingSatang": 5000,
+          "method": "",
+          "note": "",
+          "currentRevision": 1,
+          "status": "posted"
+        }
+      }
+    ]
+  },
+  "personDetails": {
+    "labor-v2-preview-su": {
+      "sourceVersion": "v2",
+      "personId": "labor-v2-preview-su",
+      "tasks": [
+        {
+          "id": "labor-v2-preview-hourly-su",
+          "workDate": "2026-08-24",
+          "title": "เก็บกิ่ง",
+          "assigneePersonIds": [
+            "labor-v2-preview-su"
+          ]
+        },
+        {
+          "id": "labor-v2-preview-task-1",
+          "workDate": "2026-08-21",
+          "title": "ตัดหญ้า",
+          "assigneePersonIds": [
+            "labor-v2-preview-su"
+          ]
+        },
+        {
+          "id": "labor-v2-preview-task-2",
+          "workDate": "2026-08-21",
+          "title": "ใส่ปุ๋ย",
+          "assigneePersonIds": [
+            "labor-v2-preview-su"
+          ]
+        },
+        {
+          "id": "labor-v2-preview-task-3",
+          "workDate": "2026-08-21",
+          "title": "พ่นยา",
+          "assigneePersonIds": [
+            "labor-v2-preview-su"
+          ]
+        }
+      ],
+      "obligations": [
+        {
+          "id": "obligation:daily:labor-v2-preview-daily",
+          "sourceKind": "daily",
+          "sourceUnitId": "labor-v2-preview-daily",
+          "recipientKind": "person",
+          "personId": "labor-v2-preview-su",
+          "dueSatang": 35000,
+          "paidSatang": 35000,
+          "remainingSatang": 0,
+          "status": "settled"
+        },
+        {
+          "id": "obligation:hourly:hourly:labor-v2-preview-su|2026-08-24|12000|",
+          "sourceKind": "hourly",
+          "sourceUnitId": "hourly:labor-v2-preview-su|2026-08-24|12000|",
+          "recipientKind": "person",
+          "personId": "labor-v2-preview-su",
+          "dueSatang": 24000,
+          "paidSatang": 12000,
+          "remainingSatang": 12000,
+          "status": "open"
+        }
+      ],
+      "advances": [
+        {
+          "id": "labor-v2-preview-advance",
+          "personId": "labor-v2-preview-su",
+          "advanceDate": "2026-08-24",
+          "amountSatang": 10000,
+          "recoveredSatang": 5000,
+          "remainingSatang": 5000,
+          "method": "",
+          "note": "",
+          "currentRevision": 1,
+          "status": "posted"
+        }
+      ],
+      "payments": [
+        {
+          "id": "labor-v2-preview-payment",
+          "paymentDate": "2026-08-24",
+          "method": "cash",
+          "cashPaidSatang": 455500,
+          "currentRevision": 1,
+          "settledObligationIds": [
+            "obligation:daily:labor-v2-preview-daily",
+            "obligation:hourly:hourly:labor-v2-preview-su|2026-08-24|12000|"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "id": "labor-v2-preview-event-1",
+          "entityType": "person_advance",
+          "entityId": "labor-v2-preview-advance",
+          "action": "issued",
+          "reason": null,
+          "occurredAt": "2026-08-24T08:01:00.000Z"
+        },
+        {
+          "id": "labor-v2-preview-event-2",
+          "entityType": "payment_session",
+          "entityId": "labor-v2-preview-payment",
+          "action": "posted",
+          "reason": null,
+          "occurredAt": "2026-08-24T08:02:00.000Z"
+        }
+      ]
+    },
+    "labor-v2-preview-phuang": {
+      "sourceVersion": "v2",
+      "personId": "labor-v2-preview-phuang",
+      "tasks": [],
+      "obligations": [],
+      "advances": [],
+      "payments": [],
+      "events": []
+    },
+    "labor-v2-preview-chon": {
+      "sourceVersion": "v2",
+      "personId": "labor-v2-preview-chon",
+      "tasks": [
+        {
+          "id": "labor-v2-preview-hourly-chon",
+          "workDate": "2026-08-24",
+          "title": "ล้างถัง",
+          "assigneePersonIds": [
+            "labor-v2-preview-chon"
+          ]
+        }
+      ],
+      "obligations": [
+        {
+          "id": "obligation:hourly:hourly:labor-v2-preview-chon|2026-08-24|12000|",
+          "sourceKind": "hourly",
+          "sourceUnitId": "hourly:labor-v2-preview-chon|2026-08-24|12000|",
+          "recipientKind": "person",
+          "personId": "labor-v2-preview-chon",
+          "dueSatang": 6000,
+          "paidSatang": 0,
+          "remainingSatang": 6000,
+          "status": "open"
+        }
+      ],
+      "advances": [],
+      "payments": [],
+      "events": []
+    }
   }
 };

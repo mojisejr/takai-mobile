@@ -1,9 +1,9 @@
 {
   "project": "takai-mobile",
-  "phase": "takai-v2-read-ux-restoration",
+  "phase": "takai-payment-batch-advance",
   "lane": "rn-static-eye",
   "claimLabel": "RN Static Token Gate Closed",
-  "generatedAt": "2026-08-24T06:24:46.750Z",
+  "generatedAt": "2026-08-24T06:02:27.075Z",
   "checks": [
     "test:warm-notebook-foundation",
     "test:warm-notebook-primitives",

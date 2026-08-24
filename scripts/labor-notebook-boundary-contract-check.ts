@@ -43,7 +43,7 @@ const main = async (): Promise<void> => {
     const ui = await readFile(join(process.cwd(), 'src/features/labor-mvp/LaborMvpApp.tsx'), 'utf8');
     for (const forbidden of ['Labor MVP', 'Labor Preview', 'Labor ledger', 'LABOR MVP', 'บันทึก Labor']) assert.equal(ui.includes(forbidden), false, `product UI must not expose developer wording: ${forbidden}`);
     assert.ok(ui.includes('activePeople'), 'new record pickers must select active people only');
-    assert.ok(ui.includes('TaskListEditor') && ui.includes('CompensationUnitCard') && ui.includes('PayablePickerSheet'), 'focused UI must render V2 task, compensation, and payment seams');
+    assert.ok(ui.includes('TaskListEditor') && ui.includes('CompensationUnitCard') && ui.includes('PaymentScreen') && ui.includes('เลือกค่าแรงค้างจ่าย'), 'focused UI must render V2 task, compensation, and payment seams');
     assert.ok(ui.includes('ScreenSkeleton') && ui.includes('retry'), 'root reads need typed loading and retry handling');
     console.log('LABOR_NOTEBOOK_BOUNDARY_PASS: clean notebook boot, native worker seam, archived history, web read-only truth, and product-copy/loading contracts are aligned');
   } finally {

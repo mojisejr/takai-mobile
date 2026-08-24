@@ -1,7 +1,7 @@
 import type { SqlExecutor } from '../../data/migrations';
 import { planLaborCompensationV2 } from './compensationV2';
 import { createLaborWorkerAdvance, listLaborWorkerAdvances } from './repository';
-import type { CorrectLaborV2PaymentSessionInput, CreateLaborWorkerAdvanceInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2CalendarMonth, LaborV2OpenContractBatch, LaborV2PersonDetail, LaborV2PersonProjection, LaborV2ReadModel, LaborV2TaskDetail, LaborV2TaskWageContext, LaborV2TodayProjection, LaborV2WorkList, LaborV2WorkListFilters, LaborWorkerAdvance, LegacyLaborRead, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input } from './types';
+import type { CorrectLaborV2PaymentSessionInput, CreateLaborWorkerAdvanceInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2CalendarMonth, LaborV2MoneyHistory, LaborV2OpenContractBatch, LaborV2PaymentBatchDraft, LaborV2PaymentBatchDraftInput, LaborV2PaymentBatchDraftItem, LaborV2PersonDetail, LaborV2PersonProjection, LaborV2ReadModel, LaborV2TaskDetail, LaborV2TaskWageContext, LaborV2TodayProjection, LaborV2WorkList, LaborV2WorkListFilters, LaborWorkerAdvance, LegacyLaborRead, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input } from './types';
 
 const now = (): string => new Date().toISOString();
 const id = (prefix: string): string => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -174,7 +174,82 @@ export const getCalendarMonthV2 = async (db: SqlExecutor, month: string): Promis
 
 export const getLaborV2History = async (db: SqlExecutor): Promise<LaborV2ReadModel['events']> => (await getLaborV2ReadModel(db)).events;
 export const getLaborV2Unpaid = async (db: SqlExecutor): Promise<LaborV2ReadModel['obligations']> => (await getLaborV2ReadModel(db)).obligations.filter((item) => item.remainingSatang > 0);
-export const getLaborV2MoneyHistory = async (db: SqlExecutor): Promise<LaborV2ReadModel['payments']> => (await getLaborV2ReadModel(db)).payments;
+
+const paymentBatchItemsV2 = async (db: SqlExecutor): Promise<LaborV2PaymentBatchDraftItem[]> => {
+  const [model, daily, hourly, contracts] = await Promise.all([
+    getLaborV2ReadModel(db),
+    db.getAllAsync<{ id: string; work_date: string }>('SELECT id, work_date FROM labor_v2_daily_units'),
+    db.getAllAsync<{ id: string; work_date: string }>('SELECT id, work_date FROM labor_v2_hourly_shifts'),
+    db.getAllAsync<{ id: string; title: string; finalized_at: string | null }>('SELECT id, title, finalized_at FROM labor_v2_contract_batches'),
+  ]);
+  const dailyDates = new Map(daily.map((row) => [row.id, row.work_date]));
+  const hourlyDates = new Map(hourly.map((row) => [row.id, row.work_date]));
+  const contractFacts = new Map(contracts.map((row) => [row.id, row]));
+  return model.obligations
+    .filter((item) => item.remainingSatang > 0)
+    .map((item) => {
+      const fact = item.sourceKind === 'daily'
+        ? { title: 'งานรายวัน', effectiveDate: dailyDates.get(item.sourceUnitId) }
+        : item.sourceKind === 'hourly'
+          ? { title: 'งานรายชั่วโมง', effectiveDate: hourlyDates.get(item.sourceUnitId) }
+          : { title: contractFacts.get(item.sourceUnitId)?.title, effectiveDate: contractFacts.get(item.sourceUnitId)?.finalized_at ?? undefined };
+      if (!fact.title || !fact.effectiveDate) throw new Error(`TAKAI V2 payment obligation source is unavailable: ${item.id}`);
+      return {
+        obligationId: item.id,
+        sourceKind: item.sourceKind,
+        sourceUnitId: item.sourceUnitId,
+        recipientKind: item.recipientKind,
+        personId: item.personId,
+        recipientLabel: (item.recipientKind === 'group' ? 'ชุดรับเงิน' : 'คนทำงาน') as LaborV2PaymentBatchDraftItem['recipientLabel'],
+        title: fact.title,
+        effectiveDate: fact.effectiveDate,
+        dueSatang: item.dueSatang,
+        paidSatang: item.paidSatang,
+        remainingSatang: item.remainingSatang,
+      };
+    })
+    .sort((left, right) => right.effectiveDate.localeCompare(left.effectiveDate) || left.obligationId.localeCompare(right.obligationId));
+};
+
+/**
+ * Reconciles a UI selection against repository-derived unpaid obligations.
+ * A person context limits only the picker options; already-selected global
+ * group rows survive rehydration so navigation cannot silently drop cash rows.
+ */
+export const reconcileLaborV2PaymentBatchDraft = (items: LaborV2PaymentBatchDraftItem[], input: LaborV2PaymentBatchDraftInput = {}): LaborV2PaymentBatchDraft => {
+  const selectedIds = [...new Set(input.selectedObligationIds ?? [])];
+  const byId = new Map(items.map((item) => [item.obligationId, item]));
+  const selected = selectedIds.flatMap((id) => byId.get(id) ? [byId.get(id)!] : []);
+  const available = input.personId
+    ? items.filter((item) => item.recipientKind === 'person' && item.personId === input.personId)
+    : items;
+  return {
+    sourceVersion: 'v2',
+    contextPersonId: input.personId ?? null,
+    available,
+    selected,
+    unavailableSelectionIds: selectedIds.filter((id) => !byId.has(id)),
+  };
+};
+
+export const getLaborV2PaymentBatchDraft = async (db: SqlExecutor, input: LaborV2PaymentBatchDraftInput = {}): Promise<LaborV2PaymentBatchDraft> => reconcileLaborV2PaymentBatchDraft(await paymentBatchItemsV2(db), input);
+
+export const getLaborV2MoneyHistory = async (db: SqlExecutor): Promise<LaborV2MoneyHistory> => {
+  const [model, advances] = await Promise.all([getLaborV2ReadModel(db), listLaborV2PersonAdvances(db)]);
+  const paymentIds = new Set(model.payments.map((item) => item.id));
+  const advanceIds = new Set(advances.map((item) => item.id));
+  const entries = [
+    ...model.payments.map((payment) => ({ kind: 'payment' as const, id: payment.id, effectiveDate: payment.paymentDate, cashPaidSatang: payment.cashPaidSatang, payment })),
+    ...advances.map((advance) => ({ kind: 'advance' as const, id: advance.id, effectiveDate: advance.advanceDate, amountSatang: advance.amountSatang, personId: advance.personId, advance })),
+  ].sort((left, right) => right.effectiveDate.localeCompare(left.effectiveDate) || right.id.localeCompare(left.id));
+  return {
+    sourceVersion: 'v2',
+    payments: model.payments,
+    advances,
+    events: model.events.filter((event) => paymentIds.has(event.entityId) || advanceIds.has(event.entityId)),
+    entries,
+  };
+};
 export const getPersonDetailV2 = async (db: SqlExecutor, personId: string): Promise<LaborV2PersonDetail> => {
   const model = await getLaborV2ReadModel(db); const [advances, paymentLinks] = await Promise.all([listLaborV2PersonAdvances(db, personId), db.getAllAsync<{ payment_session_id: string; obligation_id: string }>('SELECT settlement.payment_session_id, settlement.obligation_id FROM labor_v2_payment_recipient_settlements settlement JOIN labor_v2_payment_sessions session ON session.id = settlement.payment_session_id WHERE settlement.person_id = ? AND session.status IN (\'posted\', \'revised\')', [personId])]);
   const paymentIds = new Set(paymentLinks.map((row) => row.payment_session_id)); const advanceIds = new Set(advances.map((item) => item.id));
