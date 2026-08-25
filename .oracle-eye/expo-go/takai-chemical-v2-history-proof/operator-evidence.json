@@ -1,0 +1,32 @@
+{
+  "project": "takai-mobile",
+  "taskId": "#32",
+  "phase": "chemical-v2-history-proof",
+  "lane": "expo-go-device-eye",
+  "status": "passed_operator",
+  "claimLabel": "Expo Go Device Eye Closed",
+  "gateOfRecord": "Real Android Expo Go operator observation",
+  "capturedAt": "2026-08-25T14:40:15+0700",
+  "device": { "manufacturer": null, "model": null, "androidVersion": null, "screenOrSafeAreaNotes": null },
+  "client": { "kind": "Expo Go Android", "expoGoVersion": null, "expectedSdkVersion": "54.0.0", "expectedRuntimeVersion": "exposdk:54.0.0", "compatibilityResult": "pending_operator_observation" },
+  "launch": { "method": "Expo Go Android (operator run)", "coldLaunch": "passed", "openResult": "passed", "crashOrCompatibilityMessage": null },
+  "scenarios": [
+    { "id": "chemical-library-history", "status": "passed", "expected": "Empty or archived chemicals remain readable with their saved use history and last-used date.", "operatorResult": "คุณนนท์ยืนยันว่า คลังยาใช้งานได้ดี", "screenshots": [], "repairItemIds": [] },
+    { "id": "chemical-task-snapshot", "status": "passed", "expected": "Task detail shows shared water and saved dose values after the catalog item has changed status.", "operatorResult": "คุณนนท์ยืนยันว่า การลองใช้งาน Chemical V2 ผ่าน", "screenshots": [], "repairItemIds": [] },
+    { "id": "chemical-mix-capture", "status": "passed", "expected": "Available items can be selected or quick-added; one water value calculates every saved dose; no-chemical work remains simple.", "operatorResult": "คุณนนท์ยืนยันให้ปิด eye truth", "screenshots": [], "repairItemIds": [] }
+  ],
+  "observations": {
+    "coldOpen": { "status": "passed", "note": "Operator confirmed a successful Expo Go run; device model was not recorded." },
+    "touchAndScroll": { "status": "passed", "note": "Operator accepted the tested flow." },
+    "keyboardAndThaiLayout": { "status": "passed", "note": "Operator accepted the tested Thai flow." },
+    "emptyStatusComprehension": { "status": "passed", "note": "Operator accepted the Chemical Library flow." },
+    "noChemicalFreeFormWork": { "status": "passed", "note": "Operator accepted the Chemical V2 flow." }
+  },
+  "repairItems": [],
+  "operatorAcceptance": { "accepted": true, "operatorNameOrRole": "คุณนนท์ (human operator)", "summary": "คุณนนท์ทดลองใช้งานและยืนยันว่า คลังยาและ flow ที่ทดสอบใช้งานได้ดี ให้ปิด eye truth." },
+  "limitations": [
+    "Device model and exact Expo Go version were not recorded; this is human operator acceptance for the stated Chemical V2 flows.",
+    "RN Web evidence does not prove Android touch, keyboard, safe areas, or SQLite persistence.",
+    "Expo Go evidence does not close Native Eye or prove internal-build packaging."
+  ]
+}

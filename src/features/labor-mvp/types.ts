@@ -529,7 +529,29 @@ export type CreateLaborV2ChemicalInput = { id?: string; commonName: string; bran
 export type UpdateLaborV2ChemicalInput = { commonName?: string; brandName?: string; chemicalGroup?: string; detail?: string; referenceAmount?: number; referenceUnit?: string; referenceWaterLitres?: number; addedOn?: string; reason: string };
 export type LaborV2Chemical = { id: string; commonName: string; brandName: string; chemicalGroup: string; detail: string; referenceAmount: number; referenceUnit: string; referenceWaterLitres: number; addedOn: string; status: LaborV2ChemicalStatus; archivedAt: string | null; currentRevision: number; createdAt: string; updatedAt: string };
 export type LaborV2ChemicalRevision = { id: string; chemicalId: string; revision: number; action: 'created' | 'updated' | 'marked_empty' | 'restored_available' | 'archived' | 'restored'; reason: string | null; before: unknown | null; after: unknown; createdAt: string };
-export type LaborV2ChemicalDetail = LaborV2Chemical & { revisions: LaborV2ChemicalRevision[] };
+/**
+ * A chemical-use row is a durable task snapshot, not a projection of the
+ * current chemical catalog. This makes past mixes readable after an item is
+ * edited, marked empty, or archived.
+ */
+export type LaborV2ChemicalUseHistory = {
+  taskId: string;
+  workDate: string;
+  taskTitle: string;
+  waterLitres: number;
+  commonName: string;
+  referenceAmount: number;
+  referenceUnit: string;
+  referenceWaterLitres: number;
+  calculatedAmount: number;
+  wasMarkedEmpty: boolean;
+};
+export type LaborV2ChemicalDetail = LaborV2Chemical & {
+  revisions: LaborV2ChemicalRevision[];
+  /** Latest effective work date, never catalog updatedAt. */
+  lastUsedOn: string | null;
+  usages: LaborV2ChemicalUseHistory[];
+};
 
 /**
  * One task may carry one shared-water tank mix.  A quick item deliberately

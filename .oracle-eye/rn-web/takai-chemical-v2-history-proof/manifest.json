@@ -1,0 +1,170 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-chemical-v2-history-proof",
+  "lane": "rn-web-eye",
+  "claimLabel": "RN Web Eye Closed",
+  "generatedAt": "2026-08-25T07:10:46.222Z",
+  "viewports": [
+    "390x844",
+    "320x844"
+  ],
+  "exportDir": ".oracle-eye/rn-web/takai-chemical-v2-history-proof/export",
+  "artifacts": {
+    "exportIndex": ".oracle-eye/rn-web/takai-chemical-v2-history-proof/export/index.html",
+    "manifest": ".oracle-eye/rn-web/takai-chemical-v2-history-proof/manifest.json",
+    "browserEvidence": ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/browser-evidence.json",
+    "consoleErrors": ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/console-errors.json",
+    "consoleWarnings": ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/console-warnings.json",
+    "networkFailures": ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/network-failures.json"
+  },
+  "browserEvidence": {
+    "screens": [
+      {
+        "flow": "chemical-library-list",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&scenario=chemical-library-list",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-library-list-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-library-history",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&scenario=chemical-library-history",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-library-history-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-task-detail",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=work&scenario=chemical-task-detail",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-task-detail-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-task-snapshot-reference",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=work&scenario=chemical-task-detail",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-task-snapshot-reference-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-mix-quick-add",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=record&scenario=chemical-mix-quick-add",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-mix-quick-add-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-quick-add-picker",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=record&scenario=chemical-mix-quick-add",
+        "viewport": "390x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-quick-add-picker-390x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-library-list",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&scenario=chemical-library-list",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-library-list-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-library-history",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&scenario=chemical-library-history",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-library-history-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-task-detail",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=work&scenario=chemical-task-detail",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-task-detail-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-task-snapshot-reference",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=work&scenario=chemical-task-detail",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-task-snapshot-reference-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-mix-quick-add",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=record&scenario=chemical-mix-quick-add",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-mix-quick-add-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      },
+      {
+        "flow": "chemical-quick-add-picker",
+        "targetUrl": "http://127.0.0.1:52160/?proof=1&screen=record&scenario=chemical-mix-quick-add",
+        "viewport": "320x844",
+        "screenshotPaths": [
+          ".oracle-eye/rn-web/takai-chemical-v2-history-proof/browser/chemical-quick-add-picker-320x844.png"
+        ],
+        "consoleErrorCount": 0,
+        "failedRequestCount": 0,
+        "horizontalOverflow": "none observed"
+      }
+    ],
+    "consoleErrorCount": 0,
+    "failedRequestCount": 0,
+    "knownWarnings": [],
+    "controlPlane": "Phase-specific Playwright Chromium against the exported Expo Web artifact."
+  },
+  "notes": [
+    "This script closes RN Web export readiness and records the artifact sink only.",
+    "RN Web Eye remains Pending until browser screenshot, console, and network evidence are captured in this sink.",
+    "This lane does not close Expo Go Device Eye or Native Eye."
+  ],
+  "targetUrl": "http://127.0.0.1:52160",
+  "limitations": [
+    "RN Web proves rendered browser layout only. It does not prove Android touch, physical keyboard avoidance, safe areas, local SQLite persistence, or native packaging.",
+    "Expo Go Device Eye and Native Eye remain Pending until separately observed."
+  ]
+}
