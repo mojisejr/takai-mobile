@@ -19,7 +19,7 @@ verify_eyes:
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
     artifact_sink: .oracle-eye/rn-static/takai-v2-plot-context/
-    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-v2-plot-ui, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
+    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-v2-plot-ui, npm run test:labor-v2-chemical-ui, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
     gate: required
@@ -35,7 +35,7 @@ verify_eyes:
     artifact_sink: .oracle-eye/expo-go/takai-warm-notebook-ui-redesign/
     commands: [Operator runs the prepared V2 Expo Go Android scenarios in Phase 4]
     claim_label: Expo Go Device Eye Closed
-labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, จ่ายเงิน, คน]
+labor_mvp_navigation: [วันนี้, งาน, บันทึกงาน, จ่ายเงิน, จัดการ]
 proof_lanes: [deterministic, rn-static, rn-web, expo-go-device]
 ---
 
@@ -55,9 +55,9 @@ Bottom navigation is exactly:
 2. `งาน` — ปฏิทิน 7 คอลัมน์, เลือกวัน, รายการงานทั้งหมดแบบกรองได้, และรายละเอียดงาน.
 3. `บันทึกงาน` — task capture plus daily/hourly/open-contract compensation units.
 4. `จ่ายเงิน` — obligation payment, bonus, person-only advance recovery, and reasoned correction entry.
-5. `คน` — people, wage balance, advance balance, and person history.
+5. `จัดการ` — home for `คนทำงาน`, `แปลง`, and `คลังยา / เคมี`; these are master-data routes, not a drawer or a sixth tab.
 
-Payment is also contextual from Today, Job Detail, Person Detail, or history; every route opens the same payment entry state. `เมนู` and its hamburger affordance are retired from the Labor MVP.
+Payment is also contextual from Today, Job Detail, Person Detail, or history; every route opens the same payment entry state. People detail/payment/advance remain reachable through `จัดการ > คนทำงาน`. `เมนู` and its hamburger affordance are retired from the Labor MVP.
 
 The header always carries the TAKAI mascot and brand with the current screen as its subtitle. Detail screens provide a back action; the `i` action opens an in-app help sheet. Meaningful choices use picker/search sheets, including work kind, settlement route, people, and history filters. Compact chips are reserved for short states such as `ค้างจ่าย`, `จ่ายแล้ว`, and `ครึ่งวัน`. V1 history stays preserved in the local database but is not rendered during active V2 product development; reintroduce it only with an explicit owner decision.
 
@@ -80,7 +80,7 @@ Use Thai labels that describe the actual garden accounting model: `คนทำ�
 
 Reuse `AppShell`, `TopBar`, `BottomTabBar`, `FieldCard`, `SectionHeader`, `PrimaryButton`, `StatusChip`, `SearchPickerSheet`, `MultiSearchPickerSheet`, `DatePickerField`, `StickySaveBar`, and `ConfirmActionSheet`.
 
-Adapt/create `LaborMvpApp`, labor-specific status chips, compact calendar event markers, `LaborRecordRow`, `CalendarDaySheet`, `LedgerTimeline`, filter sheet, amount-summary strip, and a route-local plot list/detail. A task may select zero or many active plots; each selected plot renders editable tree-reference rows below it. Rename/archive history remains readable in task detail, while archived plots are absent from capture pickers. Do not retrofit `OperationalSliceScreen`.
+Adapt/create `LaborMvpApp`, Management Hub, labor-specific status chips, compact calendar event markers, `LaborRecordRow`, `CalendarDaySheet`, `LedgerTimeline`, filter sheet, amount-summary strip, a route-local plot list/detail, and a chemical-library list/detail. A task may select zero or many active plots; each selected plot renders editable tree-reference rows below it. Rename/archive history remains readable in task detail, while archived plots are absent from capture pickers. Chemical library records permit duplicate common names, show local `addedOn`, and manually change `available` / `empty` / `archived` with a reason and immutable history. It is not quantity inventory, and its task-mix/quick-add surface waits for the later Chemical V2 phase. Do not retrofit `OperationalSliceScreen` or retired V1 Materials/Activity routes.
 
 ## Layout and responsive rules
 

@@ -521,6 +521,14 @@ export type LaborV2Plot = { id: string; name: string; cropLabel: string; latitud
 export type LaborV2PlotRevision = { id: string; plotId: string; revision: number; action: 'created' | 'updated' | 'archived' | 'restored'; reason: string | null; before: unknown | null; after: unknown; createdAt: string };
 export type LaborV2PlotDetail = LaborV2Plot & { revisions: LaborV2PlotRevision[] };
 
+/** Chemical records are V2 master data. They are deliberately not V1 material rows or quantity stock. */
+export type LaborV2ChemicalStatus = 'available' | 'empty' | 'archived';
+export type CreateLaborV2ChemicalInput = { id?: string; commonName: string; brandName?: string; chemicalGroup?: string; detail?: string; referenceAmount: number; referenceUnit: string; referenceWaterLitres: number; addedOn: string };
+export type UpdateLaborV2ChemicalInput = { commonName?: string; brandName?: string; chemicalGroup?: string; detail?: string; referenceAmount?: number; referenceUnit?: string; referenceWaterLitres?: number; addedOn?: string; reason: string };
+export type LaborV2Chemical = { id: string; commonName: string; brandName: string; chemicalGroup: string; detail: string; referenceAmount: number; referenceUnit: string; referenceWaterLitres: number; addedOn: string; status: LaborV2ChemicalStatus; archivedAt: string | null; currentRevision: number; createdAt: string; updatedAt: string };
+export type LaborV2ChemicalRevision = { id: string; chemicalId: string; revision: number; action: 'created' | 'updated' | 'marked_empty' | 'restored_available' | 'archived' | 'restored'; reason: string | null; before: unknown | null; after: unknown; createdAt: string };
+export type LaborV2ChemicalDetail = LaborV2Chemical & { revisions: LaborV2ChemicalRevision[] };
+
 export type StartLaborContractBatchV2Input = { id?: string; title: string; startsOn: string; deadlineOn?: string; note?: string; memberPersonIds: string[]; taskIds?: string[] };
 export type RecordLaborContractProgressV2Input = { id?: string; progressDate: string; note?: string; quantityMilli?: number; unitLabel?: string };
 export type FinalizeLaborContractBatchV2Input = { finalizedAt: string; finalization: NonNullable<LaborV2ContractBatchIntent['finalization']> };

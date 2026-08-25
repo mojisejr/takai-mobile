@@ -10,7 +10,7 @@ const main = async (): Promise<void> => {
   const form = await readFile(resolve(root, 'src/ui/FieldForm.tsx'), 'utf8');
   const feedback = await readFile(resolve(root, 'src/ui/LaborFeedback.tsx'), 'utf8');
 
-  for (const label of ['วันนี้', 'งาน', 'บันทึกงาน', 'จ่ายเงิน', 'คน']) assert.ok(tabs.includes(`label: '${label}'`), `bottom navigation must include ${label}`);
+  for (const label of ['วันนี้', 'งาน', 'บันทึกงาน', 'จ่ายเงิน', 'จัดการ']) assert.ok(tabs.includes(`label: '${label}'`), `bottom navigation must include ${label}`);
   assert.ok(!tabs.includes("label: 'เมนู'"), 'bottom navigation must not render the retired menu tab');
   for (const marker of ['useWindowDimensions', 'width - tokens.spacing.page * 2', 'flexBasis: 0', 'flexGrow: 1', 'minWidth: 0', 'adjustsFontSizeToFit', 'minimumFontScale={0.72}', 'numberOfLines={1}']) assert.ok(tabs.includes(marker), `five-tab bottom navigation must remain width-safe: ${marker}`);
   for (const marker of ['TAKAI', 'takai-mascot-bust.png', 'onInfoPress', 'accessibilityLabel="วิธีใช้งาน"']) assert.ok(topBar.includes(marker), `brand header must include ${marker}`);

@@ -22,7 +22,7 @@ const main = async (): Promise<void> => {
   for (const marker of ['พื้นที่ที่ทำงาน', 'ชื่อเดิมเมื่อบันทึก', 'treeLabels', 'onManagePlots']) assert.ok(app.includes(marker), `task detail and route wiring must include ${marker}`);
   assert.ok(form.includes('quickAdd?: ReactNode') && form.includes('{quickAdd ? <View style={styles.quickAdd}>'), 'multi-search picker must offer a bounded quick-add seam');
   assert.ok(design.includes('route-local') && design.includes('five-tab') && design.includes('takai-v2-plot-context'), 'design contract must preserve route-local five-tab V2 plot truth');
-  for (const key of ["'today'", "'work'", "'record'", "'payment'", "'people'"]) assert.ok(tabs.includes(key), `navigation must retain ${key}`);
+  for (const key of ["'today'", "'work'", "'record'", "'payment'", "'manage'"]) assert.ok(tabs.includes(key), `navigation must retain ${key}`);
   assert.equal(tabs.includes("'plots'"), false, 'plot management must not become a sixth tab');
   assert.equal(`${editor}\n${app}\n${plots}`.includes('OperationalSliceScreen'), false, 'legacy Operations UI must remain retired');
   console.log('LABOR_V2_PLOT_UI_CONTRACT_PASS: route-local multi-plot capture, tree rows, history-safe task detail, management commands, and five-tab navigation are aligned');

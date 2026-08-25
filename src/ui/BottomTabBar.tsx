@@ -4,7 +4,8 @@ import { takaiIconMap, type TakaiIconKey } from '../theme/icons';
 import { tokens } from '../theme/tokens';
 
 /** `more` remains an internal compatibility key for the preserved legacy surface; it is not rendered in TAKAI Labor navigation. */
-export type BottomTabKey = 'today' | 'work' | 'record' | 'payment' | 'people' | 'more';
+/** `people`/`more` remain compatibility keys for retired legacy surfaces; only the five entries below render. */
+export type BottomTabKey = 'today' | 'work' | 'record' | 'payment' | 'manage' | 'people' | 'more';
 
 type BottomTabBarProps = {
   activeTab?: BottomTabKey;
@@ -16,7 +17,7 @@ const tabs: Array<{ key: BottomTabKey; label: string; icon: TakaiIconKey }> = [
   { key: 'work', label: 'งาน', icon: 'work' },
   { key: 'record', label: 'บันทึกงาน', icon: 'record' },
   { key: 'payment', label: 'จ่ายเงิน', icon: 'payment' },
-  { key: 'people', label: 'คน', icon: 'people' },
+  { key: 'manage', label: 'จัดการ', icon: 'manage' },
 ];
 
 export function BottomTabBar({ activeTab = 'today', onTabPress }: BottomTabBarProps) {

@@ -813,4 +813,42 @@ export const TAKAI_MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_labor_v2_task_plot_tree_refs_target ON labor_v2_task_plot_tree_refs(task_plot_target_id, sort_order)`,
     ],
   },
+  {
+    id: 20,
+    name: 'labor_v2_chemical_library_and_revision_ledger',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_v2_chemical_items (
+        id TEXT PRIMARY KEY,
+        common_name TEXT NOT NULL CHECK (length(trim(common_name)) > 0),
+        brand_name TEXT NOT NULL DEFAULT '',
+        chemical_group TEXT NOT NULL DEFAULT '',
+        detail TEXT NOT NULL DEFAULT '',
+        reference_amount REAL NOT NULL CHECK (typeof(reference_amount) IN ('integer', 'real') AND reference_amount > 0),
+        reference_unit TEXT NOT NULL CHECK (length(trim(reference_unit)) > 0),
+        reference_water_litres REAL NOT NULL CHECK (typeof(reference_water_litres) IN ('integer', 'real') AND reference_water_litres > 0),
+        added_on TEXT NOT NULL CHECK (length(added_on) = 10),
+        status TEXT NOT NULL CHECK (status IN ('available', 'empty', 'archived')),
+        archived_at TEXT,
+        current_revision INTEGER NOT NULL DEFAULT 1 CHECK (current_revision > 0),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        CHECK ((status = 'archived' AND archived_at IS NOT NULL) OR (status != 'archived' AND archived_at IS NULL))
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_chemical_revisions (
+        id TEXT PRIMARY KEY,
+        chemical_id TEXT NOT NULL REFERENCES labor_v2_chemical_items(id) ON DELETE RESTRICT,
+        revision INTEGER NOT NULL CHECK (revision > 0),
+        action TEXT NOT NULL CHECK (action IN ('created', 'updated', 'marked_empty', 'restored_available', 'archived', 'restored')),
+        reason TEXT,
+        before_json TEXT,
+        after_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(chemical_id, revision)
+      )`,
+      `CREATE TRIGGER IF NOT EXISTS labor_v2_chemical_revisions_immutable_update BEFORE UPDATE ON labor_v2_chemical_revisions BEGIN SELECT RAISE(ABORT, 'TAKAI V2 chemical revisions are immutable'); END`,
+      `CREATE TRIGGER IF NOT EXISTS labor_v2_chemical_revisions_immutable_delete BEFORE DELETE ON labor_v2_chemical_revisions BEGIN SELECT RAISE(ABORT, 'TAKAI V2 chemical revisions are immutable'); END`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_chemicals_status_added ON labor_v2_chemical_items(status, added_on DESC, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_chemical_revisions_chemical ON labor_v2_chemical_revisions(chemical_id, revision DESC)`,
+    ],
+  },
 ];
