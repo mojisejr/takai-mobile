@@ -1,0 +1,27 @@
+{
+  "project": "takai-mobile",
+  "phase": "takai-chemical-v2-management",
+  "lane": "rn-static-eye",
+  "claimLabel": "RN Static Token Gate Closed",
+  "generatedAt": "2026-08-25T05:19:53.514Z",
+  "checks": [
+    "test:warm-notebook-foundation",
+    "test:warm-notebook-primitives",
+    "test:warm-notebook-read-money",
+    "test:warm-notebook-record",
+    "test:warm-notebook-responsive",
+    "test:design-contract",
+    "test:labor-navigation-ui",
+    "test:labor-v2-plot-ui",
+    "test:labor-v2-chemical-ui",
+    "test:labor-read-ui",
+    "test:labor-v2-read-navigation-ui",
+    "test:labor-write-ui",
+    "test:labor-payment-batch-ui",
+    "test:labor-notebook-boundary"
+  ],
+  "notes": [
+    "This lane verifies source-level navigation, primitive, route, and design-contract truth.",
+    "It does not verify rendered layout, Android touch, native safe areas, or native Modal behaviour."
+  ]
+}
