@@ -21,7 +21,7 @@ const main = async (): Promise<void> => {
   const directory = await mkdtemp(join(tmpdir(), 'takai-v2-plot-')); let connection: DatabaseSync | null = null;
   try {
     connection = new DatabaseSync(join(directory, 'takai.db')); const db = new NodeSqliteExecutor(connection);
-    assert.deepEqual(await runMigrations(db), Array.from({ length: 20 }, (_, index) => index + 1), 'fresh database reaches the additive V2 plot and chemical migrations');
+    assert.deepEqual(await runMigrations(db), Array.from({ length: 21 }, (_, index) => index + 1), 'fresh database reaches the additive V2 plot, chemical, and task-mix migrations');
     const v2Tables = await db.getAllAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('labor_v2_plots', 'labor_v2_plot_revisions', 'labor_v2_task_plot_targets', 'labor_v2_task_plot_tree_refs') ORDER BY name");
     assert.deepEqual(v2Tables.map((row) => row.name), ['labor_v2_plot_revisions', 'labor_v2_plots', 'labor_v2_task_plot_targets', 'labor_v2_task_plot_tree_refs'], 'plot context remains a V2-only data island');
     const su = await createLaborWorker(db, { id: 'su', displayName: 'สุ' });
@@ -59,7 +59,7 @@ const main = async (): Promise<void> => {
     const upgrade = new DatabaseSync(join(directory, 'upgrade.db')); const upgradeDb = new NodeSqliteExecutor(upgrade);
     await upgradeDb.execAsync('PRAGMA foreign_keys = ON'); await upgradeDb.execAsync('CREATE TABLE schema_migrations (id INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
     for (const migration of TAKAI_MIGRATIONS.filter((migration) => migration.id <= 18)) { for (const statement of migration.statements) await upgradeDb.execAsync(statement); await upgradeDb.runAsync('INSERT INTO schema_migrations (id, name, applied_at) VALUES (?, ?, ?)', [migration.id, migration.name, '2026-08-23T00:00:00.000Z']); }
-    assert.deepEqual(await runMigrations(upgradeDb), [19, 20], 'migration-18 notebooks upgrade through additive plot and chemical migrations'); upgrade.close();
+    assert.deepEqual(await runMigrations(upgradeDb), [19, 20, 21], 'migration-18 notebooks upgrade through additive plot, chemical, and task-mix migrations'); upgrade.close();
     console.log('LABOR_V2_PLOT_PASS: V2 plot context, revisions, optional task targets, free-text tree refs, and archive safeguards are deterministic');
   } finally { connection?.close(); await rm(directory, { recursive: true, force: true }); }
 };

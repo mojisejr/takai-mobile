@@ -414,6 +414,8 @@ export type LaborV2TaskFact = {
    * never an input to compensation or settlement calculations.
    */
   plotTargets: LaborV2TaskPlotTarget[];
+  /** Optional shared-water tank mix. It records snapshots, never stock deductions. */
+  chemicalMix?: LaborV2TaskChemicalMix;
 };
 
 /** Minimal work fact used by the pure compensation planner before any plot reads exist. */
@@ -502,7 +504,7 @@ export type LaborV2CompensationPlan = {
 
 export type RecordLaborDayV2Input = {
   workDate: string;
-  tasks: Array<{ id?: string; title: string; note?: string; assigneePersonIds: string[]; plotTargets?: LaborV2TaskPlotTargetInput[] }>;
+  tasks: Array<{ id?: string; title: string; note?: string; assigneePersonIds: string[]; plotTargets?: LaborV2TaskPlotTargetInput[]; chemicalMix?: LaborV2TaskChemicalMixInput }>;
   daily?: Array<{ id?: string; personId: string; rateSatang: number; quantityMilli: 500 | 1000; taskIds: string[] }>;
   hourly?: Array<{ id?: string; taskId: string; personId: string; rateSatang: number; shiftKey?: string; durationMinutes: number; note?: string }>;
 };
@@ -528,6 +530,17 @@ export type UpdateLaborV2ChemicalInput = { commonName?: string; brandName?: stri
 export type LaborV2Chemical = { id: string; commonName: string; brandName: string; chemicalGroup: string; detail: string; referenceAmount: number; referenceUnit: string; referenceWaterLitres: number; addedOn: string; status: LaborV2ChemicalStatus; archivedAt: string | null; currentRevision: number; createdAt: string; updatedAt: string };
 export type LaborV2ChemicalRevision = { id: string; chemicalId: string; revision: number; action: 'created' | 'updated' | 'marked_empty' | 'restored_available' | 'archived' | 'restored'; reason: string | null; before: unknown | null; after: unknown; createdAt: string };
 export type LaborV2ChemicalDetail = LaborV2Chemical & { revisions: LaborV2ChemicalRevision[] };
+
+/**
+ * One task may carry one shared-water tank mix.  A quick item deliberately
+ * contains only the minimum library facts and is created inside recordDay's
+ * transaction, so a failed work write cannot leave an orphan chemical item.
+ */
+export type LaborV2TaskChemicalQuickAddInput = { commonName: string; referenceAmount: number; referenceUnit: string; referenceWaterLitres: number; addedOn: string };
+export type LaborV2TaskChemicalUseInput = { chemicalId?: string; quickAdd?: LaborV2TaskChemicalQuickAddInput; markEmpty?: boolean; emptyReason?: string };
+export type LaborV2TaskChemicalMixInput = { waterLitres: number; uses: LaborV2TaskChemicalUseInput[] };
+export type LaborV2TaskChemicalUse = { chemicalId: string; commonName: string; referenceAmount: number; referenceUnit: string; referenceWaterLitres: number; calculatedAmount: number; wasMarkedEmpty: boolean };
+export type LaborV2TaskChemicalMix = { waterLitres: number; uses: LaborV2TaskChemicalUse[] };
 
 export type StartLaborContractBatchV2Input = { id?: string; title: string; startsOn: string; deadlineOn?: string; note?: string; memberPersonIds: string[]; taskIds?: string[] };
 export type RecordLaborContractProgressV2Input = { id?: string; progressDate: string; note?: string; quantityMilli?: number; unitLabel?: string };
