@@ -18,8 +18,8 @@ verify_eyes:
     gate: required
     sees: [Labor navigation, source-level responsive guards, projection adapter wiring]
     does_not_see: [Rendered browser layout, Android touch, native safe areas]
-    artifact_sink: .oracle-eye/rn-static/takai-v2-plot-context/
-    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-v2-plot-ui, npm run test:labor-v2-chemical-ui, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
+    artifact_sink: .oracle-eye/rn-static/takai-chemical-v2-task-mixes/
+    commands: [npm run test:design-contract, npm run test:labor-navigation-ui, npm run test:labor-v2-plot-ui, npm run test:labor-v2-chemical-ui, npm run test:labor-v2-task-chemical-mix, npm run test:labor-read-ui, npm run test:labor-v2-read-navigation-ui, npm run test:labor-notebook-boundary]
     claim_label: RN Static Token Gate Closed
   - kind: rn-web-eye
     gate: required
@@ -80,7 +80,7 @@ Use Thai labels that describe the actual garden accounting model: `คนทำ�
 
 Reuse `AppShell`, `TopBar`, `BottomTabBar`, `FieldCard`, `SectionHeader`, `PrimaryButton`, `StatusChip`, `SearchPickerSheet`, `MultiSearchPickerSheet`, `DatePickerField`, `StickySaveBar`, and `ConfirmActionSheet`.
 
-Adapt/create `LaborMvpApp`, Management Hub, labor-specific status chips, compact calendar event markers, `LaborRecordRow`, `CalendarDaySheet`, `LedgerTimeline`, filter sheet, amount-summary strip, a route-local plot list/detail, and a chemical-library list/detail. A task may select zero or many active plots; each selected plot renders editable tree-reference rows below it. Rename/archive history remains readable in task detail, while archived plots are absent from capture pickers. Chemical library records permit duplicate common names, show local `addedOn`, and manually change `available` / `empty` / `archived` with a reason and immutable history. It is not quantity inventory, and its task-mix/quick-add surface waits for the later Chemical V2 phase. Do not retrofit `OperationalSliceScreen` or retired V1 Materials/Activity routes.
+Adapt/create `LaborMvpApp`, Management Hub, labor-specific status chips, compact calendar event markers, `LaborRecordRow`, `CalendarDaySheet`, `LedgerTimeline`, filter sheet, amount-summary strip, a route-local plot list/detail, and a chemical-library list/detail. A task may select zero or many active plots; each selected plot renders editable tree-reference rows below it. Rename/archive history remains readable in task detail, while archived plots are absent from capture pickers. Chemical library records permit duplicate common names, show local `addedOn`, and manually change `available` / `empty` / `archived` with a reason and immutable history. It is not quantity inventory. A task may additionally save one optional shared-water chemical mix: select several available chemicals, enter water once, and show the calculated dose from each durable reference snapshot. Quick add stays inside the task picker (common name, amount, unit, reference water, local work date) and returns to that task; task, quick item, mix snapshots, and optional manual `ใช้หมดแล้ว` status all commit atomically. Different recipe or plot is a distinct task. Do not retrofit `OperationalSliceScreen` or retired V1 Materials/Activity routes.
 
 ## Layout and responsive rules
 
@@ -95,6 +95,8 @@ Adapt/create `LaborMvpApp`, Management Hub, labor-specific status chips, compact
 ## Notebook and proof lanes
 
 Normal app boot opens the real local notebook and never creates proof records. Proof fixtures remain explicit test-only data; when they are intentionally shown, the UI uses only the Thai marker `ข้อมูลทดสอบ`. Web must never fabricate a writable local notebook.
+
+The earlier `takai-v2-plot-context` evidence remains historical proof for plot capture; this Chemical V2 slice writes its own phase-specific static artifact and does not claim RN Web or device proof.
 
 | Lane | Required phase | What it proves |
 |---|---:|---|

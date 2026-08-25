@@ -851,4 +851,32 @@ export const TAKAI_MIGRATIONS: Migration[] = [
       `CREATE INDEX IF NOT EXISTS idx_labor_v2_chemical_revisions_chemical ON labor_v2_chemical_revisions(chemical_id, revision DESC)`,
     ],
   },
+  {
+    id: 21,
+    name: 'labor_v2_task_chemical_mixes',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS labor_v2_task_chemical_mixes (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL UNIQUE REFERENCES labor_v2_work_tasks(id) ON DELETE CASCADE,
+        water_litres REAL NOT NULL CHECK (typeof(water_litres) IN ('integer', 'real') AND water_litres > 0),
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS labor_v2_task_chemical_uses (
+        id TEXT PRIMARY KEY,
+        task_chemical_mix_id TEXT NOT NULL REFERENCES labor_v2_task_chemical_mixes(id) ON DELETE CASCADE,
+        chemical_id TEXT NOT NULL REFERENCES labor_v2_chemical_items(id) ON DELETE RESTRICT,
+        common_name_snapshot TEXT NOT NULL CHECK (length(trim(common_name_snapshot)) > 0),
+        reference_amount_snapshot REAL NOT NULL CHECK (typeof(reference_amount_snapshot) IN ('integer', 'real') AND reference_amount_snapshot > 0),
+        reference_unit_snapshot TEXT NOT NULL CHECK (length(trim(reference_unit_snapshot)) > 0),
+        reference_water_litres_snapshot REAL NOT NULL CHECK (typeof(reference_water_litres_snapshot) IN ('integer', 'real') AND reference_water_litres_snapshot > 0),
+        calculated_amount REAL NOT NULL CHECK (typeof(calculated_amount) IN ('integer', 'real') AND calculated_amount > 0),
+        marked_empty INTEGER NOT NULL DEFAULT 0 CHECK (marked_empty IN (0, 1)),
+        sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+        UNIQUE(task_chemical_mix_id, chemical_id),
+        UNIQUE(task_chemical_mix_id, sort_order)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_task_chemical_mixes_task ON labor_v2_task_chemical_mixes(task_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_labor_v2_task_chemical_uses_mix ON labor_v2_task_chemical_uses(task_chemical_mix_id, sort_order)`,
+    ],
+  },
 ];

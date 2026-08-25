@@ -32,7 +32,7 @@ const main = async (): Promise<void> => {
   try {
     connection = new DatabaseSync(databasePath);
     const db = new NodeSqliteExecutor(connection);
-    assert.deepEqual(await runMigrations(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+    assert.deepEqual(await runMigrations(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
     const su = await createLaborWorker(db, { id: 'worker-su', displayName: 'สุ' });
     const phuang = await createLaborWorker(db, { id: 'worker-phuang', displayName: 'พ่วง' });
 

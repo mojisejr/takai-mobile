@@ -1,7 +1,7 @@
 import type { SqlExecutor } from '../../data/migrations';
 import { planLaborCompensationV2 } from './compensationV2';
 import { createLaborWorkerAdvance, listLaborWorkerAdvances } from './repository';
-import type { CorrectLaborV2PaymentSessionInput, CreateLaborV2ChemicalInput, CreateLaborV2PlotInput, CreateLaborWorkerAdvanceInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2CalendarMonth, LaborV2Chemical, LaborV2ChemicalDetail, LaborV2ChemicalRevision, LaborV2ChemicalStatus, LaborV2MoneyHistory, LaborV2OpenContractBatch, LaborV2PaymentBatchDraft, LaborV2PaymentBatchDraftInput, LaborV2PaymentBatchDraftItem, LaborV2PersonDetail, LaborV2PersonProjection, LaborV2Plot, LaborV2PlotDetail, LaborV2PlotRevision, LaborV2ReadModel, LaborV2TaskDetail, LaborV2TaskWageContext, LaborV2TodayProjection, LaborV2WorkList, LaborV2WorkListFilters, LaborWorkerAdvance, LegacyLaborRead, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input, UpdateLaborV2ChemicalInput, UpdateLaborV2PlotInput } from './types';
+import type { CorrectLaborV2PaymentSessionInput, CreateLaborV2ChemicalInput, CreateLaborV2PlotInput, CreateLaborWorkerAdvanceInput, FinalizeLaborContractBatchV2Input, LaborV2CalendarDay, LaborV2CalendarMonth, LaborV2Chemical, LaborV2ChemicalDetail, LaborV2ChemicalRevision, LaborV2ChemicalStatus, LaborV2MoneyHistory, LaborV2OpenContractBatch, LaborV2PaymentBatchDraft, LaborV2PaymentBatchDraftInput, LaborV2PaymentBatchDraftItem, LaborV2PersonDetail, LaborV2PersonProjection, LaborV2Plot, LaborV2PlotDetail, LaborV2PlotRevision, LaborV2ReadModel, LaborV2TaskChemicalMix, LaborV2TaskDetail, LaborV2TaskWageContext, LaborV2TodayProjection, LaborV2WorkList, LaborV2WorkListFilters, LaborWorkerAdvance, LegacyLaborRead, PostLaborV2PaymentSessionInput, RecordLaborContractProgressV2Input, RecordLaborDayV2Input, StartLaborContractBatchV2Input, UpdateLaborV2ChemicalInput, UpdateLaborV2PlotInput } from './types';
 
 const now = (): string => new Date().toISOString();
 const id = (prefix: string): string => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -23,6 +23,8 @@ type TaskPlotTargetRow = { id: string; task_id: string; plot_id: string; plot_na
 type TaskPlotTreeRefRow = { task_plot_target_id: string; tree_label: string; sort_order: number };
 type ChemicalRow = { id: string; common_name: string; brand_name: string; chemical_group: string; detail: string; reference_amount: number; reference_unit: string; reference_water_litres: number; added_on: string; status: LaborV2ChemicalStatus; archived_at: string | null; current_revision: number; created_at: string; updated_at: string };
 type ChemicalRevisionRow = { id: string; chemical_id: string; revision: number; action: LaborV2ChemicalRevision['action']; reason: string | null; before_json: string | null; after_json: string; created_at: string };
+type TaskChemicalMixRow = { task_id: string; water_litres: number };
+type TaskChemicalUseRow = { task_id: string; chemical_id: string; common_name_snapshot: string; reference_amount_snapshot: number; reference_unit_snapshot: string; reference_water_litres_snapshot: number; calculated_amount: number; marked_empty: number; sort_order: number };
 const plotSnapshot = (row: PlotRow): LaborV2Plot => ({ id: row.id, name: row.name, cropLabel: row.crop_label, latitude: row.latitude === null ? null : Number(row.latitude), longitude: row.longitude === null ? null : Number(row.longitude), archivedAt: row.archived_at, currentRevision: Number(row.current_revision), createdAt: row.created_at, updatedAt: row.updated_at });
 const coordinates = (latitude: number | null | undefined, longitude: number | null | undefined): { latitude: number | null; longitude: number | null } => { const lat = latitude ?? null; const lon = longitude ?? null; if ((lat === null) !== (lon === null)) throw new Error('TAKAI V2 plot coordinates require both latitude and longitude'); if (lat !== null && (!Number.isFinite(lat) || !Number.isFinite(lon!) || lat < -90 || lat > 90 || lon! < -180 || lon! > 180)) throw new Error('TAKAI V2 plot coordinates are out of range'); return { latitude: lat, longitude: lon }; };
 const requiredReason = (value: string | undefined, action: string): string => { const reason = text(value); if (!reason) throw new Error(`TAKAI V2 plot ${action} requires a reason`); return reason; };
@@ -31,6 +33,15 @@ const appendPlotRevision = async (db: SqlExecutor, plotId: string, revision: num
 const chemicalSnapshot = (row: ChemicalRow): LaborV2Chemical => ({ id: row.id, commonName: row.common_name, brandName: row.brand_name, chemicalGroup: row.chemical_group, detail: row.detail, referenceAmount: Number(row.reference_amount), referenceUnit: row.reference_unit, referenceWaterLitres: Number(row.reference_water_litres), addedOn: row.added_on, status: row.status, archivedAt: row.archived_at, currentRevision: Number(row.current_revision), createdAt: row.created_at, updatedAt: row.updated_at });
 const chemicalDose = (amount: number, unit: string, waterLitres: number): { amount: number; unit: string; waterLitres: number } => { if (!Number.isFinite(amount) || amount <= 0) throw new Error('TAKAI V2 chemical reference amount must be positive'); const normalizedUnit = text(unit); if (!normalizedUnit) throw new Error('TAKAI V2 chemical reference unit is required'); if (!Number.isFinite(waterLitres) || waterLitres <= 0) throw new Error('TAKAI V2 chemical reference water must be positive'); return { amount, unit: normalizedUnit, waterLitres }; };
 const appendChemicalRevision = async (db: SqlExecutor, chemicalId: string, revision: number, action: LaborV2ChemicalRevision['action'], reason: string | null, before: unknown | undefined, after: unknown, occurredAt: string): Promise<void> => { await db.runAsync('INSERT INTO labor_v2_chemical_revisions (id, chemical_id, revision, action, reason, before_json, after_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [id('labor-v2-chemical-revision'), chemicalId, revision, action, reason, before === undefined ? null : JSON.stringify(before), JSON.stringify(after), occurredAt]); };
+const createChemicalInTransaction = async (db: SqlExecutor, input: CreateLaborV2ChemicalInput, occurredAt: string): Promise<string> => {
+  const commonName = text(input.commonName); if (!commonName) throw new Error('TAKAI V2 chemical common name is required'); date(input.addedOn, 'chemical added date'); const dose = chemicalDose(input.referenceAmount, input.referenceUnit, input.referenceWaterLitres); const chemicalId = input.id ?? id('labor-v2-chemical');
+  await db.runAsync("INSERT INTO labor_v2_chemical_items (id, common_name, brand_name, chemical_group, detail, reference_amount, reference_unit, reference_water_litres, added_on, status, archived_at, current_revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', NULL, 1, ?, ?)", [chemicalId, commonName, text(input.brandName), text(input.chemicalGroup), text(input.detail), dose.amount, dose.unit, dose.waterLitres, input.addedOn, occurredAt, occurredAt]);
+  const row = (await db.getAllAsync<ChemicalRow>('SELECT * FROM labor_v2_chemical_items WHERE id = ?', [chemicalId]))[0]!; await appendChemicalRevision(db, chemicalId, 1, 'created', null, undefined, chemicalSnapshot(row), occurredAt); return chemicalId;
+};
+const markChemicalEmptyInTransaction = async (db: SqlExecutor, chemicalId: string, reason: string, occurredAt: string): Promise<void> => {
+  const trimmedReason = requiredReason(reason, 'chemical marked_empty'); const existing = (await db.getAllAsync<ChemicalRow>("SELECT * FROM labor_v2_chemical_items WHERE id = ? AND status = 'available'", [chemicalId]))[0]; if (!existing) throw new Error('TAKAI V2 selected chemical is unavailable'); const before = chemicalSnapshot(existing); const revision = Number(existing.current_revision) + 1;
+  await db.runAsync("UPDATE labor_v2_chemical_items SET status = 'empty', archived_at = NULL, current_revision = ?, updated_at = ? WHERE id = ?", [revision, occurredAt, chemicalId]); await appendChemicalRevision(db, chemicalId, revision, 'marked_empty', trimmedReason, before, { ...before, status: 'empty', currentRevision: revision, updatedAt: occurredAt }, occurredAt);
+};
 
 export const createLaborV2Plot = async (db: SqlExecutor, input: CreateLaborV2PlotInput, occurredAt = now()): Promise<string> => transaction(db, async () => { const name = text(input.name); if (!name) throw new Error('TAKAI V2 plot requires a name'); const point = coordinates(input.latitude, input.longitude); const plotId = input.id ?? id('labor-v2-plot'); await db.runAsync('INSERT INTO labor_v2_plots (id, name, crop_label, latitude, longitude, archived_at, current_revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NULL, 1, ?, ?)', [plotId, name, text(input.cropLabel), point.latitude, point.longitude, occurredAt, occurredAt]); const row = (await db.getAllAsync<PlotRow>('SELECT id, name, crop_label, latitude, longitude, archived_at, current_revision, created_at, updated_at FROM labor_v2_plots WHERE id = ?', [plotId]))[0]!; await appendPlotRevision(db, plotId, 1, 'created', null, undefined, plotSnapshot(row), occurredAt); return plotId; });
 export const listLaborV2Plots = async (db: SqlExecutor, includeArchived = false): Promise<LaborV2Plot[]> => (await db.getAllAsync<PlotRow>(`SELECT id, name, crop_label, latitude, longitude, archived_at, current_revision, created_at, updated_at FROM labor_v2_plots ${includeArchived ? '' : 'WHERE archived_at IS NULL'} ORDER BY archived_at IS NOT NULL, name COLLATE NOCASE ASC, id ASC`)).map(plotSnapshot);
@@ -42,9 +53,7 @@ export const restoreLaborV2Plot = (db: SqlExecutor, plotId: string, reason: stri
 
 /** V2 chemical master data is additive and never reads/writes retired V1 materials or activity_materials. */
 export const createLaborV2Chemical = async (db: SqlExecutor, input: CreateLaborV2ChemicalInput, occurredAt = now()): Promise<string> => transaction(db, async () => {
-  const commonName = text(input.commonName); if (!commonName) throw new Error('TAKAI V2 chemical common name is required'); date(input.addedOn, 'chemical added date'); const dose = chemicalDose(input.referenceAmount, input.referenceUnit, input.referenceWaterLitres); const chemicalId = input.id ?? id('labor-v2-chemical');
-  await db.runAsync("INSERT INTO labor_v2_chemical_items (id, common_name, brand_name, chemical_group, detail, reference_amount, reference_unit, reference_water_litres, added_on, status, archived_at, current_revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', NULL, 1, ?, ?)", [chemicalId, commonName, text(input.brandName), text(input.chemicalGroup), text(input.detail), dose.amount, dose.unit, dose.waterLitres, input.addedOn, occurredAt, occurredAt]);
-  const row = (await db.getAllAsync<ChemicalRow>('SELECT * FROM labor_v2_chemical_items WHERE id = ?', [chemicalId]))[0]!; await appendChemicalRevision(db, chemicalId, 1, 'created', null, undefined, chemicalSnapshot(row), occurredAt); return chemicalId;
+  return createChemicalInTransaction(db, input, occurredAt);
 });
 export const listLaborV2Chemicals = async (db: SqlExecutor, includeArchived = false): Promise<LaborV2Chemical[]> => (await db.getAllAsync<ChemicalRow>(`SELECT * FROM labor_v2_chemical_items ${includeArchived ? '' : "WHERE status != 'archived'"} ORDER BY CASE status WHEN 'available' THEN 0 WHEN 'empty' THEN 1 ELSE 2 END, added_on DESC, created_at DESC, id ASC`)).map(chemicalSnapshot);
 export const getLaborV2ChemicalDetail = async (db: SqlExecutor, chemicalId: string): Promise<LaborV2ChemicalDetail> => {
@@ -67,7 +76,7 @@ export const restoreLaborV2Chemical = (db: SqlExecutor, chemicalId: string, reas
 
 export const recordLaborDayV2 = async (db: SqlExecutor, input: RecordLaborDayV2Input, occurredAt = now()): Promise<{ taskIds: string[]; dailyUnitIds: string[]; hourlyShiftIds: string[] }> => transaction(db, async () => {
   date(input.workDate, 'work date');
-  const taskFacts = input.tasks.map((task, index) => ({ id: task.id ?? `labor-v2-task-${index + 1}-${id('')}`, workDate: input.workDate, title: task.title, note: task.note, assigneePersonIds: task.assigneePersonIds, plotTargets: task.plotTargets ?? [] }));
+  const taskFacts = input.tasks.map((task, index) => ({ id: task.id ?? `labor-v2-task-${index + 1}-${id('')}`, workDate: input.workDate, title: task.title, note: task.note, assigneePersonIds: task.assigneePersonIds, plotTargets: task.plotTargets ?? [], chemicalMix: task.chemicalMix }));
   const daily = (input.daily ?? []).map((unit, index) => ({ id: unit.id ?? `labor-v2-daily-${index + 1}-${id('')}`, ...unit, workDate: input.workDate }));
   const hourly = (input.hourly ?? []).map((entry, index) => ({ id: entry.id ?? `labor-v2-hourly-${index + 1}-${id('')}`, ...entry, workDate: input.workDate }));
   const plan = planLaborCompensationV2({ tasks: taskFacts, daily, hourly, contracts: [] });
@@ -78,9 +87,27 @@ export const recordLaborDayV2 = async (db: SqlExecutor, input: RecordLaborDayV2I
       const labels = (target.treeLabels ?? []).map(text);
       if (labels.some((label) => !label) || new Set(labels).size !== labels.length) throw new Error('TAKAI V2 task tree labels must be distinct and nonblank');
     }
+    if (task.chemicalMix) {
+      if (task.plotTargets.length > 1) throw new Error('งานที่ใส่ยาเลือกได้ 1 แปลงเท่านั้น หากต้องใช้คนละแปลงหรือคนละสูตร ให้เพิ่มงานใหม่');
+      if (!Number.isFinite(task.chemicalMix.waterLitres) || task.chemicalMix.waterLitres <= 0) throw new Error('TAKAI V2 task chemical mix water must be positive');
+      if (!task.chemicalMix.uses.length) throw new Error('TAKAI V2 task chemical mix requires at least one chemical');
+      const selectedIds = task.chemicalMix.uses.flatMap((use) => use.chemicalId ? [use.chemicalId] : []);
+      if (new Set(selectedIds).size !== selectedIds.length) throw new Error('TAKAI V2 task chemical uses must be distinct per task');
+      for (const use of task.chemicalMix.uses) {
+        if (Boolean(use.chemicalId) === Boolean(use.quickAdd)) throw new Error('TAKAI V2 task chemical use requires one selected or quick chemical');
+        if (use.chemicalId && !text(use.chemicalId)) throw new Error('TAKAI V2 task chemical is required');
+        if (use.quickAdd) { const quick = use.quickAdd; if (!text(quick.commonName)) throw new Error('TAKAI V2 quick chemical common name is required'); date(quick.addedOn, 'quick chemical added date'); chemicalDose(quick.referenceAmount, quick.referenceUnit, quick.referenceWaterLitres); }
+        if (use.markEmpty && !text(use.emptyReason)) throw new Error('TAKAI V2 marking selected chemical empty requires a reason');
+      }
+    }
   }
   const plotsById = await activePlots(db, [...new Set(taskFacts.flatMap((task) => task.plotTargets.map((target) => target.plotId)))]);
   for (const task of taskFacts) for (const personId of task.assigneePersonIds) await worker(db, personId);
+  const selectedChemicalIds = [...new Set(taskFacts.flatMap((task) => task.chemicalMix?.uses.flatMap((use) => use.chemicalId ? [use.chemicalId] : []) ?? []))];
+  const selectedChemicalRows = selectedChemicalIds.length ? await db.getAllAsync<ChemicalRow>(`SELECT * FROM labor_v2_chemical_items WHERE id IN (${selectedChemicalIds.map(() => '?').join(', ')}) AND status = 'available'`, selectedChemicalIds) : [];
+  const selectedChemicalsById = new Map(selectedChemicalRows.map((row) => [row.id, row]));
+  if (selectedChemicalsById.size !== selectedChemicalIds.length) throw new Error('TAKAI V2 selected chemical is unavailable');
+  const chemicalsToMarkEmpty = new Map<string, string>();
   for (const task of taskFacts) {
     await db.runAsync('INSERT INTO labor_v2_work_tasks (id, work_date, title, note, created_at) VALUES (?, ?, ?, ?, ?)', [task.id, task.workDate, text(task.title), text(task.note), occurredAt]);
     for (const [sort, personId] of task.assigneePersonIds.entries()) await db.runAsync('INSERT INTO labor_v2_task_assignments (id, task_id, person_id, sort_order, note) VALUES (?, ?, ?, ?, ?)', [id('labor-v2-assignment'), task.id, personId, sort, '']);
@@ -90,8 +117,21 @@ export const recordLaborDayV2 = async (db: SqlExecutor, input: RecordLaborDayV2I
       await db.runAsync('INSERT INTO labor_v2_task_plot_targets (id, task_id, plot_id, plot_name_snapshot, sort_order) VALUES (?, ?, ?, ?, ?)', [targetId, task.id, target.plotId, plot.name, sort]);
       for (const [treeSort, treeLabel] of (target.treeLabels ?? []).map(text).entries()) await db.runAsync('INSERT INTO labor_v2_task_plot_tree_refs (id, task_plot_target_id, tree_label, sort_order) VALUES (?, ?, ?, ?)', [id('labor-v2-tree-ref'), targetId, treeLabel, treeSort]);
     }
+    if (task.chemicalMix) {
+      const mixId = id('labor-v2-task-chemical-mix');
+      await db.runAsync('INSERT INTO labor_v2_task_chemical_mixes (id, task_id, water_litres, created_at) VALUES (?, ?, ?, ?)', [mixId, task.id, task.chemicalMix.waterLitres, occurredAt]);
+      for (const [sort, use] of task.chemicalMix.uses.entries()) {
+        const chemicalId = use.chemicalId ?? await createChemicalInTransaction(db, use.quickAdd!, occurredAt);
+        const chemical = selectedChemicalsById.get(chemicalId) ?? (await db.getAllAsync<ChemicalRow>("SELECT * FROM labor_v2_chemical_items WHERE id = ? AND status = 'available'", [chemicalId]))[0];
+        if (!chemical) throw new Error('TAKAI V2 selected chemical is unavailable');
+        const calculatedAmount = chemical.reference_amount * task.chemicalMix.waterLitres / chemical.reference_water_litres;
+        await db.runAsync('INSERT INTO labor_v2_task_chemical_uses (id, task_chemical_mix_id, chemical_id, common_name_snapshot, reference_amount_snapshot, reference_unit_snapshot, reference_water_litres_snapshot, calculated_amount, marked_empty, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [id('labor-v2-task-chemical-use'), mixId, chemicalId, chemical.common_name, chemical.reference_amount, chemical.reference_unit, chemical.reference_water_litres, calculatedAmount, use.markEmpty ? 1 : 0, sort]);
+        if (use.markEmpty) chemicalsToMarkEmpty.set(chemicalId, text(use.emptyReason));
+      }
+    }
     await event(db, { entityType: 'work_task', entityId: task.id, action: 'recorded', occurredAt, after: task });
   }
+  for (const [chemicalId, reason] of chemicalsToMarkEmpty) await markChemicalEmptyInTransaction(db, chemicalId, reason, occurredAt);
   const dailyUnitIds: string[] = [];
   for (const unit of plan.dailyUnits) {
     await worker(db, unit.personId);
@@ -175,7 +215,7 @@ export const correctLaborV2PaymentSession = async (db: SqlExecutor, paymentSessi
 });
 
 export const getLaborV2ReadModel = async (db: SqlExecutor): Promise<LaborV2ReadModel> => {
-  const [tasks, obligations, payments, events, assignees, plotTargets, treeRefs] = await Promise.all([
+  const [tasks, obligations, payments, events, assignees, plotTargets, treeRefs, chemicalMixes, chemicalUses] = await Promise.all([
     db.getAllAsync<{ id: string; work_date: string; title: string }>('SELECT id, work_date, title FROM labor_v2_work_tasks ORDER BY work_date DESC, id ASC'),
     db.getAllAsync<{ id: string; source_kind: 'daily' | 'hourly' | 'contract'; source_unit_id: string; recipient_kind: 'person' | 'group'; person_id: string | null; due_satang: number; paid_satang: number }>("SELECT obligation.id, obligation.source_kind, obligation.source_unit_id, obligation.recipient_kind, obligation.person_id, obligation.due_satang, COALESCE((SELECT SUM(settlement.wage_satang) FROM labor_v2_payment_recipient_settlements settlement JOIN labor_v2_payment_sessions session ON session.id = settlement.payment_session_id WHERE settlement.obligation_id = obligation.id AND session.status IN ('posted', 'revised')), 0) AS paid_satang FROM labor_v2_obligations obligation WHERE obligation.status != 'cancelled' ORDER BY obligation.created_at ASC"),
     db.getAllAsync<{ id: string; payment_date: string; method: string; cash_paid_satang: number; current_revision: number }>("SELECT id, payment_date, method, cash_paid_satang, current_revision FROM labor_v2_payment_sessions WHERE status IN ('posted', 'revised') ORDER BY payment_date DESC, created_at DESC"),
@@ -183,12 +223,16 @@ export const getLaborV2ReadModel = async (db: SqlExecutor): Promise<LaborV2ReadM
     db.getAllAsync<{ task_id: string; person_id: string }>('SELECT task_id, person_id FROM labor_v2_task_assignments ORDER BY sort_order ASC, id ASC'),
     db.getAllAsync<TaskPlotTargetRow>('SELECT target.id, target.task_id, target.plot_id, target.plot_name_snapshot, target.sort_order, plot.name AS current_name FROM labor_v2_task_plot_targets target JOIN labor_v2_plots plot ON plot.id = target.plot_id ORDER BY target.task_id ASC, target.sort_order ASC, target.id ASC'),
     db.getAllAsync<TaskPlotTreeRefRow>('SELECT tree.task_plot_target_id, tree.tree_label, tree.sort_order FROM labor_v2_task_plot_tree_refs tree JOIN labor_v2_task_plot_targets target ON target.id = tree.task_plot_target_id ORDER BY tree.task_plot_target_id ASC, tree.sort_order ASC, tree.id ASC'),
+    db.getAllAsync<TaskChemicalMixRow>('SELECT task_id, water_litres FROM labor_v2_task_chemical_mixes ORDER BY task_id ASC'),
+    db.getAllAsync<TaskChemicalUseRow>('SELECT mix.task_id, use_row.chemical_id, use_row.common_name_snapshot, use_row.reference_amount_snapshot, use_row.reference_unit_snapshot, use_row.reference_water_litres_snapshot, use_row.calculated_amount, use_row.marked_empty, use_row.sort_order FROM labor_v2_task_chemical_uses use_row JOIN labor_v2_task_chemical_mixes mix ON mix.id = use_row.task_chemical_mix_id ORDER BY mix.task_id ASC, use_row.sort_order ASC, use_row.id ASC'),
   ]);
   const treesByTargetId = new Map<string, string[]>();
   for (const tree of treeRefs) treesByTargetId.set(tree.task_plot_target_id, [...(treesByTargetId.get(tree.task_plot_target_id) ?? []), tree.tree_label]);
   const targetsByTaskId = new Map<string, LaborV2ReadModel['tasks'][number]['plotTargets']>();
   for (const target of plotTargets) targetsByTaskId.set(target.task_id, [...(targetsByTaskId.get(target.task_id) ?? []), { plotId: target.plot_id, currentName: target.current_name, recordedName: target.plot_name_snapshot, wasRenamed: target.current_name !== target.plot_name_snapshot, treeLabels: treesByTargetId.get(target.id) ?? [] }]);
-  return { sourceVersion: 'v2', tasks: tasks.map((task) => ({ id: task.id, workDate: task.work_date, title: task.title, assigneePersonIds: assignees.filter((entry) => entry.task_id === task.id).map((entry) => entry.person_id), plotTargets: targetsByTaskId.get(task.id) ?? [] })), obligations: obligations.map((item) => ({ id: item.id, sourceKind: item.source_kind, sourceUnitId: item.source_unit_id, recipientKind: item.recipient_kind, personId: item.person_id, dueSatang: Number(item.due_satang), paidSatang: Number(item.paid_satang), remainingSatang: Number(item.due_satang) - Number(item.paid_satang), status: Number(item.due_satang) === Number(item.paid_satang) ? 'settled' : 'open' })), payments: payments.map((item) => ({ id: item.id, paymentDate: item.payment_date, method: item.method, cashPaidSatang: Number(item.cash_paid_satang), currentRevision: Number(item.current_revision) })), events: events.map((item) => ({ id: item.id, entityType: item.entity_type, entityId: item.entity_id, action: item.action, reason: item.reason, occurredAt: item.occurred_at })) };
+  const mixesByTaskId = new Map<string, LaborV2TaskChemicalMix>();
+  for (const mix of chemicalMixes) mixesByTaskId.set(mix.task_id, { waterLitres: Number(mix.water_litres), uses: chemicalUses.filter((use) => use.task_id === mix.task_id).map((use) => ({ chemicalId: use.chemical_id, commonName: use.common_name_snapshot, referenceAmount: Number(use.reference_amount_snapshot), referenceUnit: use.reference_unit_snapshot, referenceWaterLitres: Number(use.reference_water_litres_snapshot), calculatedAmount: Number(use.calculated_amount), wasMarkedEmpty: Boolean(use.marked_empty) })) });
+  return { sourceVersion: 'v2', tasks: tasks.map((task) => ({ id: task.id, workDate: task.work_date, title: task.title, assigneePersonIds: assignees.filter((entry) => entry.task_id === task.id).map((entry) => entry.person_id), plotTargets: targetsByTaskId.get(task.id) ?? [], ...(mixesByTaskId.has(task.id) ? { chemicalMix: mixesByTaskId.get(task.id)! } : {}) })), obligations: obligations.map((item) => ({ id: item.id, sourceKind: item.source_kind, sourceUnitId: item.source_unit_id, recipientKind: item.recipient_kind, personId: item.person_id, dueSatang: Number(item.due_satang), paidSatang: Number(item.paid_satang), remainingSatang: Number(item.due_satang) - Number(item.paid_satang), status: Number(item.due_satang) === Number(item.paid_satang) ? 'settled' : 'open' })), payments: payments.map((item) => ({ id: item.id, paymentDate: item.payment_date, method: item.method, cashPaidSatang: Number(item.cash_paid_satang), currentRevision: Number(item.current_revision) })), events: events.map((item) => ({ id: item.id, entityType: item.entity_type, entityId: item.entity_id, action: item.action, reason: item.reason, occurredAt: item.occurred_at })) };
 };
 
 /** Typed V2 read seams for Today, calendar, history, person, unpaid, and money history. */
