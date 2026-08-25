@@ -21,7 +21,7 @@ if (!design.includes('design_md_version: 3')) fail('DESIGN.md must declare Warm 
 for (const lane of ['kind: rn-static-eye', 'kind: rn-web-eye', 'kind: expo-go-device-eye']) {
   if (!design.includes(lane)) fail(`DESIGN.md must declare ${lane} proof lane`);
 }
-for (const label of ['วันนี้', 'งาน', 'บันทึกงาน', 'จ่ายเงิน', 'คน']) {
+for (const label of ['วันนี้', 'งาน', 'บันทึกงาน', 'จ่ายเงิน', 'จัดการ']) {
   if (!design.includes(label) || !tabSource.includes(`label: '${label}'`)) fail(`Labor navigation missing ${label}`);
 }
 if (tabSource.includes("label: 'เมนู'")) fail('Labor navigation must retire the menu tab');

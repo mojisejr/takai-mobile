@@ -43,6 +43,7 @@ const adapter = (model: LaborV2ReadModel, mode: 'notebook' | 'proof', staticRead
     archive: readonly,
     restore: readonly,
   },
+  chemicals: { list: async () => [], detail: readonly, create: readonly, update: readonly, markEmpty: readonly, restoreAvailable: readonly, archive: readonly, restore: readonly },
   contracts: { listOpen: async () => [] },
   personFinance: { listAdvances: async () => [], issueAdvance: readonly },
   commands: { recordDay: readonly, startContract: readonly, progressContract: readonly, finalizeContract: readonly, postPayment: readonly, correctPayment: readonly },

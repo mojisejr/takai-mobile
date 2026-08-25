@@ -38,7 +38,7 @@ const main = async (): Promise<void> => {
   try {
     connection = new DatabaseSync(databasePath);
     const db = new NodeSqliteExecutor(connection);
-    assert.deepEqual(await runMigrations(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+    assert.deepEqual(await runMigrations(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
     const su = await createLaborWorker(db, { id: 'su', displayName: 'สุ' }, fixed('2026-08-20T00:00:00.000Z'));
     const phuang = await createLaborWorker(db, { id: 'phuang', displayName: 'พ่วง' }, fixed('2026-08-20T00:00:00.000Z'));
     const chon = await createLaborWorker(db, { id: 'chon', displayName: 'ชล' }, fixed('2026-08-20T00:00:00.000Z'));
