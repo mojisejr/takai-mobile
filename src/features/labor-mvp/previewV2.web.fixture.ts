@@ -66,7 +66,7 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
       {
         "id": "labor-v2-preview-task-3",
         "workDate": "2026-08-21",
-        "title": "พ่นยา",
+        "title": "พ่นยารอบเช้า",
         "assigneePersonIds": [
           "labor-v2-preview-su"
         ],
@@ -80,7 +80,21 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
               "B-002"
             ]
           }
-        ]
+        ],
+        "chemicalMix": {
+          "waterLitres": 50,
+          "uses": [
+            {
+              "chemicalId": "labor-v2-preview-chemical-mancozeb-old",
+              "commonName": "แมนโคเซบ",
+              "referenceAmount": 300,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "calculatedAmount": 75,
+              "wasMarkedEmpty": false
+            }
+          ]
+        }
       }
     ],
     "obligations": [
@@ -406,7 +420,7 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
         {
           "id": "labor-v2-preview-task-3",
           "workDate": "2026-08-21",
-          "title": "พ่นยา",
+          "title": "พ่นยารอบเช้า",
           "assigneePersonIds": [
             "labor-v2-preview-su"
           ],
@@ -420,7 +434,21 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
                 "B-002"
               ]
             }
-          ]
+          ],
+          "chemicalMix": {
+            "waterLitres": 50,
+            "uses": [
+              {
+                "chemicalId": "labor-v2-preview-chemical-mancozeb-old",
+                "commonName": "แมนโคเซบ",
+                "referenceAmount": 300,
+                "referenceUnit": "g",
+                "referenceWaterLitres": 200,
+                "calculatedAmount": 75,
+                "wasMarkedEmpty": false
+              }
+            ]
+          }
         }
       ],
       "obligations": [
@@ -753,6 +781,285 @@ export const LABOR_V2_PREVIEW_WEB_FIXTURE: LaborV2PreviewFixture = {
             "createdAt": "2026-08-21T08:00:05.000Z"
           }
         ]
+      }
+    }
+  },
+  "chemicals": {
+    "active": [
+      {
+        "id": "labor-v2-preview-chemical-mancozeb-new",
+        "commonName": "แมนโคเซบ",
+        "brandName": "สูตรใหม่",
+        "chemicalGroup": "M03",
+        "detail": "",
+        "referenceAmount": 250,
+        "referenceUnit": "g",
+        "referenceWaterLitres": 200,
+        "addedOn": "2026-08-24",
+        "status": "empty",
+        "archivedAt": null,
+        "currentRevision": 2,
+        "createdAt": "2026-08-24T08:00:00.000Z",
+        "updatedAt": "2026-08-24T08:01:00.000Z"
+      }
+    ],
+    "includingArchived": [
+      {
+        "id": "labor-v2-preview-chemical-mancozeb-new",
+        "commonName": "แมนโคเซบ",
+        "brandName": "สูตรใหม่",
+        "chemicalGroup": "M03",
+        "detail": "",
+        "referenceAmount": 250,
+        "referenceUnit": "g",
+        "referenceWaterLitres": 200,
+        "addedOn": "2026-08-24",
+        "status": "empty",
+        "archivedAt": null,
+        "currentRevision": 2,
+        "createdAt": "2026-08-24T08:00:00.000Z",
+        "updatedAt": "2026-08-24T08:01:00.000Z"
+      },
+      {
+        "id": "labor-v2-preview-chemical-mancozeb-old",
+        "commonName": "แมนโคเซบ สูตรเดิม",
+        "brandName": "สูตรเดิม",
+        "chemicalGroup": "M03",
+        "detail": "",
+        "referenceAmount": 600,
+        "referenceUnit": "g",
+        "referenceWaterLitres": 200,
+        "addedOn": "2026-08-20",
+        "status": "archived",
+        "archivedAt": "2026-08-22T08:01:00.000Z",
+        "currentRevision": 3,
+        "createdAt": "2026-08-20T08:00:00.000Z",
+        "updatedAt": "2026-08-22T08:01:00.000Z"
+      }
+    ],
+    "details": {
+      "labor-v2-preview-chemical-mancozeb-old": {
+        "id": "labor-v2-preview-chemical-mancozeb-old",
+        "commonName": "แมนโคเซบ สูตรเดิม",
+        "brandName": "สูตรเดิม",
+        "chemicalGroup": "M03",
+        "detail": "",
+        "referenceAmount": 600,
+        "referenceUnit": "g",
+        "referenceWaterLitres": 200,
+        "addedOn": "2026-08-20",
+        "status": "archived",
+        "archivedAt": "2026-08-22T08:01:00.000Z",
+        "currentRevision": 3,
+        "createdAt": "2026-08-20T08:00:00.000Z",
+        "updatedAt": "2026-08-22T08:01:00.000Z",
+        "revisions": [
+          {
+            "id": "labor-v2-preview-chemical-revision-labor-v2-preview-chemical-mancozeb-old-3",
+            "chemicalId": "labor-v2-preview-chemical-mancozeb-old",
+            "revision": 3,
+            "action": "archived",
+            "reason": "เก็บสูตรเดิมไว้ดูประวัติ",
+            "before": {
+              "id": "labor-v2-preview-chemical-mancozeb-old",
+              "commonName": "แมนโคเซบ สูตรเดิม",
+              "brandName": "สูตรเดิม",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 600,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-20",
+              "status": "available",
+              "archivedAt": null,
+              "currentRevision": 2,
+              "createdAt": "2026-08-20T08:00:00.000Z",
+              "updatedAt": "2026-08-22T08:00:00.000Z"
+            },
+            "after": {
+              "id": "labor-v2-preview-chemical-mancozeb-old",
+              "commonName": "แมนโคเซบ สูตรเดิม",
+              "brandName": "สูตรเดิม",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 600,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-20",
+              "status": "archived",
+              "archivedAt": "2026-08-22T08:01:00.000Z",
+              "currentRevision": 3,
+              "createdAt": "2026-08-20T08:00:00.000Z",
+              "updatedAt": "2026-08-22T08:01:00.000Z"
+            },
+            "createdAt": "2026-08-22T08:01:00.000Z"
+          },
+          {
+            "id": "labor-v2-preview-chemical-revision-labor-v2-preview-chemical-mancozeb-old-2",
+            "chemicalId": "labor-v2-preview-chemical-mancozeb-old",
+            "revision": 2,
+            "action": "updated",
+            "reason": "แก้ข้อมูลหลังบันทึกงาน",
+            "before": {
+              "id": "labor-v2-preview-chemical-mancozeb-old",
+              "commonName": "แมนโคเซบ",
+              "brandName": "สูตรเดิม",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 300,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-20",
+              "status": "available",
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-20T08:00:00.000Z",
+              "updatedAt": "2026-08-20T08:00:00.000Z"
+            },
+            "after": {
+              "id": "labor-v2-preview-chemical-mancozeb-old",
+              "commonName": "แมนโคเซบ สูตรเดิม",
+              "brandName": "สูตรเดิม",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 600,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-20",
+              "status": "available",
+              "archivedAt": null,
+              "currentRevision": 2,
+              "createdAt": "2026-08-20T08:00:00.000Z",
+              "updatedAt": "2026-08-22T08:00:00.000Z"
+            },
+            "createdAt": "2026-08-22T08:00:00.000Z"
+          },
+          {
+            "id": "labor-v2-preview-chemical-revision-labor-v2-preview-chemical-mancozeb-old-1",
+            "chemicalId": "labor-v2-preview-chemical-mancozeb-old",
+            "revision": 1,
+            "action": "created",
+            "reason": null,
+            "before": null,
+            "after": {
+              "id": "labor-v2-preview-chemical-mancozeb-old",
+              "commonName": "แมนโคเซบ",
+              "brandName": "สูตรเดิม",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 300,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-20",
+              "status": "available",
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-20T08:00:00.000Z",
+              "updatedAt": "2026-08-20T08:00:00.000Z"
+            },
+            "createdAt": "2026-08-20T08:00:00.000Z"
+          }
+        ],
+        "lastUsedOn": "2026-08-21",
+        "usages": [
+          {
+            "taskId": "labor-v2-preview-task-3",
+            "workDate": "2026-08-21",
+            "taskTitle": "พ่นยารอบเช้า",
+            "waterLitres": 50,
+            "commonName": "แมนโคเซบ",
+            "referenceAmount": 300,
+            "referenceUnit": "g",
+            "referenceWaterLitres": 200,
+            "calculatedAmount": 75,
+            "wasMarkedEmpty": false
+          }
+        ]
+      },
+      "labor-v2-preview-chemical-mancozeb-new": {
+        "id": "labor-v2-preview-chemical-mancozeb-new",
+        "commonName": "แมนโคเซบ",
+        "brandName": "สูตรใหม่",
+        "chemicalGroup": "M03",
+        "detail": "",
+        "referenceAmount": 250,
+        "referenceUnit": "g",
+        "referenceWaterLitres": 200,
+        "addedOn": "2026-08-24",
+        "status": "empty",
+        "archivedAt": null,
+        "currentRevision": 2,
+        "createdAt": "2026-08-24T08:00:00.000Z",
+        "updatedAt": "2026-08-24T08:01:00.000Z",
+        "revisions": [
+          {
+            "id": "labor-v2-preview-chemical-revision-labor-v2-preview-chemical-mancozeb-new-2",
+            "chemicalId": "labor-v2-preview-chemical-mancozeb-new",
+            "revision": 2,
+            "action": "marked_empty",
+            "reason": "ใช้หมดแล้ว",
+            "before": {
+              "id": "labor-v2-preview-chemical-mancozeb-new",
+              "commonName": "แมนโคเซบ",
+              "brandName": "สูตรใหม่",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 250,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-24",
+              "status": "available",
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-24T08:00:00.000Z",
+              "updatedAt": "2026-08-24T08:00:00.000Z"
+            },
+            "after": {
+              "id": "labor-v2-preview-chemical-mancozeb-new",
+              "commonName": "แมนโคเซบ",
+              "brandName": "สูตรใหม่",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 250,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-24",
+              "status": "empty",
+              "archivedAt": null,
+              "currentRevision": 2,
+              "createdAt": "2026-08-24T08:00:00.000Z",
+              "updatedAt": "2026-08-24T08:01:00.000Z"
+            },
+            "createdAt": "2026-08-24T08:01:00.000Z"
+          },
+          {
+            "id": "labor-v2-preview-chemical-revision-labor-v2-preview-chemical-mancozeb-new-1",
+            "chemicalId": "labor-v2-preview-chemical-mancozeb-new",
+            "revision": 1,
+            "action": "created",
+            "reason": null,
+            "before": null,
+            "after": {
+              "id": "labor-v2-preview-chemical-mancozeb-new",
+              "commonName": "แมนโคเซบ",
+              "brandName": "สูตรใหม่",
+              "chemicalGroup": "M03",
+              "detail": "",
+              "referenceAmount": 250,
+              "referenceUnit": "g",
+              "referenceWaterLitres": 200,
+              "addedOn": "2026-08-24",
+              "status": "available",
+              "archivedAt": null,
+              "currentRevision": 1,
+              "createdAt": "2026-08-24T08:00:00.000Z",
+              "updatedAt": "2026-08-24T08:00:00.000Z"
+            },
+            "createdAt": "2026-08-24T08:00:00.000Z"
+          }
+        ],
+        "lastUsedOn": null,
+        "usages": []
       }
     }
   }

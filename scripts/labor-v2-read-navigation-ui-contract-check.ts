@@ -9,6 +9,8 @@ const main = async (): Promise<void> => {
   const design = await readFile(resolve(root, 'DESIGN.md'), 'utf8');
   for (const marker of ['WorkDetailScreen', 'WorkFilterSheet', 'FlatList', 'getCalendarMonth', 'getWorkList', 'getTaskDetail', 'งานที่ทำวันนี้', 'ค่าแรงค้างจ่าย']) assert.ok(app.includes(marker), `V2 read navigation needs ${marker}`);
   for (const marker of ['useWindowDimensions', 'calendarCellWidth', "width: calendarCellWidth", 'scrollEnabled={tab !== \'work\'}']) assert.ok(app.includes(marker), `calendar/list layout needs ${marker}`);
+  const detailSource = app.slice(app.indexOf('function WorkDetailScreen'), app.indexOf('/** V1 data remains preserved'));
+  assert.ok(detailSource.includes('return <FlatList') && detailSource.includes('ListHeaderComponent={<View style={styles.listScreen}>'), 'long Work Detail must own a virtualized vertical scroll surface instead of being clipped by the static work shell');
   assert.ok(shell.includes('scrollEnabled?: boolean') && shell.includes('scrollEnabled ? <ScrollView') && shell.includes('styles.staticContent'), 'AppShell must yield the vertical surface to a full virtualized work list');
   for (const marker of ['งานที่ทำวันนี้', 'ค่าแรงค้างจ่าย', 'รายการงานทั้งหมด']) assert.ok(design.includes(marker), `DESIGN.md must name restored IA: ${marker}`);
   assert.ok(design.includes('V1 history stays preserved') && design.includes('not rendered'), 'DESIGN.md must preserve but hide V1 history during active V2 development');

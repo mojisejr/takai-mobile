@@ -9,6 +9,10 @@ export type LaborWebProofScenario =
   | 'plot-quick-add'
   | 'plot-renamed-detail'
   | 'plot-archive-history'
+  | 'chemical-library-history'
+  | 'chemical-library-list'
+  | 'chemical-task-detail'
+  | 'chemical-mix-quick-add'
   | null;
 
 /**
@@ -42,6 +46,10 @@ export const selectLaborWebProofScenarioFromSearch = (search: string): LaborWebP
     || scenario === 'plot-quick-add'
     || scenario === 'plot-renamed-detail'
     || scenario === 'plot-archive-history'
+    || scenario === 'chemical-library-history'
+    || scenario === 'chemical-library-list'
+    || scenario === 'chemical-task-detail'
+    || scenario === 'chemical-mix-quick-add'
     ? scenario
     : null;
 };

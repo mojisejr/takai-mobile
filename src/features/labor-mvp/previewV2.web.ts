@@ -13,7 +13,7 @@ const readonly = async (): Promise<never> => { throw new Error('การบั�
 const detail = (model: LaborV2ReadModel, taskId: string) => { const task = model.tasks.find((item) => item.id === taskId); if (!task) throw new Error('ไม่พบงาน'); return { ...task, wageContexts: [] }; };
 const emptyMoneyHistory = (model: LaborV2ReadModel): LaborV2MoneyHistory => ({ sourceVersion: 'v2', payments: model.payments, advances: [], events: [], entries: model.payments.map((payment) => ({ kind: 'payment', id: payment.id, effectiveDate: payment.paymentDate, cashPaidSatang: payment.cashPaidSatang, payment })) });
 const fallbackPersonDetail = (model: LaborV2ReadModel, personId: string): LaborV2PersonDetail => ({ sourceVersion: 'v2', personId, tasks: model.tasks.filter((item) => item.assigneePersonIds.includes(personId)), obligations: model.obligations.filter((item) => item.personId === personId), payments: [], advances: [], events: model.events.filter((item) => item.entityId === personId) });
-const adapter = (model: LaborV2ReadModel, mode: 'notebook' | 'proof', staticRead?: Pick<typeof LABOR_V2_PREVIEW_WEB_FIXTURE, 'paymentBatchItems' | 'moneyHistory' | 'personDetails' | 'plots'>): LaborV2Adapter => ({
+const adapter = (model: LaborV2ReadModel, mode: 'notebook' | 'proof', staticRead?: Pick<typeof LABOR_V2_PREVIEW_WEB_FIXTURE, 'paymentBatchItems' | 'moneyHistory' | 'personDetails' | 'plots' | 'chemicals'>): LaborV2Adapter => ({
   mode,
   sourceVersion: 'v2',
   ...(mode === 'proof' ? { label: 'ข้อมูลทดสอบ' as const } : {}),
@@ -43,7 +43,20 @@ const adapter = (model: LaborV2ReadModel, mode: 'notebook' | 'proof', staticRead
     archive: readonly,
     restore: readonly,
   },
-  chemicals: { list: async () => [], detail: readonly, create: readonly, update: readonly, markEmpty: readonly, restoreAvailable: readonly, archive: readonly, restore: readonly },
+  chemicals: {
+    list: async (includeArchived = false) => structuredClone(mode === 'proof' ? (includeArchived ? staticRead?.chemicals.includingArchived ?? [] : staticRead?.chemicals.active ?? []) : []),
+    detail: async (chemicalId) => {
+      const item = mode === 'proof' ? staticRead?.chemicals.details[chemicalId] : undefined;
+      if (!item) throw new Error('ไม่พบข้อมูลยา / เคมี');
+      return structuredClone(item);
+    },
+    create: readonly,
+    update: readonly,
+    markEmpty: readonly,
+    restoreAvailable: readonly,
+    archive: readonly,
+    restore: readonly,
+  },
   contracts: { listOpen: async () => [] },
   personFinance: { listAdvances: async () => [], issueAdvance: readonly },
   commands: { recordDay: readonly, startContract: readonly, progressContract: readonly, finalizeContract: readonly, postPayment: readonly, correctPayment: readonly },

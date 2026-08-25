@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import type { SqlExecutor } from '../src/data/migrations';
 import { runMigrations } from '../src/data/migrations';
 import { TAKAI_MIGRATIONS } from '../src/data/schema';
-import { createLaborV2Chemical, createLaborV2Plot, createLaborWorker, getLaborV2ReadModel, recordLaborDayV2 } from '../src/features/labor-mvp';
+import { archiveLaborV2Chemical, createLaborV2Chemical, createLaborV2Plot, createLaborWorker, getLaborV2ChemicalDetail, getLaborV2ReadModel, recordLaborDayV2, updateLaborV2Chemical } from '../src/features/labor-mvp';
 
 class NodeSqliteExecutor implements SqlExecutor {
   constructor(private readonly database: DatabaseSync) {}
@@ -42,6 +42,12 @@ const main = async (): Promise<void> => {
     ] }, 'one shared water total snapshots several dose references and calculated amounts');
     assert.equal((await db.getAllAsync<{ status: string }>("SELECT status FROM labor_v2_chemical_items WHERE common_name = 'อะบาเม็กติน'"))[0]?.status, 'empty', 'explicit use-empty mark changes only that item status');
     assert.equal((await db.getAllAsync<{ status: string }>('SELECT status FROM labor_v2_chemical_items WHERE id = ?', [mancozeb]))[0]?.status, 'available', 'unchecked use never changes chemical status');
+    await updateLaborV2Chemical(db, mancozeb, { commonName: 'แมนโคเซบ สูตรใหม่', referenceAmount: 600, referenceUnit: 'g', referenceWaterLitres: 200, reason: 'เปลี่ยนสูตรในคลัง' }, '2026-08-26T01:00:00.000Z');
+    await archiveLaborV2Chemical(db, mancozeb, 'เลิกเก็บสูตรเดิม', '2026-08-26T02:00:00.000Z');
+    const archivedHistory = await getLaborV2ChemicalDetail(db, mancozeb);
+    assert.deepEqual(archivedHistory.usages, [{ taskId: 'spray', workDate: '2026-08-25', taskTitle: 'พ่นยารอบเช้า', waterLitres: 50, commonName: 'แมนโคเซบ', referenceAmount: 300, referenceUnit: 'g', referenceWaterLitres: 200, calculatedAmount: 75, wasMarkedEmpty: false }], 'chemical detail reads the immutable task-use snapshot after catalog edit/archive');
+    assert.equal(archivedHistory.lastUsedOn, '2026-08-25', 'last-used date derives from effective work date, not catalog audit time');
+    assert.equal((await getLaborV2ReadModel(db)).tasks.find((item) => item.id === 'spray')?.chemicalMix?.uses[0]?.commonName, 'แมนโคเซบ', 'task detail also preserves the original name after a catalog edit');
     assert.equal((await getLaborV2ReadModel(db)).tasks.find((item) => item.id === 'general')?.chemicalMix, undefined, 'a task without a mix preserves ordinary task-save behavior');
     assert.equal((await getLaborV2ReadModel(db)).tasks.find((item) => item.id === 'general')?.plotTargets.length, 2, 'ordinary non-chemical work may still span multiple plots');
     const beforeTasks = await count(db, 'labor_v2_work_tasks'); const beforeChemicals = await count(db, 'labor_v2_chemical_items');
